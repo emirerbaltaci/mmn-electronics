@@ -1,0 +1,68 @@
+{
+	"protocol": "NCOM",
+	"version": "0.1",
+	"endianness": "little",
+	
+	"directions": {
+		"MCU_TO_HOST": 0,
+		"HOST_TO_MCU": 1,
+		"BIDIRECTIONAL": 2
+	},
+	
+	"messages": [
+		{
+			"id": 0,
+			"name": "HEARTBEAT",
+			"direction": "MCU_TO_HOST",
+			"desc": "Sent with a freq. of 1Hz",
+			"payload": [
+			
+				{
+					"name": "device_id",
+					"type": "uint8"
+				},
+				
+				{
+					"name": "vehicle_state",
+					"type": "uint8",
+					"enum": {
+						"INIT": 0,
+						"DISARMED": 1,
+						"PREARMED": 2,
+						"ARMED": 3,
+						"MISSION": 4,
+						"DISARMED_MANUAL": 11,
+						"PREARMED_MANUAL": 12,
+						"ARMED_MANUAL": 13,
+						"DISARMED_ERR": 21,
+						"PREARMED_ERR": 22,
+						"ARMED_ERR": 23,
+						"MCU_HARDFAULT": 255
+					}
+				},
+				
+				{
+					"name": "flags",
+					"type": "uint8",
+					"flags_type": "bitmask",
+					"flags": {
+						"LEAK_DETECTED": 0,
+						"BATTERY_LOW": 1,
+						"INIT_ERR": 2,
+						"NAV_ERR": 3,
+						"BAR30_ERR": 4,
+						"PERIPHERAL_ERR": 5,
+						"RTOS_TASK_ERR": 6,
+						"MISSION_ABORTED": 7
+					}
+				},
+				
+				{
+					"name": "uptime_seconds",
+					"type": "uint32"
+				}
+				
+			]
+		}
+	]
+}
