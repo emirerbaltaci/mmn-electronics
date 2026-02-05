@@ -12,11 +12,10 @@ TYPE_MAP = {
     "float":  {"c": "float",    "py": "f", "size": 4}
 }
 
-timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-
 def generate_c_header(data, output_file):
     protocol = data["protocol"].upper()
     version = data["version"]
+    timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     
     with open(output_file, 'w') as f:
         f.write(f"/*\n * {protocol} C Header File\n * Auto-generated on: {timestamp}\n * Protocol Version: {version}\n */\n\n")
@@ -72,17 +71,18 @@ def generate_c_header(data, output_file):
 def generate_python_file(data, output_file):
     protocol = data["protocol"].upper()
     version = data["version"]
+    timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     
     with open(output_file, 'w') as f:
     
-        f.write(f"'''\nNCOM Python Module\nAuto-generated on: {timestamp}\nVersion: {version}\n'''\n")
+        f.write(f"'''\nNCOM Python Module\nAuto-generated on: {timestamp}\nVersion: {version}\n'''\n\n")
         
+        endian_char = ">" if data.get("endianness") == "big" else "<"
+        f.write(f"ENDIAN_CHAR = '{endian_char}'\n\n")
+
         f.write("import struct\n\n")
         
         f.write(f"SYNC_BYTE = 0xA5\n\n")
-        
-        # Determine Endianness char
-        endian_char = ">" if data.get("endianness") == "big" else "<"
 
         # 1. Enums & Flags
         for msg in data["messages"]:

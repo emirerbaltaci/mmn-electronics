@@ -28,9 +28,9 @@ class CRC16:
 def create_frame(msg_id, *args):
     payload = ncom.Messages.pack(msg_id, *args)
     if payload is None: return None
-    data = struct.pack("<BB", msg_id, len(payload)) + payload
+    data = struct.pack(ncom.ENDIAN_CHAR + "BB", msg_id, len(payload)) + payload
     crc = CRC16.calc(data)
-    return struct.pack("<B", ncom.SYNC_BYTE) + data + struct.pack("<H", crc)
+    return struct.pack(ncom.ENDIAN_CHAR + "B", ncom.SYNC_BYTE) + data + struct.pack(ncom.ENDIAN_CHAR + "H", crc)
 
 class NCOMParser:
     STATE_WAIT_SYNC = 0
@@ -57,12 +57,12 @@ class NCOMParser:
             self.state = self.STATE_WAIT_LEN
             
         elif self.state == self.STATE_WAIT_LEN:
-            self.len = byte
+            self.payload_len = byte
             self.payload_buf = bytearray()
-            if self.len == 0:
+            if self.payload_len == 0:
                 self.state = self.STATE_WAIT_CRC
                 self.crc_buf = bytearray()
-            else: self.state=STATE_WAIT_PAYLOAD
+            else: self.state=self.STATE_WAIT_PAYLOAD
         
         elif self.state == self.STATE_WAIT_PAYLOAD:
             self.payload_buf.append(byte)
@@ -81,8 +81,8 @@ class NCOMParser:
         return None
     
     def _finalize(self):
-        rx_crc = struct.unpack("<H", self.crc_buf)[0]
-        header = struct.pack("<BB", self.msg_id, self.payload_len)
+        rx_crc = struct.unpack(ncom.ENDIAN_CHAR + "H", self.crc_buf)[0]
+        header = struct.pack(ncom.ENDIAN_CHAR + "BB", self.msg_id, self.payload_len)
         calc_crc = CRC16.calc(header + self.payload_buf)
         self.state = self.STATE_WAIT_SYNC
         if calc_crc == rx_crc:

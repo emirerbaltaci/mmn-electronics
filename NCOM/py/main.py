@@ -22,13 +22,14 @@ def main():
     print("Device connected.")
     
     parser = ncd.NCOMParser()
-    last_heartbeat = 0
+    last_heartbeat = 0.0
+    device_opened = time.time()
     
     while True:
         time.sleep(MAINLOOP_SLEEP)
         curr_time = time.time()
-        if curr_time - last_heartbeat > 1.0:
-            packet = ncd.create_frame(0, 1, 3, 0, 5)
+        if curr_time - last_heartbeat >= 1.0:
+            packet = ncd.create_frame(0, 1, 3, 0, int(curr_time - device_opened))
             if packet:
                 ser.write(packet)
             last_heartbeat = curr_time

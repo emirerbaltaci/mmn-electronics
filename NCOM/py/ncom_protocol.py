@@ -1,8 +1,11 @@
 '''
 NCOM Python Module
-Auto-generated on: 05.02.2026 20:32:43
+Auto-generated on: 06.02.2026 00:59:32
 Version: 0.1
 '''
+
+ENDIAN_CHAR = '<'
+
 import struct
 
 SYNC_BYTE = 0xA5

@@ -1,14 +1,13 @@
 {
 	"protocol": "NCOM",
+	"name": "Nautronics Communication Protocol",
 	"version": "0.1",
 	"endianness": "little",
-	
 	"directions": {
 		"MCU_TO_HOST": 0,
 		"HOST_TO_MCU": 1,
 		"BIDIRECTIONAL": 2
 	},
-	
 	"messages": [
 		{
 			"id": 0,
@@ -16,12 +15,10 @@
 			"direction": "MCU_TO_HOST",
 			"desc": "Sent with a freq. of 1Hz",
 			"payload": [
-			
 				{
 					"name": "device_id",
 					"type": "uint8"
 				},
-				
 				{
 					"name": "vehicle_state",
 					"type": "uint8",
@@ -40,7 +37,6 @@
 						"MCU_HARDFAULT": 255
 					}
 				},
-				
 				{
 					"name": "flags",
 					"type": "uint8",
@@ -56,39 +52,31 @@
 						"MISSION_ABORTED": 7
 					}
 				},
-				
 				{
 					"name": "uptime_seconds",
 					"type": "uint32"
 				}
-				
 			]
 		},
-		
 		{
 			"id": 1,
 			"name": "SYS_STATUS",
 			"direction": "MCU_TO_HOST",
 			"desc": "System Status",
 			"payload": [
-			
 				{
 					"name": "cpu_load_perc",
 					"type": "uint8"
 				},
-				
 				{
 					"name": "bat_voltage_mv",
 					"type": "uint16"
 				},
-				
 				{
 					"name": "mcu_temp_raw",
 					"type": "uint16"
 				}
-				
 			]
 		}
-		
 	]
 }
