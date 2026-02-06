@@ -58,7 +58,6 @@
 				}
 			]
 		},
-		
 		{
 			"id": 1,
 			"name": "SYS_STATUS",
@@ -79,7 +78,6 @@
 				}
 			]
 		},
-		
 		{
 			"id": 2,
 			"name": "COMMAND",
@@ -90,22 +88,17 @@
 					"name": "cmd_id",
 					"type": "uint8",
 					"enum": {
-						
 						"DISARM": 0,
 						"PREARM": 1,
 						"ARM": 2,
-						
 						"START_MISSION": 3,
 						"ABORT_MISSION": 4,
-						
 						"CLEAR_FLAGS": 5,
-						
 						"SET_MODE_AUTO": 10,
 						"SET_MODE_MANUAL": 11,
 						"SET_MODE_HOLD_DEPTH": 12,
 						"SET_MODE_HOLD_ATTITUDE": 13,
 						"SET_MODE_STABILIZE": 14,
-						
 						"SET_TARGET_DEPTH_MM": 20,
 						"SET_TARGET_ROLL_DEG": 21,
 						"SET_TARGET_PITCH_DEG": 22,
@@ -113,19 +106,15 @@
 						"SET_TARGET_SURGE_MM_S": 24,
 						"SET_TARGET_SWAY_MM_S": 25,
 						"SET_TARGET_HEAVE_MM_S": 26,
-						
 						"REBOOT_MCU": 40,
-						
 						"EMERGENCY_SURFACE": 254,
 						"EMERGENCY_STOP": 255
 					}
 				},
-				
 				{
 					"name": "cmd_param",
 					"type": "int32"
 				}
-		}
-		
-	]
-}
+			}
+		]
+	}
