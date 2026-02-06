@@ -22,11 +22,9 @@ def main():
     print("Device connected.")
     
     parser = ncd.NCOMParser()   # Create NCOM parser instance
-    last_hearbeat = 0.0
     
     while True: # Main loop
         time.sleep(MAINLOOP_SLEEP)
-        curr_time = time.time()
         if ser.in_waiting: # Check if there are any bytes in the RX buffer
             chunk = ser.read(ser.in_waiting)   # Read all available bytes
             for byte in chunk: # Parse each byte
