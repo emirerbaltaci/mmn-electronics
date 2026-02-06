@@ -37,13 +37,14 @@ TYPE_MAP = {
 def generate_c_header(data, output_file):
     protocol = data["protocol"].upper()
     version = data["version"]
+    sync_byte = f"0x{int(data["sync_byte"]):02X}"
     timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     
     with open(output_file, 'w') as f:
         f.write("/*\n")
         f.write(" * MIT License\n")
         f.write(" *\n")
-        f.write(" * Copyright (c) 2026 Emir Erbaltacı\n")
+        f.write(" * Copyright (c) 2026 MM Nautronics\n")
         f.write(" *\n")
         f.write(" * Permission is hereby granted, free of charge, to any person obtaining a copy\n")
         f.write(" * of this software and associated documentation files (the \"Software\"), to deal\n")
@@ -70,7 +71,7 @@ def generate_c_header(data, output_file):
         
         f.write("#include <stdint.h>\n\n")
         
-        f.write(f"#define {protocol}_SYNC_BYTE 0xA5\n\n")
+        f.write(f"#define {protocol}_SYNC_BYTE {sync_byte}\n\n")
         
         # 1. Message IDs
         f.write(f"typedef enum {{\n")
@@ -116,12 +117,13 @@ def generate_c_header(data, output_file):
 def generate_python_file(data, output_file):
     protocol = data["protocol"].upper()
     version = data["version"]
+    sync_byte = f"0x{int(data["sync_byte"]):02X}"
     timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     
     with open(output_file, 'w') as f:
         f.write("# MIT License\n")
         f.write("#\n")
-        f.write("# Copyright (c) 2026 Emir Erbaltacı\n")
+        f.write("# Copyright (c) 2026 MM Nautronics\n")
         f.write("#\n")
         f.write("# Permission is hereby granted, free of charge, to any person obtaining a copy\n")
         f.write("# of this software and associated documentation files (the \"Software\"), to deal\n")
@@ -148,9 +150,8 @@ def generate_python_file(data, output_file):
 
         f.write("import struct\n\n")
         
-        f.write(f"SYNC_BYTE = 0xA5\n\n")
+        f.write(f"SYNC_BYTE = {sync_byte}\n\n")
 
-        # 1. Enums & Flags
         for msg in data["messages"]:
             for field in msg["payload"]:
                 if "enum" in field:
@@ -168,26 +169,22 @@ def generate_python_file(data, output_file):
                     f.write("}\n")
         f.write("\n")
 
-        # 2. Message Class
         f.write("class Messages:\n")
         
-        # ID -> Name
         f.write("    ID_TO_NAME = {\n")
         for msg in data["messages"]:
             f.write(f"        {msg['id']}: '{msg['name']}',\n")
         f.write("    }\n\n")
         
-        # ID -> Struct Format
         f.write("    FORMATS = {\n")
         for msg in data["messages"]:
-            # BUG FIX: Reset format string for EACH message!
             fmt_string = endian_char 
             for field in msg['payload']:
                 fmt_string += TYPE_MAP[field['type']]['py']
             f.write(f"        {msg['id']}: '{fmt_string}', # {msg['name']}\n")
         f.write("    }\n\n")
 
-        # 3. Pack Method
+        # Pack Method
         f.write("    @staticmethod\n")
         f.write("    def pack(msg_id, *args):\n")
         f.write("        if msg_id not in Messages.FORMATS:\n")
@@ -199,7 +196,7 @@ def generate_python_file(data, output_file):
         f.write("            print(f'Packing error for ID {msg_id}: {e}')\n")
         f.write("            return None\n\n")
 
-        # 4. Unpack Method
+        # Unpack Method
         f.write("    @staticmethod\n")
         f.write("    def unpack(msg_id, data):\n")
         f.write("        if msg_id not in Messages.FORMATS:\n")

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2026 MM Nautronics Team
+ * Copyright (c) 2026 MM Nautronics
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 
 /*
  * NCOM C Header File
- * Auto-generated on: 06.02.2026 00:59:32
+ * Auto-generated on: 06.02.2026 18:37:17
  * Protocol Version: 0.1
  */
 
@@ -38,6 +38,7 @@
 typedef enum {
     NCOM_MSG_HEARTBEAT = 0,
     NCOM_MSG_SYS_STATUS = 1,
+    NCOM_MSG_COMMAND = 2,
 } NCOM_MsgID_t;
 
 #define NCOM_HEARTBEAT_VEHICLE_STATE_INIT 0
@@ -62,6 +63,36 @@ typedef enum {
 #define NCOM_FLAG_HEARTBEAT_RTOS_TASK_ERR (1 << 6)
 #define NCOM_FLAG_HEARTBEAT_MISSION_ABORTED (1 << 7)
 
+#define NCOM_COMMAND_CMD_ID_DISARM 0
+#define NCOM_COMMAND_CMD_ID_PREARM 1
+#define NCOM_COMMAND_CMD_ID_ARM 2
+#define NCOM_COMMAND_CMD_ID_START_MISSION 3
+#define NCOM_COMMAND_CMD_ID_ABORT_MISSION 4
+#define NCOM_COMMAND_CMD_ID_CLEAR_FLAGS 5
+#define NCOM_COMMAND_CMD_ID_SET_MODE_AUTO 10
+#define NCOM_COMMAND_CMD_ID_SET_MODE_MANUAL 11
+#define NCOM_COMMAND_CMD_ID_SET_MODE_HOLD_DEPTH 12
+#define NCOM_COMMAND_CMD_ID_SET_MODE_HOLD_ATTITUDE 13
+#define NCOM_COMMAND_CMD_ID_SET_MODE_STABILIZE 14
+#define NCOM_COMMAND_CMD_ID_SET_TARGET_DEPTH_MM 20
+#define NCOM_COMMAND_CMD_ID_SET_TARGET_ROLL_DEG 21
+#define NCOM_COMMAND_CMD_ID_SET_TARGET_PITCH_DEG 22
+#define NCOM_COMMAND_CMD_ID_SET_TARGET_YAW_DEG 23
+#define NCOM_COMMAND_CMD_ID_SET_TARGET_SURGE_MM_S 24
+#define NCOM_COMMAND_CMD_ID_SET_TARGET_SWAY_MM_S 25
+#define NCOM_COMMAND_CMD_ID_SET_TARGET_HEAVE_MM_S 26
+#define NCOM_COMMAND_CMD_ID_REBOOT_MCU 40
+#define NCOM_COMMAND_CMD_ID_SET_LIGHTS_MAIN 30
+#define NCOM_COMMAND_CMD_ID_SET_LIGHTS_AUX 31
+#define NCOM_COMMAND_CMD_ID_SET_SERVO_CAM_TILT 50
+#define NCOM_COMMAND_CMD_ID_SET_SERVO_CAM_PAN 51
+#define NCOM_COMMAND_CMD_ID_SET_GRIPPER_PWM 52
+#define NCOM_COMMAND_CMD_ID_CALIBRATE_PRESSURE_ZERO 60
+#define NCOM_COMMAND_CMD_ID_CALIBRATE_GYRO_OFFSET 61
+#define NCOM_COMMAND_CMD_ID_SET_TELEM_RATE 70
+#define NCOM_COMMAND_CMD_ID_EMERGENCY_SURFACE 254
+#define NCOM_COMMAND_CMD_ID_EMERGENCY_STOP 255
+
 // ID 0: Sent with a freq. of 1Hz
 typedef struct __attribute__((packed)) {
     uint8_t device_id;
@@ -78,5 +109,12 @@ typedef struct __attribute__((packed)) {
     uint16_t mcu_temp_raw;
 } NCOM_Payload_SYS_STATUS_t;
 #define NCOM_LEN_SYS_STATUS 5
+
+// ID 2: Generic Commands from Host Computer
+typedef struct __attribute__((packed)) {
+    uint8_t cmd_id;
+    int32_t cmd_param;
+} NCOM_Payload_COMMAND_t;
+#define NCOM_LEN_COMMAND 5
 
 #endif /* INC_NCOM_PROTOCOL_H */

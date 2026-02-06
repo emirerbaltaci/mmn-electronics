@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2026 Emir Erbaltacı
+# Copyright (c) 2026 MM Nautronics
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
 
 '''
 NCOM Python Module
-Auto-generated on: 06.02.2026 00:59:32
+Auto-generated on: 06.02.2026 18:37:17
 Version: 0.1
 '''
 
@@ -56,16 +56,49 @@ HEARTBEAT_FLAGS = {
     'RTOS_TASK_ERR': (1 << 6),
     'MISSION_ABORTED': (1 << 7),
 }
+COMMAND_CMD_ID = {
+    'DISARM': 0,
+    'PREARM': 1,
+    'ARM': 2,
+    'START_MISSION': 3,
+    'ABORT_MISSION': 4,
+    'CLEAR_FLAGS': 5,
+    'SET_MODE_AUTO': 10,
+    'SET_MODE_MANUAL': 11,
+    'SET_MODE_HOLD_DEPTH': 12,
+    'SET_MODE_HOLD_ATTITUDE': 13,
+    'SET_MODE_STABILIZE': 14,
+    'SET_TARGET_DEPTH_MM': 20,
+    'SET_TARGET_ROLL_DEG': 21,
+    'SET_TARGET_PITCH_DEG': 22,
+    'SET_TARGET_YAW_DEG': 23,
+    'SET_TARGET_SURGE_MM_S': 24,
+    'SET_TARGET_SWAY_MM_S': 25,
+    'SET_TARGET_HEAVE_MM_S': 26,
+    'REBOOT_MCU': 40,
+    'SET_LIGHTS_MAIN': 30,
+    'SET_LIGHTS_AUX': 31,
+    'SET_SERVO_CAM_TILT': 50,
+    'SET_SERVO_CAM_PAN': 51,
+    'SET_GRIPPER_PWM': 52,
+    'CALIBRATE_PRESSURE_ZERO': 60,
+    'CALIBRATE_GYRO_OFFSET': 61,
+    'SET_TELEM_RATE': 70,
+    'EMERGENCY_SURFACE': 254,
+    'EMERGENCY_STOP': 255,
+}
 
 class Messages:
     ID_TO_NAME = {
         0: 'HEARTBEAT',
         1: 'SYS_STATUS',
+        2: 'COMMAND',
     }
 
     FORMATS = {
         0: '<BBBI', # HEARTBEAT
         1: '<BHH', # SYS_STATUS
+        2: '<Bi', # COMMAND
     }
 
     @staticmethod
