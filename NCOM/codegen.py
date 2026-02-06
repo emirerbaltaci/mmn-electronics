@@ -1,3 +1,25 @@
+# MIT License
+#
+# Copyright (c) 2026 Emir Erbaltacı
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import json
 import os
 from datetime import datetime
@@ -18,6 +40,29 @@ def generate_c_header(data, output_file):
     timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     
     with open(output_file, 'w') as f:
+        f.write("/*\n")
+        f.write(" * MIT License\n")
+        f.write(" *\n")
+        f.write(" * Copyright (c) 2026 Emir Erbaltacı\n")
+        f.write(" *\n")
+        f.write(" * Permission is hereby granted, free of charge, to any person obtaining a copy\n")
+        f.write(" * of this software and associated documentation files (the \"Software\"), to deal\n")
+        f.write(" * in the Software without restriction, including without limitation the rights\n")
+        f.write(" * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n")
+        f.write(" * copies of the Software, and to permit persons to whom the Software is\n")
+        f.write(" * furnished to do so, subject to the following conditions:\n")
+        f.write(" *\n")
+        f.write(" * The above copyright notice and this permission notice shall be included in all\n")
+        f.write(" * copies or substantial portions of the Software.\n")
+        f.write(" *\n")
+        f.write(" * THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n")
+        f.write(" * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n")
+        f.write(" * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n")
+        f.write(" * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n")
+        f.write(" * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n")
+        f.write(" * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n")
+        f.write(" * SOFTWARE.\n")
+        f.write(" */\n\n")
         f.write(f"/*\n * {protocol} C Header File\n * Auto-generated on: {timestamp}\n * Protocol Version: {version}\n */\n\n")
         
         f.write(f"#ifndef INC_{protocol}_DEF_H_\n")
@@ -74,6 +119,27 @@ def generate_python_file(data, output_file):
     timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     
     with open(output_file, 'w') as f:
+        f.write("# MIT License\n")
+        f.write("#\n")
+        f.write("# Copyright (c) 2026 Emir Erbaltacı\n")
+        f.write("#\n")
+        f.write("# Permission is hereby granted, free of charge, to any person obtaining a copy\n")
+        f.write("# of this software and associated documentation files (the \"Software\"), to deal\n")
+        f.write("# in the Software without restriction, including without limitation the rights\n")
+        f.write("# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n")
+        f.write("# copies of the Software, and to permit persons to whom the Software is\n")
+        f.write("# furnished to do so, subject to the following conditions:\n")
+        f.write("#\n")
+        f.write("# The above copyright notice and this permission notice shall be included in all\n")
+        f.write("# copies or substantial portions of the Software.\n")
+        f.write("#\n")
+        f.write("# THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n")
+        f.write("# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n")
+        f.write("# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n")
+        f.write("# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n")
+        f.write("# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n")
+        f.write("# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n")
+        f.write("# SOFTWARE.\n\n")
     
         f.write(f"'''\nNCOM Python Module\nAuto-generated on: {timestamp}\nVersion: {version}\n'''\n\n")
         
