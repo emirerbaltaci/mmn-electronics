@@ -61,7 +61,7 @@ bool NCOM_RX_ParseByte(NCOM_RX_Parser_t* parser, uint8_t byte){
 			break;
 		
 		case NCOM_RX_STATE_CRC:
-			parser->crcBuf[parser->crcIndex] = byte;
+			parser->crcBuf[parser->crcIndex++] = byte;
 			if(parser->crcIndex >= 2){
 				parser->state = NCOM_RX_STATE_SYNC;
 				uint16_t crcRx = (uint16_t)parser->crcBuf[0] | ((	uint16_t)parser->crcBuf[1] << 8);

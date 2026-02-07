@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 #include "ncom_tx.h"
-#include "usb_cdc_if.h"
+#include "usbd_cdc_if.h"
 #include "main.h"
 
 extern CRC_HandleTypeDef hcrc;
