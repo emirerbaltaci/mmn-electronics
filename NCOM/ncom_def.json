@@ -1,131 +1,60 @@
 {
+
 	"protocol": "NCOM",
 	"name": "Nautronics Communication Protocol",
 	"version": "0.1",
+	
 	"endianness": "little",
 	"sync_byte": 165,
-	"desc": "165 (0xA5) is used as default sync byte. Also, the protocol is little-endian by default.",
+	"config_desc": "165 (0xA5) is used as default sync byte. Also, the protocol is little-endian by default.",
+	
 	"directions": {
 		"MCU_TO_HOST": 0,
 		"HOST_TO_MCU": 1,
 		"BIDIRECTIONAL": 2
 	},
-	"messages": [
-		{
-			"id": 0,
-			"name": "HEARTBEAT",
-			"direction": "MCU_TO_HOST",
-			"desc": "Sent with a freq. of 1Hz",
-			"payload": [
-				{
-					"name": "device_id",
-					"type": "uint8"
-				},
-				{
-					"name": "vehicle_state",
-					"type": "uint8",
-					"enum": {
-						"INIT": 0,
-						"DISARMED": 1,
-						"PREARMED": 2,
-						"ARMED": 3,
-						"MISSION": 4,
-						"DISARMED_MANUAL": 11,
-						"PREARMED_MANUAL": 12,
-						"ARMED_MANUAL": 13,
-						"DISARMED_ERR": 21,
-						"PREARMED_ERR": 22,
-						"ARMED_ERR": 23,
-						"MCU_HARDFAULT": 255
-					}
-				},
-				{
-					"name": "flags",
-					"type": "uint8",
-					"flags_type": "bitmask",
-					"flags": {
-						"LEAK_DETECTED": 0,
-						"BATTERY_LOW": 1,
-						"INIT_ERR": 2,
-						"NAV_ERR": 3,
-						"BAR30_ERR": 4,
-						"PERIPHERAL_ERR": 5,
-						"RTOS_TASK_ERR": 6,
-						"MISSION_ABORTED": 7
-					}
-				},
-				{
-					"name": "uptime_seconds",
-					"type": "uint32"
-				}
-			]
+	
+	"msg_sections": [
+		{ "name": "core", "id_range": [0, 9], "desc": "Vehicle status, mode and control"},
+		{ "name": "nav", "id_range": [10, 19], "desc": "Navigation information"},
+		{ "name": "sensor", "id_range": [20, 29], "desc": "Sensor data"},
+		{ "name": "actuator", "id_range": [30, 39], "desc": "Actuator data"},
+		{ "name": "mission", "id_range": [100, 199], "desc": "Mission data"},
+		{ "name": "error", "id_range": [200, 255], "desc": "Error messages"}
+	],
+
+	"includes": {
+		
+		"core": {
+			"enabled": true,
+			"path": "msg/core.json"
 		},
-		{
-			"id": 1,
-			"name": "SYS_STATUS",
-			"direction": "MCU_TO_HOST",
-			"desc": "System Status",
-			"payload": [
-				{
-					"name": "cpu_load_perc",
-					"type": "uint8"
-				},
-				{
-					"name": "bat_voltage_mv",
-					"type": "uint16"
-				},
-				{
-					"name": "mcu_temp_raw",
-					"type": "uint16"
-				}
-			]
+		
+		"nav": {
+			"enabled": true,
+			"path": "msg/nav.json"
 		},
-		{
-			"id": 2,
-			"name": "COMMAND",
-			"direction": "HOST_TO_MCU",
-			"desc": "Generic Commands from Host Computer",
-			"payload": [
-				{
-					"name": "cmd_id",
-					"type": "uint8",
-					"enum": {
-						"DISARM": 0,
-						"PREARM": 1,
-						"ARM": 2,
-						"START_MISSION": 3,
-						"ABORT_MISSION": 4,
-						"CLEAR_FLAGS": 5,
-						"SET_MODE_AUTO": 10,
-						"SET_MODE_MANUAL": 11,
-						"SET_MODE_HOLD_DEPTH": 12,
-						"SET_MODE_HOLD_ATTITUDE": 13,
-						"SET_MODE_STABILIZE": 14,
-						"SET_TARGET_DEPTH_MM": 20,
-						"SET_TARGET_ROLL_DEG": 21,
-						"SET_TARGET_PITCH_DEG": 22,
-						"SET_TARGET_YAW_DEG": 23,
-						"SET_TARGET_SURGE_MM_S": 24,
-						"SET_TARGET_SWAY_MM_S": 25,
-						"SET_TARGET_HEAVE_MM_S": 26,
-						"REBOOT_MCU": 40,
-						"SET_LIGHTS_MAIN": 30,
-						"SET_LIGHTS_AUX": 31,
-						"SET_SERVO_CAM_TILT": 50,
-						"SET_SERVO_CAM_PAN": 51,
-						"SET_GRIPPER_PWM": 52,
-						"CALIBRATE_PRESSURE_ZERO": 60,
-						"CALIBRATE_GYRO_OFFSET": 61,
-						"SET_TELEM_RATE": 70,
-						"EMERGENCY_SURFACE": 254,
-						"EMERGENCY_STOP": 255
-					}
-				},
-				{
-					"name": "cmd_param",
-					"type": "int32"
-				}
-			]
+		
+		"sensor": {
+			"enabled": true,
+			"path": "msg/sensor.json"
+		},
+		
+		"actuator": {
+			"enabled": true,
+			"path": "msg/actuator.json"
+		},
+		
+		"mission": {
+			"enabled": true,
+			"path": "msg/mission.json"
+		},
+		
+		"error": {
+			"enabled": true,
+			"path": "msg/error.json"
 		}
-	]
+		
+	}
+
 }
