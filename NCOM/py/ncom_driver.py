@@ -61,12 +61,13 @@ class NCOMParser:
     STATE_WAIT_PAYLOAD = 3
     STATE_WAIT_CRC = 4
     
-    def __init__(self):
+    def __init__(self, on_error=None):
         self.state = self.STATE_WAIT_SYNC
         self.msg_id = 0
         self.payload_len = 0
         self.payload_buf = bytearray()
         self.crc_buf = bytearray()
+        self.on_error = on_error
     
     def parse_byte(self, byte):
     
@@ -108,5 +109,12 @@ class NCOMParser:
         calc_crc = CRC16.calc(header + self.payload_buf)
         self.state = self.STATE_WAIT_SYNC
         if calc_crc == rx_crc:
-            return (self.msg_id, ncom.Messages.unpack(self.msg_id, self.payload_buf))
+            unpacked = ncom.Messages.unpack(self.msg_id, self.payload_buf)
+            if unpacked:
+                return (self.msg_id, unpacked)
+            elif self.on_error:
+                self.on_error(f"Unpack failed for ID {self.msg_id}")
+        else:
+            if self.on_error:
+                self.on_error(f"CRC mismatch for ID {self.msg_id}: calculated {calc_crc}, received {rx_crc}")
         return None

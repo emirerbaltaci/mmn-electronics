@@ -244,6 +244,11 @@ def generate_python_file(data, output_file):
             f.write(f"        {msg['id']}: '{msg['name']}',\n")
         f.write("    }\n\n")
         
+        f.write("    NAME_TO_ID = {\n")
+        for msg in data["messages"]:
+            f.write(f"        '{msg['name']}': {msg['id']},\n")
+        f.write("    }\n\n")
+        
         f.write("    FORMATS = {\n")
         for msg in data["messages"]:
             fmt_string = endian_char 

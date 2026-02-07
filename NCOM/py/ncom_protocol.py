@@ -22,7 +22,7 @@
 
 '''
 NCOM Python Module
-Auto-generated on: 07.02.2026 20:47:11
+Auto-generated on: 07.02.2026 20:52:34
 Version: 0.1
 '''
 
@@ -118,6 +118,19 @@ class Messages:
         7: 'MODE_STATUS',
         8: 'TARGETS',
         9: 'UNUSED',
+    }
+
+    NAME_TO_ID = {
+        'HEARTBEAT': 0,
+        'SYS_STATUS': 1,
+        'COMMAND': 2,
+        'ATTITUDE': 3,
+        'ROTATION_RATES': 4,
+        'LINEAR_VELOCITY': 5,
+        'DEPTH': 6,
+        'MODE_STATUS': 7,
+        'TARGETS': 8,
+        'UNUSED': 9,
     }
 
     FORMATS = {

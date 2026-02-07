@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-MAINLOOP_SLEEP = 0.1 # Seconds
+MAINLOOP_SLEEP = 0.01 # Seconds
 
 import serial
 import serial.tools.list_ports
@@ -34,6 +34,9 @@ def find_stm32g4(): # Find the STM32G4 COM port by VID and PID
             return port.device
     return None
 
+def parser_error_handler(error):
+    print(f"[NCOMParser Error]: {error}")
+
 def main():
     port = None
     print("Searching for STM32G4...")
@@ -43,7 +46,7 @@ def main():
     ser = serial.Serial(port, baudrate=115200, timeout=0.1)  # No matter the baudrate, USB CDC runs at full speed
     print("Device connected.")
     
-    parser = ncd.NCOMParser()   # Create NCOM parser instance
+    parser = ncd.NCOMParser(on_error=parser_error_handler)   # Create NCOM parser instance
     
     while True: # Main loop
         time.sleep(MAINLOOP_SLEEP)
@@ -56,9 +59,8 @@ def main():
                     handle_packet(msg_id, data) # Handle the packet
 
 def handle_packet(msg_id, data):
-    if msg_id == ncom.Messages.ID_TO_NAME["HEARTBEAT"]:
+    if msg_id == ncom.Messages.NAME_TO_ID["HEARTBEAT"]:
         print(f"Device ID: {data[0]}\nMode: {data[1]}\nFlags: {data[2]}\nUptime: {data[3]}")
 
 if __name__ == "__main__":
-    ncom.Messages.NAME_TO_ID = {v: k for k, v in ncom.Messages.ID_TO_NAME.items()}
     main()
