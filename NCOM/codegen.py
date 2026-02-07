@@ -66,8 +66,8 @@ def generate_c_header(data, output_file):
         f.write(" */\n\n")
         f.write(f"/*\n * {protocol} C Header File\n * Auto-generated on: {timestamp}\n * Protocol Version: {version}\n */\n\n")
         
-        f.write(f"#ifndef INC_{protocol}_DEF_H_\n")
-        f.write(f"#define INC_{protocol}_DEF_H_\n\n")
+        f.write(f"#ifndef INC_{protocol}_PROTOCOL_H_\n")
+        f.write(f"#define INC_{protocol}_PROTOCOL_H_\n\n")
         
         f.write("#include <stdint.h>\n")
         f.write("#include <stddef.h>\n\n")
@@ -123,7 +123,7 @@ def generate_c_header(data, output_file):
             f.write(f"size_t {protocol.lower()}_pack_{msg_name_lower}(uint8_t *buf, const {struct_name} *msg);\n")
             f.write(f"size_t {protocol.lower()}_unpack_{msg_name_lower}(const uint8_t *buf, {struct_name} *msg);\n")
 
-        f.write(f"\n#endif /* INC_{protocol}_PROTOCOL_H */\n")
+        f.write(f"\n#endif /* INC_{protocol}_PROTOCOL_H_ */\n")
     print(f"Generated C Header: {output_file}")
 
 
@@ -168,13 +168,13 @@ def generate_c_source(data, output_file):
             struct_name = f"{protocol}_Payload_{msg['name']}_t"
             
             # Pack
-            f.write(f"size_t {protocol.lower()}_pack_{msg_name_lower}(uint8_t *buf, const {struct_name} *msg) {{\n")
+            f.write(f"size_t {protocol.lower()}_pack_{msg_name_lower}(uint8_t* buf, const {struct_name}* msg) {{\n")
             f.write(f"    memcpy(buf, msg, sizeof({struct_name}));\n")
             f.write(f"    return sizeof({struct_name});\n")
             f.write("}\n\n")
 
             # Unpack
-            f.write(f"size_t {protocol.lower()}_unpack_{msg_name_lower}(const uint8_t *buf, {struct_name} *msg) {{\n")
+            f.write(f"size_t {protocol.lower()}_unpack_{msg_name_lower}(const uint8_t* buf, {struct_name}* msg) {{\n")
             f.write(f"    memcpy(msg, buf, sizeof({struct_name}));\n")
             f.write(f"    return sizeof({struct_name});\n")
             f.write("}\n")

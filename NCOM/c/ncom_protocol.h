@@ -24,12 +24,12 @@
 
 /*
  * NCOM C Header File
- * Auto-generated on: 07.02.2026 20:52:33
+ * Auto-generated on: 07.02.2026 22:21:27
  * Protocol Version: 0.1
  */
 
-#ifndef INC_NCOM_DEF_H_
-#define INC_NCOM_DEF_H_
+#ifndef INC_NCOM_PROTOCOL_H_
+#define INC_NCOM_PROTOCOL_H_
 
 #include <stdint.h>
 #include <stddef.h>
@@ -218,4 +218,4 @@ size_t ncom_unpack_targets(const uint8_t *buf, NCOM_Payload_TARGETS_t *msg);
 size_t ncom_pack_unused(uint8_t *buf, const NCOM_Payload_UNUSED_t *msg);
 size_t ncom_unpack_unused(const uint8_t *buf, NCOM_Payload_UNUSED_t *msg);
 
-#endif /* INC_NCOM_PROTOCOL_H */
+#endif /* INC_NCOM_PROTOCOL_H_ */
