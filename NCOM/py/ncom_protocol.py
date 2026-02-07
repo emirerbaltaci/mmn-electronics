@@ -22,7 +22,7 @@
 
 '''
 NCOM Python Module
-Auto-generated on: 06.02.2026 18:37:17
+Auto-generated on: 07.02.2026 20:47:11
 Version: 0.1
 '''
 
@@ -44,6 +44,9 @@ HEARTBEAT_VEHICLE_STATE = {
     'DISARMED_ERR': 21,
     'PREARMED_ERR': 22,
     'ARMED_ERR': 23,
+    'DISARMED_MANUAL_ERR': 31,
+    'PREARMED_MANUAL_ERR': 32,
+    'ARMED_MANUAL_ERR': 33,
     'MCU_HARDFAULT': 255,
 }
 HEARTBEAT_FLAGS = {
@@ -75,17 +78,32 @@ COMMAND_CMD_ID = {
     'SET_TARGET_SURGE_MM_S': 24,
     'SET_TARGET_SWAY_MM_S': 25,
     'SET_TARGET_HEAVE_MM_S': 26,
-    'REBOOT_MCU': 40,
     'SET_LIGHTS_MAIN': 30,
     'SET_LIGHTS_AUX': 31,
-    'SET_SERVO_CAM_TILT': 50,
-    'SET_SERVO_CAM_PAN': 51,
-    'SET_GRIPPER_PWM': 52,
-    'CALIBRATE_PRESSURE_ZERO': 60,
-    'CALIBRATE_GYRO_OFFSET': 61,
-    'SET_TELEM_RATE': 70,
-    'EMERGENCY_SURFACE': 254,
-    'EMERGENCY_STOP': 255,
+    'REBOOT_MCU': 40,
+    'CALIBRATE_DEPTH_0': 100,
+    'CALIBRATE_AXES_0': 101,
+    'SET_HEARTBEAT_RATE': 200,
+    'EMERGENCY_SURFACE': 253,
+    'EMERGENCY_STOP': 254,
+    'EMERGENCY_SOFTKILL': 255,
+}
+MODE_STATUS_FLAGS = {
+    'DISARMED': (1 << 0),
+    'PREARMED': (1 << 1),
+    'ARMED': (1 << 2),
+    'AUTO': (1 << 3),
+    'MANUAL': (1 << 4),
+    'HOLD_DEPTH': (1 << 5),
+    'HOLD_ATTITUDE': (1 << 6),
+    'STABILIZE': (1 << 7),
+    'MISSION_ACTIVE': (1 << 8),
+}
+TARGETS_FLAGS = {
+    'TARGET_DEPTH_IS_ACTIVE': (1 << 0),
+    'TARGET_ROLL_IS_ACTIVE': (1 << 1),
+    'TARGET_PITCH_IS_ACTIVE': (1 << 2),
+    'TARGET_YAW_IS_ACTIVE': (1 << 3),
 }
 
 class Messages:
@@ -93,12 +111,26 @@ class Messages:
         0: 'HEARTBEAT',
         1: 'SYS_STATUS',
         2: 'COMMAND',
+        3: 'ATTITUDE',
+        4: 'ROTATION_RATES',
+        5: 'LINEAR_VELOCITY',
+        6: 'DEPTH',
+        7: 'MODE_STATUS',
+        8: 'TARGETS',
+        9: 'UNUSED',
     }
 
     FORMATS = {
         0: '<BBBI', # HEARTBEAT
-        1: '<BHH', # SYS_STATUS
+        1: '<BHf', # SYS_STATUS
         2: '<Bi', # COMMAND
+        3: '<fffB', # ATTITUDE
+        4: '<fff', # ROTATION_RATES
+        5: '<fff', # LINEAR_VELOCITY
+        6: '<iiB', # DEPTH
+        7: '<H', # MODE_STATUS
+        8: '<Bifff', # TARGETS
+        9: '<', # UNUSED
     }
 
     @staticmethod

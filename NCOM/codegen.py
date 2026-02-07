@@ -37,7 +37,7 @@ TYPE_MAP = {
 def generate_c_header(data, output_file):
     protocol = data["protocol"].upper()
     version = data["version"]
-    sync_byte = f"0x{int(data["sync_byte"]):02X}"
+    sync_byte = f"0x{int(data['sync_byte']):02X}"
     timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     
     with open(output_file, 'w') as f:
@@ -69,7 +69,8 @@ def generate_c_header(data, output_file):
         f.write(f"#ifndef INC_{protocol}_DEF_H_\n")
         f.write(f"#define INC_{protocol}_DEF_H_\n\n")
         
-        f.write("#include <stdint.h>\n\n")
+        f.write("#include <stdint.h>\n")
+        f.write("#include <stddef.h>\n\n")
         
         f.write(f"#define {protocol}_SYNC_BYTE {sync_byte}\n\n")
         
@@ -102,7 +103,10 @@ def generate_c_header(data, output_file):
             
             payload_size = 0
             for field in msg['payload']:
-                c_type = TYPE_MAP[field['type']]['c']
+                if field.get('encoding') == 'float32':
+                    c_type = 'float'
+                else:
+                    c_type = TYPE_MAP[field['type']]['c']
                 f.write(f"    {c_type} {field['name']};\n")
                 payload_size += TYPE_MAP[field['type']]['size']
             
@@ -110,14 +114,78 @@ def generate_c_header(data, output_file):
             # Useful constant for buffer management
             f.write(f"#define {protocol}_LEN_{msg['name'].upper()} {payload_size}\n\n")
 
-        f.write(f"#endif /* INC_{protocol}_PROTOCOL_H */\n")
+        # 4. Function Prototypes
+        f.write("// Pack/Unpack Functions\n")
+        f.write("// Return value is the size of the payload\n")
+        for msg in data['messages']:
+            msg_name_lower = msg['name'].lower()
+            struct_name = f"{protocol}_Payload_{msg['name']}_t"
+            f.write(f"size_t {protocol.lower()}_pack_{msg_name_lower}(uint8_t *buf, const {struct_name} *msg);\n")
+            f.write(f"size_t {protocol.lower()}_unpack_{msg_name_lower}(const uint8_t *buf, {struct_name} *msg);\n")
+
+        f.write(f"\n#endif /* INC_{protocol}_PROTOCOL_H */\n")
     print(f"Generated C Header: {output_file}")
+
+
+def generate_c_source(data, output_file):
+    protocol = data["protocol"].upper()
+    timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+    version = data["version"]
+    
+    with open(output_file, 'w') as f:
+        f.write("/*\n")
+        f.write(" * MIT License\n")
+        f.write(" *\n")
+        f.write(" * Copyright (c) 2026 MM Nautronics\n")
+        f.write(" *\n")
+        f.write(" * Permission is hereby granted, free of charge, to any person obtaining a copy\n")
+        f.write(" * of this software and associated documentation files (the \"Software\"), to deal\n")
+        f.write(" * in the Software without restriction, including without limitation the rights\n")
+        f.write(" * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n")
+        f.write(" * copies of the Software, and to permit persons to whom the Software is\n")
+        f.write(" * furnished to do so, subject to the following conditions:\n")
+        f.write(" *\n")
+        f.write(" * The above copyright notice and this permission notice shall be included in all\n")
+        f.write(" * copies or substantial portions of the Software.\n")
+        f.write(" *\n")
+        f.write(" * THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n")
+        f.write(" * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n")
+        f.write(" * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n")
+        f.write(" * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n")
+        f.write(" * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n")
+        f.write(" * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n")
+        f.write(" * SOFTWARE.\n")
+        f.write(" */\n\n")
+        
+        f.write(f"/*\n * {protocol} C Source File\n * Auto-generated on: {timestamp}\n * Protocol Version: {version}\n */\n\n")
+        
+        f.write(f"#include \"{protocol.lower()}_protocol.h\"\n")
+        f.write("#include <string.h>\n\n")
+        
+        for msg in data['messages']:
+            msg_name_upper = msg['name'].upper()
+            msg_name_lower = msg['name'].lower()
+            struct_name = f"{protocol}_Payload_{msg['name']}_t"
+            
+            # Pack
+            f.write(f"size_t {protocol.lower()}_pack_{msg_name_lower}(uint8_t *buf, const {struct_name} *msg) {{\n")
+            f.write(f"    memcpy(buf, msg, sizeof({struct_name}));\n")
+            f.write(f"    return sizeof({struct_name});\n")
+            f.write("}\n\n")
+
+            # Unpack
+            f.write(f"size_t {protocol.lower()}_unpack_{msg_name_lower}(const uint8_t *buf, {struct_name} *msg) {{\n")
+            f.write(f"    memcpy(msg, buf, sizeof({struct_name}));\n")
+            f.write(f"    return sizeof({struct_name});\n")
+            f.write("}\n")
+            
+    print(f"Generated C Source: {output_file}")
 
 
 def generate_python_file(data, output_file):
     protocol = data["protocol"].upper()
     version = data["version"]
-    sync_byte = f"0x{int(data["sync_byte"]):02X}"
+    sync_byte = f"0x{int(data['sync_byte']):02X}"
     timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     
     with open(output_file, 'w') as f:
@@ -180,7 +248,10 @@ def generate_python_file(data, output_file):
         for msg in data["messages"]:
             fmt_string = endian_char 
             for field in msg['payload']:
-                fmt_string += TYPE_MAP[field['type']]['py']
+                if field.get('encoding') == 'float32':
+                    fmt_string += 'f'
+                else:
+                    fmt_string += TYPE_MAP[field['type']]['py']
             f.write(f"        {msg['id']}: '{fmt_string}', # {msg['name']}\n")
         f.write("    }\n\n")
 
@@ -209,12 +280,52 @@ def generate_python_file(data, output_file):
 
     print(f"Generated Python File: {output_file}")
 
-if __name__ == "__main__":
+def load_protocol_data():
     if not os.path.exists('ncom_def.json'):
         print("Error: ncom_def.json not found.")
-    else:
-        with open('ncom_def.json', 'r') as f:
-            protocol_data = json.load(f)
-        
+        return None
+
+    with open('ncom_def.json', 'r') as f:
+        config = json.load(f)
+
+    merged_messages = []
+    
+    # If "includes" exists, load messages from included files
+    if "includes" in config:
+        for section, info in config["includes"].items():
+            if info.get("enabled", False):
+                path = info["path"]
+                if os.path.exists(path):
+                    try:
+                        with open(path, 'r') as f:
+                            # Check if file is empty
+                            content = f.read().strip()
+                            if not content:
+                                print(f"Warning: Included file {path} is empty. Skipping.")
+                                continue
+                                
+                            section_data = json.loads(content)
+                            if "messages" in section_data:
+                                merged_messages.extend(section_data["messages"])
+                    except json.JSONDecodeError as e:
+                        print(f"Error decoding JSON from {path}: {e}")
+                else:
+                    print(f"Warning: Included file {path} not found.")
+    
+    # Also include inline messages if any (backward compatibility)
+    if "messages" in config:
+         merged_messages.extend(config["messages"])
+
+    # Sort messages by ID to ensure order
+    merged_messages.sort(key=lambda x: x['id'])
+
+    config["messages"] = merged_messages
+    return config
+
+if __name__ == "__main__":
+    protocol_data = load_protocol_data()
+    
+    if protocol_data:
         generate_c_header(protocol_data, "c/ncom_protocol.h")
+        generate_c_source(protocol_data, "c/ncom_protocol.c")
         generate_python_file(protocol_data, "py/ncom_protocol.py")
