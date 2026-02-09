@@ -1,6 +1,6 @@
 # mmn-electronics
 
-Firmware and host communication software for the MMN Electronics robotics system.
+Firmware and host communication software for the MMN Electronics AUV controller.
 
 ## MCU Firmware
 
@@ -29,7 +29,7 @@ NCOM operates on a "Single Source of Truth" principle using a JSON definition fi
 
 Currently, the communication frame structure is as follows:
 `[SYNC (0xA5)] [MSG_ID] [PAYLOAD_LEN] [PAYLOAD...] [CRC16]`
-Note that this shows the current sturcut
+Note that this shows the current structure to inform the reader, the frame will most be changed in the future.
 
 -   **SYNC**: Synchronization byte (0xA5) to identify the start of a frame.
 -   **CRC16**: Checksum to ensure data integrity.
