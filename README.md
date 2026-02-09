@@ -1,6 +1,6 @@
 # mmn-electronics
 
-Firmware and host communication software for the MMN Electronics AUV controller.
+Main code repository for MM Nautronics - Electronics subteam. Includes firmware and host communication software for the MM Nautronics AUV controller.
 
 ## MCU Firmware
 
