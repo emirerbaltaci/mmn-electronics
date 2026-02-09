@@ -25,7 +25,7 @@
 
 
 /* #############################################
- * 		     ncom_rx.h
+ * 					 ncom_rx.h
  *   NCOM MCU-Side Reception Module Header File
  * ############################################# */
 #ifndef INC_NCOM_RX_H_
@@ -34,7 +34,7 @@
 
 
 /* #############################################
- * 		     Includes
+ * 					  Includes
  * ############################################# */
 #include <stdint.h>
 #include <stdbool.h>
@@ -44,7 +44,7 @@
 
 
 /* #############################################
- * 		    Enumerations
+ * 					Enumerations
  * ############################################# */
 typedef enum{	// Parser States
 	NCOM_RX_STATE_SYNC,
@@ -57,7 +57,7 @@ typedef enum{	// Parser States
 
 
 /* #############################################
- * 		Structure Definitions
+ * 			   Structure Definitions
  * ############################################# */
 typedef struct{	// Parser Structure
 	NCOM_RX_State_t state;
@@ -72,7 +72,7 @@ typedef struct{	// Parser Structure
 
 
 /* #############################################
- * 		Function Prototypes
+ * 				Function Prototypes
  * ############################################# */
 void NCOM_RX_Init(NCOM_RX_Parser_t* parser);
 bool NCOM_RX_ParseByte(NCOM_RX_Parser_t* parser, uint8_t byte);

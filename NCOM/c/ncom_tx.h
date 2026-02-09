@@ -25,7 +25,7 @@
 
 
 /* #############################################
- * 		     ncom_tx.h
+ * 					 ncom_tx.h
  * NCOM MCU-Side Transmission Module Header File
  * ############################################# */
 #ifndef INC_NCOM_TX_H_
@@ -34,7 +34,7 @@
 
 
 /* #############################################
- * 		     Includes
+ * 					 Includes
  * ############################################# */
 #include <stdint.h>
 #include "ncom_protocol.h"
@@ -42,7 +42,7 @@
 
 
 /* #############################################
- * 		Function Prototypes
+ * 				Function Prototypes
  * ############################################# */
 uint8_t NCOM_TX_SendPacket(uint8_t msgId, const void* payload, uint8_t len);
 

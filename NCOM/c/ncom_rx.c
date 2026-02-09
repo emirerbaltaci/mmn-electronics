@@ -25,14 +25,14 @@
 
 
 /* #############################################
- * 		     ncom_rx.c
+ * 					 ncom_rx.c
  *   NCOM MCU-Side Reception Module Source File
  * ############################################# */
  
  
  
 /* #############################################
- * 		     Includes
+ * 					Includes
  * ############################################# */
 #include "ncom_rx.h"
 #include "main.h"
@@ -40,14 +40,14 @@
 
 
 /* #############################################
- * 		     Variables
+ * 					Variables
  * ############################################# */
 extern CRC_HandleTypeDef hcrc;	// For Hardware CRC Calculation
 
 
 
 /* #############################################
- * 		Function Definitions
+ * 			   Function Definitions
  * ############################################# */
 
 /*

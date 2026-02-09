@@ -25,14 +25,14 @@
 
 
 /* #############################################
- * 		     ncom_tx.c
+ * 					 ncom_tx.c
  * NCOM MCU-Side Transmission Module Source File
  * ############################################# */
 
 
 
 /* #############################################
- * 		     Includes
+ * 					 Includes
  * ############################################# */
 #include "ncom_tx.h"
 #include "usbd_cdc_if.h"
@@ -41,14 +41,14 @@
 
 
 /* #############################################
- * 		     Variables
+ * 					 Variables
  * ############################################# */
 extern CRC_HandleTypeDef hcrc;	// For Hardware CRC Calculation
 
 
 
 /* #############################################
- * 		Function Definitions
+ * 			   Function Definitions
  * ############################################# */
  
 /*
