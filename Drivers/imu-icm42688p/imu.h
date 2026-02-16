@@ -499,6 +499,7 @@ typedef enum{
 #define IMU_I3C_PROTOCOL_ERROR_INT2_EN	(1 << 6)
 
 // FIFO_LOST_PKT0 (0x6C)
+// FIFO_LOST_PKT0 (0x6C)
 // FIFO_LOST_PKT1 (0x6D)
 
 // SELF_TEST_CONFIG (0x70)
@@ -877,9 +878,47 @@ typedef enum{
 #define IMU_TAP_TAVG_1						(1 << 3)	// Default, use this value.
 #define IMU_TAP_TMAX_1						(1 << 5)	// Default, use this value.
 
-// APEX_CONFIG9 (0x48)
-#define IMU_SENSITIVITY_MODE_NORMAL			0
-#define IMU_SENSITIVITY_MODE_SLOWWALK		1
+// INT_SOURCE6 (0x4D) - Bank 4
+#define IMU_STEP_DET_INT1_EN			1
+#define IMU_STEP_CNT_OVFL_INT1_EN		(1 << 1)
+#define IMU_TILT_DET_INT1_EN			(1 << 2)
+#define IMU_WAKE_DET_INT1_EN			(1 << 3)
+#define IMU_SLEEP_DET_INT1_EN			(1 << 4)
+#define IMU_TAP_DET_INT1_EN				(1 << 5)
+
+// INT_SOURCE7 (0x4E) - Bank 4
+#define IMU_STEP_DET_INT2_EN			1
+#define IMU_STEP_CNT_OVFL_INT2_EN		(1 << 1)
+#define IMU_TILT_DET_INT2_EN			(1 << 2)
+#define IMU_WAKE_DET_INT2_EN			(1 << 3)
+#define IMU_SLEEP_DET_INT2_EN			(1 << 4)
+#define IMU_TAP_DET_INT2_EN				(1 << 5)
+
+// APEX_CONFIG2 (0x41) - Bank 4
+#define IMU_PED_AMP_TH_SEL_30MG			0
+#define IMU_PED_AMP_TH_SEL_40MG			1
+#define IMU_PED_AMP_TH_SEL_50MG			2
+#define IMU_PED_AMP_TH_SEL_60MG			3
+#define IMU_PED_AMP_TH_SEL_70MG			4
+#define IMU_PED_AMP_TH_SEL_80MG			5
+#define IMU_PED_AMP_TH_SEL_6MG			0xF // Example from some datasheets, verifying if standard
+
+// APEX_CONFIG3 (0x42) - Bank 4
+#define IMU_PED_STEP_CNT_TH_SEL_0		0
+#define IMU_PED_STEP_CNT_TH_SEL_1		1
+#define IMU_PED_STEP_CNT_TH_SEL_2		2
+#define IMU_PED_STEP_CNT_TH_SEL_3		3
+#define IMU_PED_STEP_DET_TH_SEL_0		(0 << 5)
+#define IMU_PED_STEP_DET_TH_SEL_7		(7 << 5)
+
+// APEX_CONFIG4 (0x43) - Bank 4
+#define IMU_TILT_WAIT_TIME_SEL_0S		0
+#define IMU_TILT_WAIT_TIME_SEL_2S		1
+#define IMU_TILT_WAIT_TIME_SEL_4S		2
+
+// APEX_CONFIG9 (0x48) - Bank 4
+#define IMU_SENSITIVITY_MODE_NORMAL		0
+#define IMU_SENSITIVITY_MODE_SLOW_WALK	1
 
 // ACCEL_WOM_X_THR (0x4A), ACCEL_WOM_Y_THR (0x4B) and ACCEL_WOM_Z_THR (0x4C)
 static inline uint8_t IMU_ACCEL_WOM_AXIS_THR(float mgVal){
@@ -1044,6 +1083,34 @@ typedef struct{
 
 	// Bank 3
 	uint8_t clkdiv;				// IMU_REG_CLKDIV (for Notch Filter)
+	
+	// Bank 4
+	uint8_t apex_config1;		// IMU_REG_APEX_CONFIG1
+	uint8_t apex_config2;		// IMU_REG_APEX_CONFIG2
+	uint8_t apex_config3;		// IMU_REG_APEX_CONFIG3
+	uint8_t apex_config4;		// IMU_REG_APEX_CONFIG4
+	uint8_t apex_config5;		// IMU_REG_APEX_CONFIG5
+	uint8_t apex_config6;		// IMU_REG_APEX_CONFIG6
+	uint8_t apex_config7;		// IMU_REG_APEX_CONFIG7
+	uint8_t apex_config8;		// IMU_REG_APEX_CONFIG8
+	uint8_t apex_config9;		// IMU_REG_APEX_CONFIG9
+	uint8_t accel_wom_x_thr;	// IMU_REG_ACCEL_WOM_X_THR
+	uint8_t accel_wom_y_thr;	// IMU_REG_ACCEL_WOM_Y_THR
+	uint8_t accel_wom_z_thr;	// IMU_REG_ACCEL_WOM_Z_THR
+	uint8_t int_source6;		// IMU_REG_INT_SOURCE6
+	uint8_t int_source7;		// IMU_REG_INT_SOURCE7
+	uint8_t int_source8;		// IMU_REG_INT_SOURCE8
+	uint8_t int_source9;		// IMU_REG_INT_SOURCE9
+	uint8_t offset_user0;		// IMU_REG_OFFSET_USER0
+	uint8_t offset_user1;		// IMU_REG_OFFSET_USER1
+	uint8_t offset_user2;		// IMU_REG_OFFSET_USER2
+	uint8_t offset_user3;		// IMU_REG_OFFSET_USER3
+	uint8_t offset_user4;		// IMU_REG_OFFSET_USER4
+	uint8_t offset_user5;		// IMU_REG_OFFSET_USER5
+	uint8_t offset_user6;		// IMU_REG_OFFSET_USER6
+	uint8_t offset_user7;		// IMU_REG_OFFSET_USER7
+	uint8_t offset_user8;		// IMU_REG_OFFSET_USER8
+
 }IMU_Config_t;
 
 // #################################### IMU Handler Structure
@@ -1094,6 +1161,7 @@ IMU_Status_t IMU_SPI_GetData(IMU_Handler_t* imu, IMU_Data_t* data);
 IMU_Status_t IMU_SPI_ReadFIFO(IMU_Handler_t* imu, IMU_Data_t* data);
 
 void IMU_CalculateNotchFilter(IMU_Config_t* config, float freqX, float freqY, float freqZ);
+void IMU_Config_LoadConfigHeader(IMU_Config_t* config);
 
 
 

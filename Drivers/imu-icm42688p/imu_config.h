@@ -50,6 +50,14 @@
 #define IMU_SETUP_INTERFACE				0
 
 /*
+ * 		IMU_SETUP_SPI_MODE				SPI Mode Selection
+ *
+ * 		Mode 0 or 3						IMU_SPI_MODE_0_3
+ * 		Mode 1 or 2						IMU_SPI_MODE_1_2
+ */
+#define IMU_SETUP_SPI_MODE				IMU_SPI_MODE_0_3
+
+/*
  * 		IMU_SETUP_SPI_WIRE				SPI Wire Count
  *
  * 		3 wires							IMU_SPI_AP_3WIRE
@@ -416,6 +424,18 @@
  */
 #define IMU_SETUP_INT_CONFIG0			0
 
+/*
+ * 		IMU_SETUP_INT_CONFIG1			INT_CONFIG1 Register
+ * 										See datasheet chapter 14.50 for options
+ * 										Use bitwise OR ( | ) for multiple selection
+ *
+ * 		Async Reset						IMU_INT_ASYNC_RESET
+ * 		TDeassert Disable				IMU_INT_TDEASSERT_DISABLE
+ * 		Pulse Duration 100us			IMU_INT_TPULSE_DURATION_100US
+ * 		Pulse Duration 8us				IMU_INT_TPULSE_DURATION_8US
+ */
+#define IMU_SETUP_INT_CONFIG1			IMU_INT_TPULSE_DURATION_100US
+
 
 
 
@@ -587,6 +607,21 @@
 
 
 
+
+/*
+ * 		IMU_SETUP_SENSOR_CONFIG0		SENSOR_CONFIG0 Register
+ * 										Enable/Disable specific axes
+ * 										Use bitwise OR ( | ) for multiple selection
+ * 										0 = All Enabled
+ *
+ * 		Disable Accel X					IMU_XA_DISABLE
+ * 		Disable Accel Y					IMU_YA_DISABLE
+ * 		Disable Accel Z					IMU_ZA_DISABLE
+ * 		Disable Gyro X					IMU_XG_DISABLE
+ * 		Disable Gyro Y					IMU_YG_DISABLE
+ * 		Disable Gyro Z					IMU_ZG_DISABLE
+ */
+#define IMU_SETUP_SENSOR_CONFIG0		0
 
 // #################################### APEX Options
 

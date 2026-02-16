@@ -23,6 +23,7 @@
  */
 
 #include "imu.h"
+#include "imu_config.h"
 #include <math.h>
 #include <string.h>
 
@@ -352,6 +353,53 @@ IMU_Status_t IMU_SPI_Init(IMU_Handler_t* imu){
 	if(IMU_SPI_WriteReg(imu, IMU_REG_ACCEL_CONFIG_STATIC3, imu->config.accel_config_static3) != IMU_OK) return IMU_ERROR;
 	if(IMU_SPI_WriteReg(imu, IMU_REG_ACCEL_CONFIG_STATIC4, imu->config.accel_config_static4) != IMU_OK) return IMU_ERROR;
 
+	IMU_SetRegBank(imu, IMU_BANK_SEL_4);
+
+	// APEX_CONFIG (1-9)
+	if(IMU_SPI_WriteReg(imu, IMU_REG_APEX_CONFIG1, imu->config.apex_config1) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_APEX_CONFIG2, imu->config.apex_config2) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_APEX_CONFIG3, imu->config.apex_config3) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_APEX_CONFIG4, imu->config.apex_config4) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_APEX_CONFIG5, imu->config.apex_config5) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_APEX_CONFIG6, imu->config.apex_config6) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_APEX_CONFIG7, imu->config.apex_config7) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_APEX_CONFIG8, imu->config.apex_config8) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_APEX_CONFIG9, imu->config.apex_config9) != IMU_OK) return IMU_ERROR;
+
+	// ACCEL_WOM (X, Y, Z)
+	if(IMU_SPI_WriteReg(imu, IMU_REG_ACCEL_WOM_X_THR, imu->config.accel_wom_x_thr) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_ACCEL_WOM_Y_THR, imu->config.accel_wom_y_thr) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_ACCEL_WOM_Z_THR, imu->config.accel_wom_z_thr) != IMU_OK) return IMU_ERROR;
+
+	// INT_SOURCE (6-9)
+	if(IMU_SPI_ReadReg(imu, IMU_REG_INT_SOURCE6, &temp) != IMU_OK) return IMU_ERROR;
+	temp &= 0xC0; // Preserve 7:6
+	temp |= (imu->config.int_source6 & 0x3F);
+	if(IMU_SPI_WriteReg(imu, IMU_REG_INT_SOURCE6, temp) != IMU_OK) return IMU_ERROR;
+
+	if(IMU_SPI_ReadReg(imu, IMU_REG_INT_SOURCE7, &temp) != IMU_OK) return IMU_ERROR;
+	temp &= 0xC0; // Preserve 7:6
+	temp |= (imu->config.int_source7 & 0x3F);
+	if(IMU_SPI_WriteReg(imu, IMU_REG_INT_SOURCE7, temp) != IMU_OK) return IMU_ERROR;
+
+	if(IMU_SPI_ReadReg(imu, IMU_REG_INT_SOURCE8, &temp) != IMU_OK) return IMU_ERROR;
+	temp &= 0xC0; // Preserve 7:6
+	temp |= (imu->config.int_source8 & 0x3F);
+	if(IMU_SPI_WriteReg(imu, IMU_REG_INT_SOURCE8, temp) != IMU_OK) return IMU_ERROR;
+
+	if(IMU_SPI_ReadReg(imu, IMU_REG_INT_SOURCE9, &temp) != IMU_OK) return IMU_ERROR;
+	temp &= 0x80; // Preserve 7
+	temp |= (imu->config.int_source9 & 0x7F);
+	if(IMU_SPI_WriteReg(imu, IMU_REG_INT_SOURCE9, temp) != IMU_OK) return IMU_ERROR;
+
+	// OFFSET_USER (0-8)
+	uint8_t offsets[9] = {
+		imu->config.offset_user0, imu->config.offset_user1, imu->config.offset_user2,
+		imu->config.offset_user3, imu->config.offset_user4, imu->config.offset_user5,
+		imu->config.offset_user6, imu->config.offset_user7, imu->config.offset_user8
+	};
+	if(IMU_SPI_WriteBurst(imu, IMU_REG_OFFSET_USER0, offsets, 9) != IMU_OK) return IMU_ERROR;
+
 	IMU_SetRegBank(imu, IMU_BANK_SEL_0);
 
 	IMU_MultiplierHelper(imu);
@@ -562,4 +610,122 @@ void IMU_CalculateNotchFilter(IMU_Config_t* config, float freqX, float freqY, fl
 				break;
 		}
 	}
+}
+
+void IMU_Config_LoadConfigHeader(IMU_Config_t* config){
+	memset(config, 0, sizeof(IMU_Config_t));
+
+	// Link Bank 0
+	config->pwr_mgmt0 = IMU_SETUP_TEMP_MODE | IMU_SETUP_IDLEMODE | IMU_SETUP_GYRO_MODE | IMU_SETUP_ACCEL_MODE;
+	config->gyro_config0 = IMU_SETUP_GYRO_FS | IMU_SETUP_GYRO_ODR;
+	config->accel_config0 = IMU_SETUP_ACCEL_FS | IMU_SETUP_ACCEL_ODR;
+	config->gyro_config1 = IMU_SETUP_GYRO_UI_FILT_ORD | IMU_SETUP_TEMP_FILT_BW;
+	config->accel_config1 = IMU_SETUP_ACCEL_UI_FILT_ORD; // Bit 3 used. Bits 4 (ASC) is 0.
+	config->gyro_accel_config0 = IMU_SETUP_GYRO_UI_FILT_BW | IMU_SETUP_ACCEL_UI_FILT_BW;
+	
+	// DEVICE_CONFIG (0x11)
+	// DEVICE_CONFIG (0x11)
+	config->device_config = IMU_SETUP_SPI_MODE;
+
+	// DRIVE_CONFIG (0x13)
+	config->drive_config = IMU_SETUP_SPI_SLEW | IMU_SETUP_I2C_SLEW;
+
+	// INT_CONFIG (0x14)
+	config->int_config = IMU_SETUP_INT1_MODE | IMU_SETUP_INT1_DRIVE_CIRCUIT | IMU_SETUP_INT1_POLARITY |
+						 IMU_SETUP_INT2_MODE | IMU_SETUP_INT2_DRIVE_CIRCUIT | IMU_SETUP_INT2_POLARITY;
+
+	// FIFO_CONFIG (0x16)
+	config->fifo_config = IMU_SETUP_FIFO_MODE;
+
+	// INTF_CONFIG0 (0x4C)
+	// UI_SIFS_CFG (1:0)
+	uint8_t sifs = 0;
+	if(IMU_SETUP_INTERFACE == 0) sifs = IMU_UI_SIFS_CFG_DI_SPI;
+	else if(IMU_SETUP_INTERFACE == 1) sifs = IMU_UI_SIFS_CFG_DI_I2C;
+	else sifs = 0;
+	
+	config->intf_config0 = IMU_SETUP_SENSOR_ENDIAN | IMU_SETUP_FIFO_COUNT_ENDIAN | 
+						   IMU_SETUP_FIFO_COUNT_REC | IMU_SETUP_FIFO_HOLD_LAST_DATA | sifs;
+
+	// INTF_CONFIG1 (0x4D)
+	config->intf_config1 = IMU_SETUP_CLKSEL | IMU_SETUP_RTC_MODE | IMU_SETUP_ACCEL_LPCLK;
+
+	// TMST_CONFIG (0x54)
+	config->tmst_config = IMU_SETUP_TMST_EN | IMU_SETUP_TMST_FSYNC_EN | IMU_SETUP_TMST_DELTA_EN | 
+						  IMU_SETUP_TMST_RES | IMU_SETUP_TMST_TO_REGS_EN;
+
+	// FIFO_CONFIG1 (0x5F)
+	config->fifo_config1 = IMU_SETUP_FIFO_PACKET | IMU_SETUP_FIFO_WM_GT_TH | IMU_SETUP_FIFO_PARTIAL_RD;
+
+	// FIFO_CONFIG2, 3 (Watermark)
+	// WM is in config->fifo_config2 (Low 8) and fifo_config3 (High 4 bits)
+	uint16_t wm = IMU_SETUP_FIFO_WM;
+	config->fifo_config2 = (uint8_t)(wm & 0xFF);
+	config->fifo_config3 = (uint8_t)((wm >> 8) & 0x0F);
+
+	// FSYNC_CONFIG (0x62)
+	config->fsync_config = IMU_SETUP_FSYNC_POLARITY | IMU_SETUP_FSYNC_UI_FLAG_CLEAR_SEL | IMU_SETUP_FSYNC_UI_SEL;
+
+	// INT_CONFIG0 (0x63)
+	config->int_config0 = IMU_SETUP_INT_CONFIG0;
+	
+	// INT_CONFIG1 (0x64)
+	config->int_config1 = IMU_SETUP_INT_CONFIG1; 
+
+	// INT_SOURCE0 (0x65)
+	config->int_source0 = IMU_SETUP_INT1_SRC & 0x7F;
+
+	// INT_SOURCE3 (0x68) - INT2 equivalent of SOURCE0
+	config->int_source3 = IMU_SETUP_INT2_SRC;
+
+	// INT_SOURCE1, INT_SOURCE4 (WOM/SMD) are not in default config header.
+	config->int_source1 = 0;
+	config->int_source4 = 0;
+	config->int_source6 = 0;
+	config->int_source7 = 0;
+	config->int_source8 = 0;
+	config->int_source9 = 0;
+
+	// USER BANK 1
+	// SENSOR_CONFIG0 (0x03) - Axis Disable.
+	config->sensor_config0 = IMU_SETUP_SENSOR_CONFIG0; 
+	
+	// GYRO_CONFIG_STATIC2 (0x0B) - NF & AAF
+	config->gyro_config_static2 = IMU_SETUP_GYRO_NF_EN | IMU_SETUP_GYRO_AAF_EN;
+
+	// GYRO_CONFIG_STATIC3 (0x0C) - AAF DELT
+	config->gyro_config_static3 = IMU_SETUP_GYRO_AAF_DELT;
+
+	// GYRO_CONFIG_STATIC4-8 (NF)
+	if(IMU_SETUP_GYRO_NF_EN == IMU_GYRO_NF_EN){
+		// CLKDIV (0x2A) Bank 3
+		config->clkdiv = IMU_SETUP_GYRO_NF_CLKDIV;
+		config->gyro_config_static10 = IMU_SETUP_GYRO_NF_BW;
+	}
+
+	// USER BANK 2
+	// ACCEL_CONFIG_STATIC2 (0x03) - AAF
+	config->accel_config_static2 = IMU_SETUP_ACCEL_AAF_EN | IMU_SETUP_ACCEL_AAF_DELT;
+	// ACCEL_CONFIG_STATIC3/4 (0x04/0x05) - AAF DELT SQR / BITSHIFT
+	config->accel_config_static3 = (uint8_t)IMU_ACCEL_AAF_DELTSQR(IMU_SETUP_ACCEL_AAF_DELT);
+	config->accel_config_static4 = (uint8_t)IMU_ACCEL_AAF_BITSHIFT(IMU_SETUP_ACCEL_AAF_DELT);
+
+	// GYRO AAF DELT SQR (STATIC4/5)
+	config->gyro_config_static4 = (uint8_t)IMU_GYRO_AAF_DELTSQR(IMU_SETUP_GYRO_AAF_DELT);
+	config->gyro_config_static5 = (uint8_t)IMU_GYRO_AAF_BITSHIFT(IMU_SETUP_GYRO_AAF_DELT);
+
+	// Bank 4 Options
+	// INTF_CONFIG4 (0x7A) - SPI 4/3 wire.
+	// `IMU_SETUP_SPI_WIRE` is either 0 (`IMU_SPI_AP_3WIRE`) or 2 (`IMU_SPI_AP_4WIRE` is `1<<1`=2).
+	// Note: `IMU_SPI_AP_4WIRE` defined as `(1 << 1)`.
+	config->intf_config4 = IMU_SETUP_SPI_WIRE; // Also I3C bus mode? `IMU_SETUP_I3C_BUS_MODE` -> bit 6
+	config->intf_config4 |= IMU_SETUP_I3C_BUS_MODE;
+
+	// INTF_CONFIG5 (0x7B) - Pin 9 function
+	config->intf_config5 = IMU_SETUP_PIN9_FUNCTION;
+
+	// INTF_CONFIG6 (0x7C) - I3C Mode
+	config->intf_config6 = IMU_SETUP_I3C_MODE;
+
+	// APEX / OFFSETS - Not in standard config, zeroed by memset.
 }

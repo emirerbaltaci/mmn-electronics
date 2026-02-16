@@ -19,7 +19,7 @@
 		{ "name": "nav", "id_range": [10, 19], "desc": "Navigation information"},
 		{ "name": "sensor", "id_range": [20, 29], "desc": "Sensor data"},
 		{ "name": "actuator", "id_range": [30, 39], "desc": "Actuator data"},
-		{ "name": "acoustics", "id_range": [40, 49], "desc": "Special messages for acoustic communication"},
+		{ "name": "acoustics", "id_range": [70, 99], "desc": "Special messages for acoustic communication"},
 		{ "name": "mission", "id_range": [100, 199], "desc": "Mission data"},
 		{ "name": "error", "id_range": [200, 255], "desc": "Error messages"}
 	],
@@ -44,6 +44,11 @@
 		"actuator": {
 			"enabled": true,
 			"path": "msg/actuator.json"
+		},
+		
+		"acoustics": {
+			"enabled": true,
+			"path": "msg/acoustics.json"
 		},
 		
 		"mission": {
