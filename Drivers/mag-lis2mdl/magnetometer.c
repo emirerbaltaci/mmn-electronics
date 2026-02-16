@@ -99,21 +99,35 @@ MAG_Status_t MAG_SPI_WriteBurst(MAG_Handler_t* mag, uint8_t REG, uint8_t* txBuff
 MAG_Status_t MAG_SPI_Init(MAG_Handler_t* mag){
 	uint8_t temp = MAG_REBOOT;
 	if(MAG_SPI_WriteReg(mag, MAG_REG_CFG_REG_A, temp) != MAG_OK) return MAG_ERROR;
+	
 	HAL_Delay(1);
+	
 	temp = MAG_SOFT_RST;
 	if(MAG_SPI_WriteReg(mag, MAG_REG_CFG_REG_A, temp) != MAG_OK) return MAG_ERROR;
+	
 	HAL_Delay(1);
+	
 	if(MAG_SPI_ReadReg(mag, MAG_REG_WHO_AM_I, &temp) != MAG_OK) return MAG_ERROR;
 	if(temp != MAG_WHOAMI) return MAG_ERROR;
-	temp = MAG_SETUP_COMP_TEMP | MAG_SETUP_LP | MAG_SETUP_ODR | MAG_SETUP_MODE;
-	if(MAG_SPI_WriteReg(mag, MAG_REG_CFG_REG_A, temp) != MAG_OK) return MAG_ERROR;
-	temp = MAG_SETUP_OFF_CANC_ONE_SHOT | MAG_SETUP_INT_ON_DATAOFF | MAG_SETUP_SET_FREQ | MAG_SETUP_OFF_CANC | MAG_SETUP_LPF;
-	if(MAG_SPI_WriteReg(mag, MAG_REG_CFG_REG_B, temp) != MAG_OK) return MAG_ERROR;
-	temp = MAG_SETUP_PINFUNC | MAG_SETUP_BDU | MAG_SETUP_BLE;
-	if(MAG_SETUP_INTERFACE == 0) temp |= MAG_I2C_DIS;	// SPI
-	if(MAG_SPI_WriteReg(mag, MAG_REG_CFG_REG_C, temp) != MAG_OK) return MAG_ERROR;
-	temp = MAG_SETUP_INT_SRC | MAG_SETUP_INT | MAG_SETUP_INT_POLARITY | MAG_SETUP_INT_MODE;
-	if(MAG_SPI_WriteReg(mag, MAG_REG_INT_CTRL_REG, temp) != MAG_OK) return MAG_ERROR;
+
+	/* Populate Config Struct from Macros */
+	mag->config.cfg_reg_a 		= MAG_SETUP_COMP_TEMP | MAG_SETUP_LP | MAG_SETUP_ODR | MAG_SETUP_MODE;
+	mag->config.cfg_reg_b 		= MAG_SETUP_OFF_CANC_ONE_SHOT | MAG_SETUP_INT_ON_DATAOFF | MAG_SETUP_SET_FREQ | MAG_SETUP_OFF_CANC | MAG_SETUP_LPF;
+	mag->config.cfg_reg_c 		= MAG_SETUP_PINFUNC | MAG_SETUP_BDU | MAG_SETUP_BLE;
+	if(MAG_SETUP_INTERFACE == 0) mag->config.cfg_reg_c |= MAG_I2C_DIS;	// Disable I2C if SPI selected
+	
+	mag->config.int_ctrl_reg 	= MAG_SETUP_INT_SRC | MAG_SETUP_INT | MAG_SETUP_INT_POLARITY | MAG_SETUP_INT_MODE;
+	mag->config.int_ths 		= MAG_SETUP_INT_TH;
+
+	/* Write Configuration to Registers */
+	if(MAG_SPI_WriteReg(mag, MAG_REG_CFG_REG_A, mag->config.cfg_reg_a) != MAG_OK) return MAG_ERROR;
+	if(MAG_SPI_WriteReg(mag, MAG_REG_CFG_REG_B, mag->config.cfg_reg_b) != MAG_OK) return MAG_ERROR;
+	if(MAG_SPI_WriteReg(mag, MAG_REG_CFG_REG_C, mag->config.cfg_reg_c) != MAG_OK) return MAG_ERROR;
+	if(MAG_SPI_WriteReg(mag, MAG_REG_INT_CTRL_REG, mag->config.int_ctrl_reg) != MAG_OK) return MAG_ERROR;
+	
+	// Write Threshold (Low and High bytes)
+	if(MAG_SPI_WriteReg(mag, MAG_REG_INT_THS_L, (uint8_t)(mag->config.int_ths & 0xFF)) != MAG_OK) return MAG_ERROR;
+	if(MAG_SPI_WriteReg(mag, MAG_REG_INT_THS_H, (uint8_t)((mag->config.int_ths >> 8) & 0xFF)) != MAG_OK) return MAG_ERROR;
 
 	return MAG_OK;
 }

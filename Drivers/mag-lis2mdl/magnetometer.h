@@ -134,13 +134,19 @@ typedef enum{
 // TEMP_OUT_H_REG (0x6F)
 
 typedef struct{
-
+	uint8_t cfg_reg_a;
+	uint8_t cfg_reg_b;
+	uint8_t cfg_reg_c;
+	uint8_t int_ctrl_reg;
+	uint8_t int_source;
+	uint16_t int_ths;
 }Mag_Config_t;
 
 typedef struct{
 	SPI_HandleTypeDef* pSPIx;
 	GPIO_TypeDef* pGPIOx;
 	uint16_t GPIO_PIN_x;
+	Mag_Config_t config;
 }MAG_Handler_t;
 
 typedef struct{
