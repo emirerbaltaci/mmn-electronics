@@ -1,6 +1,8 @@
 {
-	"section": "acoustics",
-	"id_range": [70, 99],
-	
-	"messages": []
+    "section": "acoustics",
+    "id_range": [
+        70,
+        99
+    ],
+    "messages": []
 }

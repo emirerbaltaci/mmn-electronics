@@ -31,7 +31,9 @@ TYPE_MAP = {
     "int16":  {"c": "int16_t",  "py": "h", "size": 2},
     "uint32": {"c": "uint32_t", "py": "I", "size": 4},
     "int32":  {"c": "int32_t",  "py": "i", "size": 4},
-    "float":  {"c": "float",    "py": "f", "size": 4}
+    "float":  {"c": "float",    "py": "f", "size": 4},
+    "float32": {"c": "float",   "py": "f", "size": 4},
+    "float64": {"c": "double",  "py": "d", "size": 8}
 }
 
 def generate_c_header(data, output_file):

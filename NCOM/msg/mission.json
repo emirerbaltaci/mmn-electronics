@@ -1,6 +1,8 @@
 {
-	"section": "mission",
-	"id_range": [100, 199],
-	
-	"messages": []
+    "section": "mission",
+    "id_range": [
+        100,
+        199
+    ],
+    "messages": []
 }

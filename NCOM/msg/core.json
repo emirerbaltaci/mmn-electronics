@@ -1,347 +1,323 @@
 {
-	"section": "core",
-	"id_range": [0, 9],
-	
-	"messages": [
-	
-		{
-			"id": 0,
-			"name": "HEARTBEAT",
-			"direction": "MCU_TO_HOST",
-			"desc": "Sent at 1 Hz",
-			
-			"payload": [
-				{
-					"name": "device_id",
-					"type": "uint8",
-					"desc": "RPi = 0, MCU = 1; Auto-ID may be implemented later."
-				},
-				{
-					"name": "vehicle_state",
-					"type": "uint8",
-					"desc": "State/Mode of the vehicle. Valid states are enumerated.",
-					"enum": {
-						
-						"INIT": 0,
-						"DISARMED": 1,
-						"PREARMED": 2,
-						"ARMED": 3,
-						"MISSION": 4,
-						
-						"DISARMED_MANUAL": 11,
-						"PREARMED_MANUAL": 12,
-						"ARMED_MANUAL": 13,
-						
-						"DISARMED_ERR": 21,
-						"PREARMED_ERR": 22,
-						"ARMED_ERR": 23,
-						
-						"DISARMED_MANUAL_ERR": 31,
-						"PREARMED_MANUAL_ERR": 32,
-						"ARMED_MANUAL_ERR": 33,
-						
-						"MCU_HARDFAULT": 255
-					}
-				},
-				{
-					"name": "flags",
-					"type": "uint8",
-					"desc": "Critical flags. Every bit represents a flag. Indices are given below.",
-					"flags_type": "bitmask",
-					"flags": {
-						"LEAK_DETECTED": 0,
-						"BATTERY_LOW": 1,
-						"INIT_ERR": 2,
-						"NAV_ERR": 3,
-						"BAR30_ERR": 4,
-						"PERIPHERAL_ERR": 5,
-						"RTOS_TASK_ERR": 6,
-						"MISSION_ABORTED": 7
-					}
-				},
-				{
-					"name": "uptime_s",
-					"type": "uint32",
-					"desc": "MCU uptime in seconds"
-				}
-			]
-		},
-		
-		{
-			"id": 1,
-			"name": "SYS_STATUS",
-			"direction": "MCU_TO_HOST",
-			"desc": "Microcontroller status",
-			
-			"payload": [
-				{
-					"name": "cpu_load_perc",
-					"type": "uint8",
-					"desc": "CPU load percentage"
-				},
-				{
-					"name": "bat_voltage_mv",
-					"type": "uint16",
-					"desc": "Battery voltage in mV"
-				},
-				{
-					"name": "mcu_temp_c",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "MCU Temperature in degree Celsius. Transmitted as int32, encoded as float32."
-				}
-			]
-		},
-		
-		{
-			"id": 2,
-			"name": "COMMAND",
-			"direction": "HOST_TO_MCU",
-			"desc": "Core commands to the MCU from RPi",
-			
-			"payload": [
-				{
-					"name": "cmd_id",
-					"type": "uint8",
-					"desc": "Command ID. Valid commands are enumerated.",
-					"enum": {
-						
-						"DISARM": 0,
-						"PREARM": 1,
-						"ARM": 2,
-						"START_MISSION": 3,
-						"ABORT_MISSION": 4,
-						"CLEAR_FLAGS": 5,
-						
-						"SET_MODE_AUTO": 10,
-						"SET_MODE_MANUAL": 11,
-						"SET_MODE_HOLD_DEPTH": 12,
-						"SET_MODE_HOLD_ATTITUDE": 13,
-						"SET_MODE_STABILIZE": 14,
-						
-						"SET_TARGET_DEPTH_MM": 20,
-						"SET_TARGET_ROLL_DEG": 21,
-						"SET_TARGET_PITCH_DEG": 22,
-						"SET_TARGET_YAW_DEG": 23,
-						"SET_TARGET_SURGE_MM_S": 24,
-						"SET_TARGET_SWAY_MM_S": 25,
-						"SET_TARGET_HEAVE_MM_S": 26,
-						
-						"SET_LIGHTS_MAIN": 30,
-						"SET_LIGHTS_AUX": 31,
-						
-						"REBOOT_MCU": 40,
-						
-						"CALIBRATE_DEPTH_0": 100,
-						"CALIBRATE_AXES_0": 101,
-						
-						"SET_HEARTBEAT_RATE": 200,
-						
-						"EMERGENCY_SURFACE": 253,
-						"EMERGENCY_STOP": 254,
-						"EMERGENCY_SOFTKILL": 255
-					}
-				},
-				{
-					"name": "cmd_param",
-					"type": "int32",
-					"desc": "Command parameters. Transmitted as int32, encoding defined by cmd_id. Check documentation for details and valid arguments."
-				}
-			]
-		},
-		
-		{
-			"id": 3,
-			"name": "ATTITUDE",
-			"direction": "MCU_TO_HOST",
-			"desc": "Vehicle orientation in 3-D space",
-			
-			"payload": [
-				{
-					"name": "roll_deg",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "Roll angle in degrees. Transmitted as int32, encoded as float32."
-				},
-				{
-					"name": "pitch_deg",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "Pitch angle in degrees. Transmitted as int32, encoded as float32."
-				},
-				{
-					"name": "yaw_deg",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "Yaw angle in degrees. Transmitted as int32, encoded as float32."
-				},
-				{
-					"name": "validity",
-					"type": "uint8",
-					"desc": "0 = Invalid, 1 = Valid"
-				}
-			]
-		},
-		
-		{
-			"id": 4,
-			"name": "ROTATION_RATES",
-			"direction": "MCU_TO_HOST",
-			"desc": "Angular rotation rates of the vehicle",
-			
-			"payload": [
-				{
-					"name": "p_deg_s",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "Roll rate in deg/s. Transmitted as int32, encoded as float32."
-				},
-				{
-					"name": "pitch_deg",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "Pitch rate in deg/s. Transmitted as int32, encoded as float32."
-				},
-				{
-					"name": "yaw_deg",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "Yaw rate in deg/s. Transmitted as int32, encoded as float32."
-				}
-			]
-		},
-		
-		{
-			"id": 5,
-			"name": "LINEAR_VELOCITY",
-			"direction": "MCU_TO_HOST",
-			"desc": "Linear velocities of the vehicle",
-			
-			"payload": [
-				{
-					"name": "surge_mm_s",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "Surge in mm/s. Transmitted as int32, encoded as float32."
-				},
-				{
-					"name": "sway_mm_s",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "Sway in mm/s. Transmitted as int32, encoded as float32."
-				},
-				{
-					"name": "heave_mm_s",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "Heave in mm/s. Transmitted as int32, encoded as float32."
-				}
-			]
-		},
-		
-		{
-			"id": 6,
-			"name": "DEPTH",
-			"direction": "MCU_TO_HOST",
-			"desc": "Depth and related information",
-			
-			"payload" : [
-				{
-					"name": "depth_mm",
-					"type": "int32",
-					"desc": "Depth below the surface (or calibrated depth-0 plane) in mm"
-				},
-				{
-					"name": "depth_rate_mm_s",
-					"type": "int32",
-					"desc": "Vertical speed in absolute frame, in mm/s. Positive when going deeper."
-				},
-				{
-					"name": "depth_hold_is_active",
-					"type": "uint8",
-					"desc": "Depth hold mode flag"
-				}
-			]
-		},
-		
-		{
-			"id": 7,
-			"name": "MODE_STATUS",
-			"direction": "MCU_TO_HOST",
-			"desc": "Vehicle mode information",
-			
-			"payload": [
-				{
-					"name": "mode_flags",
-					"type": "uint16",
-					"desc": "Vehicle mode flags. Every bit represents a flag. Indices are given below.",
-					"flags_type": "bitmask",
-					"flags": {
-						"DISARMED": 0,
-						"PREARMED": 1,
-						"ARMED": 2,
-						"AUTO": 3,
-						"MANUAL": 4,
-						"HOLD_DEPTH": 5,
-						"HOLD_ATTITUDE": 6,
-						"STABILIZE": 7,
-						"MISSION_ACTIVE": 8
-					}
-				}
-			]
-		},
-		
-		{
-			"id": 8,
-			"name": "TARGETS",
-			"direction": "MCU_TO_HOST",
-			"desc": "Active targets information",
-			
-			"payload": [
-				{
-					"name": "target_flags",
-					"type": "uint8",
-					"desc": "Target flags. Evert bit represents a flag. Indices are given below. Corresponding data bytes contain garbage data if flag is not raised.",
-					"flags_type": "bitmask",
-					"flags": {
-						"TARGET_DEPTH_IS_ACTIVE": 0,
-						"TARGET_ROLL_IS_ACTIVE": 1,
-						"TARGET_PITCH_IS_ACTIVE": 2,
-						"TARGET_YAW_IS_ACTIVE": 3
-					}
-				},
-				{
-					"name": "target_depth_mm",
-					"type": "int32",
-					"desc": "Target depth in mm"
-				},
-				{
-					"name": "target_roll_deg",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "Target roll in degrees. Transmitted as int32, encoded as float32."
-				},
-				{
-					"name": "target_pitch_deg",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "Target pitch in degrees. Transmitted as int32, encoded as float32."
-				},
-				{
-					"name": "target_yaw_deg",
-					"type": "int32",
-					"encoding": "float32",
-					"desc": "Target yaw in degrees. Transmitted as int32, encoded as float32."
-				}
-			]
-		},
-		
-		{
-			"id": 9,
-			"name": "UNUSED",
-			"direction": "BIDIRECTIONAL",
-			"desc": "ID 9 is free for a message.",
-			"payload": []
-		}
-	]
+    "section": "core",
+    "id_range": [
+        0,
+        9
+    ],
+    "messages": [
+        {
+            "id": 0,
+            "name": "HEARTBEAT",
+            "direction": "MCU_TO_HOST",
+            "desc": "Sent at 1 Hz",
+            "payload": [
+                {
+                    "name": "device_id",
+                    "type": "uint8",
+                    "desc": "RPi = 0, MCU = 1; Auto-ID may be implemented later."
+                },
+                {
+                    "name": "vehicle_state",
+                    "type": "uint8",
+                    "desc": "State/Mode of the vehicle. Valid states are enumerated.",
+                    "enum": {
+                        "INIT": 0,
+                        "DISARMED": 1,
+                        "PREARMED": 2,
+                        "ARMED": 3,
+                        "MISSION": 4,
+                        "DISARMED_MANUAL": 11,
+                        "PREARMED_MANUAL": 12,
+                        "ARMED_MANUAL": 13,
+                        "DISARMED_ERR": 21,
+                        "PREARMED_ERR": 22,
+                        "ARMED_ERR": 23,
+                        "DISARMED_MANUAL_ERR": 31,
+                        "PREARMED_MANUAL_ERR": 32,
+                        "ARMED_MANUAL_ERR": 33,
+                        "MCU_HARDFAULT": 255
+                    }
+                },
+                {
+                    "name": "flags",
+                    "type": "uint8",
+                    "desc": "Critical flags. Every bit represents a flag. Indices are given below.",
+                    "flags_type": "bitmask",
+                    "flags": {
+                        "LEAK_DETECTED": 0,
+                        "BATTERY_LOW": 1,
+                        "INIT_ERR": 2,
+                        "NAV_ERR": 3,
+                        "BAR30_ERR": 4,
+                        "PERIPHERAL_ERR": 5,
+                        "RTOS_TASK_ERR": 6,
+                        "MISSION_ABORTED": 7
+                    }
+                },
+                {
+                    "name": "uptime_s",
+                    "type": "uint32",
+                    "desc": "MCU uptime in seconds"
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "name": "SYS_STATUS",
+            "direction": "MCU_TO_HOST",
+            "desc": "Microcontroller status",
+            "payload": [
+                {
+                    "name": "cpu_load_perc",
+                    "type": "uint8",
+                    "desc": "CPU load percentage"
+                },
+                {
+                    "name": "bat_voltage_mv",
+                    "type": "uint16",
+                    "desc": "Battery voltage in mV"
+                },
+                {
+                    "name": "mcu_temp_c",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "MCU Temperature in degree Celsius. Transmitted as int32, encoded as float32."
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "name": "COMMAND",
+            "direction": "HOST_TO_MCU",
+            "desc": "Core commands to the MCU from RPi",
+            "payload": [
+                {
+                    "name": "cmd_id",
+                    "type": "uint8",
+                    "desc": "Command ID. Valid commands are enumerated.",
+                    "enum": {
+                        "DISARM": 0,
+                        "PREARM": 1,
+                        "ARM": 2,
+                        "START_MISSION": 3,
+                        "ABORT_MISSION": 4,
+                        "CLEAR_FLAGS": 5,
+                        "SET_MODE_AUTO": 10,
+                        "SET_MODE_MANUAL": 11,
+                        "SET_MODE_HOLD_DEPTH": 12,
+                        "SET_MODE_HOLD_ATTITUDE": 13,
+                        "SET_MODE_STABILIZE": 14,
+                        "SET_TARGET_DEPTH_MM": 20,
+                        "SET_TARGET_ROLL_DEG": 21,
+                        "SET_TARGET_PITCH_DEG": 22,
+                        "SET_TARGET_YAW_DEG": 23,
+                        "SET_TARGET_SURGE_MM_S": 24,
+                        "SET_TARGET_SWAY_MM_S": 25,
+                        "SET_TARGET_HEAVE_MM_S": 26,
+                        "SET_LIGHTS_MAIN": 30,
+                        "SET_LIGHTS_AUX": 31,
+                        "REBOOT_MCU": 40,
+                        "CALIBRATE_DEPTH_0": 100,
+                        "CALIBRATE_AXES_0": 101,
+                        "SET_HEARTBEAT_RATE": 200,
+                        "EMERGENCY_SURFACE": 253,
+                        "EMERGENCY_STOP": 254,
+                        "EMERGENCY_SOFTKILL": 255
+                    }
+                },
+                {
+                    "name": "cmd_param",
+                    "type": "int32",
+                    "desc": "Command parameters. Transmitted as int32, encoding defined by cmd_id. Check documentation for details and valid arguments."
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "ATTITUDE",
+            "direction": "MCU_TO_HOST",
+            "desc": "Vehicle orientation in 3-D space",
+            "payload": [
+                {
+                    "name": "roll_deg",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Roll angle in degrees. Transmitted as int32, encoded as float32."
+                },
+                {
+                    "name": "pitch_deg",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Pitch angle in degrees. Transmitted as int32, encoded as float32."
+                },
+                {
+                    "name": "yaw_deg",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Yaw angle in degrees. Transmitted as int32, encoded as float32."
+                },
+                {
+                    "name": "validity",
+                    "type": "uint8",
+                    "desc": "0 = Invalid, 1 = Valid"
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "name": "ROTATION_RATES",
+            "direction": "MCU_TO_HOST",
+            "desc": "Angular rotation rates of the vehicle",
+            "payload": [
+                {
+                    "name": "p_deg_s",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Roll rate in deg/s. Transmitted as int32, encoded as float32."
+                },
+                {
+                    "name": "pitch_deg",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Pitch rate in deg/s. Transmitted as int32, encoded as float32."
+                },
+                {
+                    "name": "yaw_deg",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Yaw rate in deg/s. Transmitted as int32, encoded as float32."
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "name": "LINEAR_VELOCITY",
+            "direction": "MCU_TO_HOST",
+            "desc": "Linear velocities of the vehicle",
+            "payload": [
+                {
+                    "name": "surge_mm_s",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Surge in mm/s. Transmitted as int32, encoded as float32."
+                },
+                {
+                    "name": "sway_mm_s",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Sway in mm/s. Transmitted as int32, encoded as float32."
+                },
+                {
+                    "name": "heave_mm_s",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Heave in mm/s. Transmitted as int32, encoded as float32."
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "name": "DEPTH",
+            "direction": "MCU_TO_HOST",
+            "desc": "Depth and related information",
+            "payload": [
+                {
+                    "name": "depth_mm",
+                    "type": "int32",
+                    "desc": "Depth below the surface (or calibrated depth-0 plane) in mm"
+                },
+                {
+                    "name": "depth_rate_mm_s",
+                    "type": "int32",
+                    "desc": "Vertical speed in absolute frame, in mm/s. Positive when going deeper."
+                },
+                {
+                    "name": "depth_hold_is_active",
+                    "type": "uint8",
+                    "desc": "Depth hold mode flag"
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "name": "MODE_STATUS",
+            "direction": "MCU_TO_HOST",
+            "desc": "Vehicle mode information",
+            "payload": [
+                {
+                    "name": "mode_flags",
+                    "type": "uint16",
+                    "desc": "Vehicle mode flags. Every bit represents a flag. Indices are given below.",
+                    "flags_type": "bitmask",
+                    "flags": {
+                        "DISARMED": 0,
+                        "PREARMED": 1,
+                        "ARMED": 2,
+                        "AUTO": 3,
+                        "MANUAL": 4,
+                        "HOLD_DEPTH": 5,
+                        "HOLD_ATTITUDE": 6,
+                        "STABILIZE": 7,
+                        "MISSION_ACTIVE": 8
+                    }
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "name": "TARGETS",
+            "direction": "MCU_TO_HOST",
+            "desc": "Active targets information",
+            "payload": [
+                {
+                    "name": "target_flags",
+                    "type": "uint8",
+                    "desc": "Target flags. Evert bit represents a flag. Indices are given below. Corresponding data bytes contain garbage data if flag is not raised.",
+                    "flags_type": "bitmask",
+                    "flags": {
+                        "TARGET_DEPTH_IS_ACTIVE": 0,
+                        "TARGET_ROLL_IS_ACTIVE": 1,
+                        "TARGET_PITCH_IS_ACTIVE": 2,
+                        "TARGET_YAW_IS_ACTIVE": 3
+                    }
+                },
+                {
+                    "name": "target_depth_mm",
+                    "type": "int32",
+                    "desc": "Target depth in mm"
+                },
+                {
+                    "name": "target_roll_deg",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Target roll in degrees. Transmitted as int32, encoded as float32."
+                },
+                {
+                    "name": "target_pitch_deg",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Target pitch in degrees. Transmitted as int32, encoded as float32."
+                },
+                {
+                    "name": "target_yaw_deg",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Target yaw in degrees. Transmitted as int32, encoded as float32."
+                }
+            ]
+        },
+        {
+            "id": 9,
+            "name": "UNUSED",
+            "direction": "BIDIRECTIONAL",
+            "desc": "ID9 is free",
+            "payload": [
+                {
+                    "name": "UNUSED",
+                    "type": "uint8",
+                    "desc": "unused"
+                }
+            ]
+        }
+    ]
 }

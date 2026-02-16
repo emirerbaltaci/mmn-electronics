@@ -1,6 +1,8 @@
 {
-	"section": "nav",
-	"id_range": [30, 39],
-	
-	"messages": []
+    "section": "nav",
+    "id_range": [
+        30,
+        39
+    ],
+    "messages": []
 }
