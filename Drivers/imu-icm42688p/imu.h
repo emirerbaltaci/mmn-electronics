@@ -997,32 +997,59 @@ static inline void IMU_ACCEL_AXIS_OFFUSER(float mgValX, float mgValY, float mgVa
 
 // #################################### IMU Register Configuration Structure
 typedef struct{
-	// UI and Power Configuration
-	uint8_t INTERFACE_x;
-	uint8_t SENSOR_DATA_ENDIAN_x;
-	// Accelerometer Configuration
-	// Gyroscope Configuration
-	// Temperature Sensor Configuration
-	// FIFO Configuration
-	uint8_t FIFO_MODE_x;
-	uint8_t FIFO_DATA_ENDIAN_x;
-	// SPI Configuration
-	uint8_t SPI_MODE_x;
-	uint8_t SPI_SLEW_RATE_x;
-	// I2C and I3C Configuration
-	// Interrupt Configuration
-	uint8_t INT1_POLARITY_x;
-	uint8_t INT1_DRIVE_CIRCUIT_x;
-	uint8_t INT1_MODE_x;
-	uint8_t INT2_POLARITY_x;
-	uint8_t INT2_DRIVE_CIRCUIT_x;
-	uint8_t INT2_MODE_x;
+	// Bank 0
+	uint8_t pwr_mgmt0;			// IMU_REG_PWR_MGMT0
+	uint8_t gyro_config0;		// IMU_REG_GYRO_CONFIG0
+	uint8_t accel_config0;		// IMU_REG_ACCEL_CONFIG0
+	uint8_t gyro_config1;		// IMU_REG_GYRO_CONFIG1
+	uint8_t accel_config1;		// IMU_REG_ACCEL_CONFIG1
+	uint8_t gyro_accel_config0; // IMU_REG_GYRO_ACCEL_CONFIG0
+	uint8_t device_config;		// IMU_REG_DEVICE_CONFIG
+	uint8_t drive_config;		// IMU_REG_DRIVE_CONFIG
+	uint8_t int_config;			// IMU_REG_INT_CONFIG
+	uint8_t fifo_config;		// IMU_REG_FIFO_CONFIG
+	uint8_t intf_config0;		// IMU_REG_INTF_CONFIG0
+	uint8_t intf_config1;		// IMU_REG_INTF_CONFIG1
+	uint8_t tmst_config;		// IMU_REG_TMST_CONFIG
+	uint8_t fifo_config1;		// IMU_REG_FIFO_CONFIG1
+	uint8_t fifo_config2;		// IMU_REG_FIFO_CONFIG2
+	uint8_t fifo_config3;		// IMU_REG_FIFO_CONFIG3
+	uint8_t fsync_config;		// IMU_REG_FSYNC_CONFIG
+	uint8_t int_config0;		// IMU_REG_INT_CONFIG0
+	uint8_t int_config1;		// IMU_REG_INT_CONFIG1
+	uint8_t int_source0;		// IMU_REG_INT_SOURCE0
+	uint8_t int_source1;		// IMU_REG_INT_SOURCE1
+	uint8_t int_source3;		// IMU_REG_INT_SOURCE3
+	uint8_t int_source4;		// IMU_REG_INT_SOURCE4
+	uint8_t self_test_config;	// IMU_REG_SELF_TEST_CONFIG
+
+	// Bank 1
+	uint8_t sensor_config0;		// IMU_REG_SENSOR_CONFIG0
+	uint8_t gyro_config_static2;// IMU_REG_GYRO_CONFIG_STATIC2
+	uint8_t gyro_config_static3;// IMU_REG_GYRO_CONFIG_STATIC3
+	uint8_t gyro_config_static4;// IMU_REG_GYRO_CONFIG_STATIC4
+	uint8_t gyro_config_static5;// IMU_REG_GYRO_CONFIG_STATIC5
+	uint8_t gyro_config_static6;// IMU_REG_GYRO_CONFIG_STATIC6
+	uint8_t gyro_config_static7;// IMU_REG_GYRO_CONFIG_STATIC7
+	uint8_t gyro_config_static8;// IMU_REG_GYRO_CONFIG_STATIC8
+	uint8_t gyro_config_static9;// IMU_REG_GYRO_CONFIG_STATIC9
+	uint8_t gyro_config_static10;// IMU_REG_GYRO_CONFIG_STATIC10
+	uint8_t intf_config4;		// IMU_REG_INTF_CONFIG4
+	uint8_t intf_config5;		// IMU_REG_INTF_CONFIG5
+
+	// Bank 2
+	uint8_t accel_config_static2;// IMU_REG_ACCEL_CONFIG_STATIC2
+	uint8_t accel_config_static3;// IMU_REG_ACCEL_CONFIG_STATIC3
+	uint8_t accel_config_static4;// IMU_REG_ACCEL_CONFIG_STATIC4
+
+	// Bank 3
+	uint8_t clkdiv;				// IMU_REG_CLKDIV (for Notch Filter)
 }IMU_Config_t;
 
 // #################################### IMU Handler Structure
 typedef struct{
 	// Variables needed to be assigned by the user before IMU_Init function call
-	IMU_Config_t* pIMU;
+	IMU_Config_t config;
 	SPI_HandleTypeDef* pSPIx;
 	GPIO_TypeDef* pGPIOx;
 	uint16_t GPIO_PIN_x;
@@ -1065,6 +1092,8 @@ IMU_Status_t IMU_SPI_ReadGyro(IMU_Handler_t* imu, IMU_Data_t* data);
 IMU_Status_t IMU_SPI_ReadTemp(IMU_Handler_t* imu, IMU_Data_t* data);
 IMU_Status_t IMU_SPI_GetData(IMU_Handler_t* imu, IMU_Data_t* data);
 IMU_Status_t IMU_SPI_ReadFIFO(IMU_Handler_t* imu, IMU_Data_t* data);
+
+void IMU_CalculateNotchFilter(IMU_Config_t* config, float freqX, float freqY, float freqZ);
 
 
 

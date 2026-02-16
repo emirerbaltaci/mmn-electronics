@@ -22,8 +22,9 @@
  * SOFTWARE.
  */
 
-#include "imu_config.h"
+#include "imu.h"
 #include <math.h>
+#include <string.h>
 
 static inline void IMU_SPI_Enable(IMU_Handler_t* imu){
 	HAL_GPIO_WritePin(imu->pGPIOx, imu->GPIO_PIN_x, GPIO_PIN_RESET);
@@ -97,8 +98,11 @@ IMU_Status_t IMU_SPI_WriteBurst(IMU_Handler_t* imu, uint8_t REG, uint8_t* txBuff
 	return IMU_OK;
 }
 
-static inline void IMU_MultiplierHelper(IMU_Handler_t* imu, uint8_t ACCEL_UI_FS_SEL, uint8_t GYRO_UI_FS_SEL){
-	switch (ACCEL_UI_FS_SEL){
+static inline void IMU_MultiplierHelper(IMU_Handler_t* imu){
+	uint8_t accel_fs = imu->config.accel_config0 & 0xE0;
+	uint8_t gyro_fs = imu->config.gyro_config0 & 0xE0;
+
+	switch (accel_fs){
 	case IMU_ACCEL_UI_FS_SEL_16G: imu->accelMult = 1.0f / 2048.0f; break;
 	case IMU_ACCEL_UI_FS_SEL_8G: imu->accelMult = 1.0f / 4096.0f; break;
 	case IMU_ACCEL_UI_FS_SEL_4G: imu->accelMult = 1.0f / 8192.0f; break;
@@ -106,7 +110,7 @@ static inline void IMU_MultiplierHelper(IMU_Handler_t* imu, uint8_t ACCEL_UI_FS_
 	default: imu->accelMult = 1.0f / 2048.0f; break;
 	}
 
-	switch (GYRO_UI_FS_SEL){
+	switch (gyro_fs){
 	case IMU_GYRO_UI_FS_SEL_2000DPS: imu->gyroMult = 1.0f / 16.4f; break;
 	case IMU_GYRO_UI_FS_SEL_1000DPS: imu->gyroMult = 1.0f / 32.8f; break;
 	case IMU_GYRO_UI_FS_SEL_500DPS: imu->gyroMult = 1.0f / 65.5f; break;
@@ -133,297 +137,235 @@ IMU_Status_t IMU_SPI_Init(IMU_Handler_t* imu){
 	HAL_Delay(1);
 	if(IMU_SPI_ReadReg(imu, IMU_REG_WHO_AM_I, &temp) != IMU_OK) return IMU_ERROR;
 	if(temp != IMU_WHOAMI) return IMU_ERROR;
+	
+	// DEVICE_CONFIG (RMW: Preserve 7:5, 3:1. Clear 4,0 for Config)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_DEVICE_CONFIG, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0xEE;
-	if((imu->pSPIx->Instance->CR1 & 0x01) == ((imu->pSPIx->Instance->CR1 & 0x02) >> 1)) temp |= IMU_SPI_MODE_0_3;
-	else temp |= IMU_SPI_MODE_1_2;
+	temp |= (imu->config.device_config & 0x11);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_DEVICE_CONFIG, temp) != IMU_OK) return IMU_ERROR;
 
-	// PWR_MGMT0 - Earlier since clock needs to stabilize
+	// PWR_MGMT0 (RMW: Preserve 7:6)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_PWR_MGMT0, &temp) != IMU_OK) return IMU_ERROR;
-	temp &= (3 << 6);
-	temp |= IMU_SETUP_ACCEL_MODE | IMU_SETUP_GYRO_MODE | IMU_SETUP_TEMP_MODE | IMU_SETUP_IDLEMODE;
+	temp &= 0xC0;
+	temp |= (imu->config.pwr_mgmt0 & 0x3F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_PWR_MGMT0, temp) != IMU_OK) return IMU_ERROR;
 
-	// DRIVE_CONFIG
+	// DRIVE_CONFIG (RMW: Preserve 7:6)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_DRIVE_CONFIG, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0xC0;
-	temp |= IMU_SETUP_SPI_SLEW | IMU_SETUP_I2C_SLEW;
+	temp |= (imu->config.drive_config & 0x3F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_DRIVE_CONFIG, temp) != IMU_OK) return IMU_ERROR;
 
-	// INT_CONFIG
+	// INT_CONFIG (RMW: Preserve 7:6)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_INT_CONFIG, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0xC0;
-	temp |= IMU_SETUP_INT1_POLARITY | IMU_SETUP_INT1_DRIVE_CIRCUIT | IMU_SETUP_INT1_MODE |
-			IMU_SETUP_INT2_POLARITY | IMU_SETUP_INT2_DRIVE_CIRCUIT | IMU_SETUP_INT2_MODE;
+	temp |= (imu->config.int_config & 0x3F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_INT_CONFIG, temp) != IMU_OK) return IMU_ERROR;
 
-	// FIFO_CONFIG
+	// FIFO_CONFIG (RMW: Preserve 5:0. Config 7:6)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_FIFO_CONFIG, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x3F;
-	temp |= IMU_SETUP_FIFO_MODE;
+	temp |= (imu->config.fifo_config & 0xC0);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_FIFO_CONFIG, temp) != IMU_OK) return IMU_ERROR;
 
-	// INTF_CONFIG0
+	// INTF_CONFIG0 (RMW: Preserve 3:2. Config 7:4, 1:0)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_INTF_CONFIG0, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x0C;
-#if IMU_SETUP_INTERFACE == 0	// SPI
-	temp |= 0x03;
-#else	// I2C & I3C
-	temp |= 0x02;
-#endif
-	temp |= IMU_SETUP_SENSOR_ENDIAN | IMU_SETUP_FIFO_COUNT_ENDIAN | IMU_SETUP_FIFO_COUNT_REC | IMU_SETUP_FIFO_HOLD_LAST_DATA;
+	temp |= (imu->config.intf_config0 & 0xF3);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_INTF_CONFIG0, temp) != IMU_OK) return IMU_ERROR;
 
-	// INTF_CONFIG1
+	// INTF_CONFIG1 (RMW: Preserve 7:4. Config 3:0)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_INTF_CONFIG1, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0xF0;
-	temp |= IMU_SETUP_CLKSEL | IMU_SETUP_RTC_MODE | IMU_SETUP_ACCEL_LPCLK;
+	temp |= (imu->config.intf_config1 & 0x0F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_INTF_CONFIG1, temp) != IMU_OK) return IMU_ERROR;
 
-	// GYRO_CONFIG0 and ACCEL_CONFIG0
+	// GYRO_CONFIG0 (RMW: Preserve 4. Config 7:5, 3:0)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_GYRO_CONFIG0, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x10;
-	temp |= IMU_SETUP_GYRO_ODR | IMU_SETUP_GYRO_FS;
+	temp |= (imu->config.gyro_config0 & 0xEF);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG0, temp) != IMU_OK) return IMU_ERROR;
 
+	// ACCEL_CONFIG0 (RMW: Preserve 4. Config 7:5, 3:0)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_ACCEL_CONFIG0, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x10;
-	temp |= IMU_SETUP_ACCEL_ODR | IMU_SETUP_ACCEL_FS;
+	temp |= (imu->config.accel_config0 & 0xEF);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_ACCEL_CONFIG0, temp) != IMU_OK) return IMU_ERROR;
 
-	// GYRO_CONFIG1 and ACCEL_CONFIG1
+	// GYRO_CONFIG1 (RMW: Preserve 4,1,0. Config 7:5, 3:2)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_GYRO_CONFIG1, &temp) != IMU_OK) return IMU_ERROR;
-#if (IMU_SETUP_GYRO_UI_FILT_BW == IMU_GYRO_UI_FILT_BW_DEC2_ODR || IMU_SETUP_GYRO_UI_FILT_BW == IMU_GYRO_UI_FILT_BW_DEC2_ODR8)
-	temp &= 0x10;
-	temp |= IMU_GYRO_DEC2_M2_ORD_3RD | IMU_SETUP_GYRO_UI_FILT_ORD | IMU_SETUP_TEMP_FILT_BW;
-#else
 	temp &= 0x13;
-	temp |= IMU_SETUP_GYRO_UI_FILT_ORD | IMU_SETUP_TEMP_FILT_BW;
-#endif
+	temp |= (imu->config.gyro_config1 & 0xEC);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG1, temp) != IMU_OK) return IMU_ERROR;
 
+	// ACCEL_CONFIG1 (RMW: Preserve 7:5, 2:0. Config 4:3. Original was &= 0xE7)
+	// Original code preserved 7:5, 2:0.
 	if(IMU_SPI_ReadReg(imu, IMU_REG_ACCEL_CONFIG1, &temp) != IMU_OK) return IMU_ERROR;
-#if (IMU_SETUP_ACCEL_UI_FILT_BW == IMU_ACCEL_UI_FILT_BW_LN_DEC2_ODR || IMU_SETUP_ACCEL_UI_FILT_BW == IMU_ACCEL_UI_FILT_BW_LN_DEC2_ODR8)
-	temp &= 0xE1;
-	temp |= IMU_ACCEL_DEC2_M2_ORD_3RD | IMU_SETUP_ACCEL_UI_FILT_ORD;
-#else
 	temp &= 0xE7;
-	temp |= IMU_SETUP_ACCEL_UI_FILT_ORD;
-#endif
+	temp |= (imu->config.accel_config1 & 0x18);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_ACCEL_CONFIG1, temp) != IMU_OK) return IMU_ERROR;
 
-	// GYRO_ACCEL_CONFIG0
-	temp = IMU_SETUP_GYRO_UI_FILT_BW | IMU_SETUP_ACCEL_UI_FILT_BW;
-	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_ACCEL_CONFIG0, temp) != IMU_OK) return IMU_ERROR;
+	// GYRO_ACCEL_CONFIG0 - Direct Write
+	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_ACCEL_CONFIG0, imu->config.gyro_accel_config0) != IMU_OK) return IMU_ERROR;
 
-	// TMST_CONFIG
+	// TMST_CONFIG (RMW: Preserve 7:5)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_TMST_CONFIG, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0xE0;
-	temp |= IMU_SETUP_TMST_EN | IMU_SETUP_TMST_FSYNC_EN | IMU_SETUP_TMST_DELTA_EN | IMU_SETUP_TMST_RES | IMU_SETUP_TMST_TO_REGS_EN;
+	temp |= (imu->config.tmst_config & 0x1F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_TMST_CONFIG, temp) != IMU_OK) return IMU_ERROR;
 
-	// FIFO_CONFIG1
+	// FIFO_CONFIG1 (RMW: Preserve 7)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_FIFO_CONFIG1, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x80;
-	temp |= IMU_SETUP_FIFO_PACKET | IMU_FIFO_TEMP_EN | IMU_SETUP_FIFO_WM_GT_TH | IMU_SETUP_FIFO_PARTIAL_RD;
+	temp |= (imu->config.fifo_config1 & 0x7F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_FIFO_CONFIG1, temp) != IMU_OK) return IMU_ERROR;
 
-	// FIFO_CONFIG2 and FIFO_CONFIG3
-#if (IMU_SETUP_FIFO_WM >= 1 && IMU_SETUP_FIFO_WM <= 4095)
-	temp = (uint8_t)(IMU_SETUP_FIFO_WM & 0xFF);
-	if(IMU_SPI_WriteReg(imu, IMU_REG_FIFO_CONFIG2, temp) != IMU_OK) return IMU_ERROR;
-
+	// FIFO_CONFIG2, 3
+	if(IMU_SPI_WriteReg(imu, IMU_REG_FIFO_CONFIG2, imu->config.fifo_config2) != IMU_OK) return IMU_ERROR;
+	
+	// FIFO_CONFIG3 (RMW: Preserve 7:4)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_FIFO_CONFIG3, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0xF0;
-	temp |= (uint8_t)((IMU_SETUP_FIFO_WM >> 8) & 0x0F);
+	temp |= (imu->config.fifo_config3 & 0x0F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_FIFO_CONFIG3, temp) != IMU_OK) return IMU_ERROR;
-#else
-	return IMU_INVALID_CONFIG;
-#endif
 
-	// FSYNC_CONFIG
+	// FSYNC_CONFIG (RMW: Preserve 7, 3:2)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_FSYNC_CONFIG, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x8C;
-	temp |= IMU_SETUP_FSYNC_POLARITY | IMU_SETUP_FSYNC_UI_FLAG_CLEAR_SEL | IMU_SETUP_FSYNC_UI_SEL;
+	temp |= (imu->config.fsync_config & 0x73);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_FSYNC_CONFIG, temp) != IMU_OK) return IMU_ERROR;
 
-	// SIGNAL_PATH_RESET - Flush FIFO before enabling interrupts
+	// SIGNAL_PATH_RESET - Flush FIFO (RMW: Preserve 7, 4, 0)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_SIGNAL_PATH_RESET, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x91;
 	temp |= IMU_FIFO_FLUSH;
 	if(IMU_SPI_WriteReg(imu, IMU_REG_SIGNAL_PATH_RESET, temp) != IMU_OK) return IMU_ERROR;
 
-	// INT_CONFIG0
+	// INT_CONFIG0 (RMW: Preserve 7:6)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_INT_CONFIG0, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0xC0;
-	temp |= IMU_SETUP_INT_CONFIG0;
+	temp |= (imu->config.int_config0 & 0x3F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_INT_CONFIG0, temp) != IMU_OK) return IMU_ERROR;
 
-	// INT_CONFIG1
+	// INT_CONFIG1 (RMW: Preserve 7, 3:0. Original &= 0x8F. Config 6:4)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_INT_CONFIG1, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x8F;
-#if (IMU_SETUP_ACCEL_ODR <= IMU_ACCEL_ODR_4KHZ || IMU_SETUP_GYRO_ODR <= IMU_GYRO_ODR_4KHZ)
-	temp |= (3 << 5);
-#endif
-	temp |= IMU_INT_ASYNC_RESET;
+	temp |= (imu->config.int_config1 & 0x70);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_INT_CONFIG1, temp) != IMU_OK) return IMU_ERROR;
 
-	// INT_SOURCE0 and INT_SOURCE_3
+	// INT_SOURCE0 (RMW: Preserve 7)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_INT_SOURCE0, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x80;
-	temp |= IMU_RESET_DONE_INT1_EN | IMU_SETUP_INT1_SRC;
+	temp |= (imu->config.int_source0 & 0x7F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_INT_SOURCE0, temp) != IMU_OK) return IMU_ERROR;
 
+	// INT_SOURCE1 (RMW: Preserve 7)
+	if(IMU_SPI_ReadReg(imu, IMU_REG_INT_SOURCE1, &temp) != IMU_OK) return IMU_ERROR;
+	temp &= 0x80;
+	temp |= (imu->config.int_source1 & 0x7F);
+	if(IMU_SPI_WriteReg(imu, IMU_REG_INT_SOURCE1, temp) != IMU_OK) return IMU_ERROR;
+
+	// INT_SOURCE3 (RMW: Preserve 7)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_INT_SOURCE3, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x80;
-	temp |= IMU_RESET_DONE_INT2_EN | IMU_SETUP_INT2_SRC;
+	temp |= (imu->config.int_source3 & 0x7F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_INT_SOURCE3, temp) != IMU_OK) return IMU_ERROR;
 
-	// SELF_TEST_CONFIG
+	// INT_SOURCE4 (RMW: Preserve 7)
+	if(IMU_SPI_ReadReg(imu, IMU_REG_INT_SOURCE4, &temp) != IMU_OK) return IMU_ERROR;
+	temp &= 0x80;
+	temp |= (imu->config.int_source4 & 0x7F);
+	if(IMU_SPI_WriteReg(imu, IMU_REG_INT_SOURCE4, temp) != IMU_OK) return IMU_ERROR;
+
+	// SELF_TEST_CONFIG (RMW: Preserve 7)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_SELF_TEST_CONFIG, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x80;
-	temp |= 0x3F;	// Self-test on all axes when conducted
+	temp |= (imu->config.self_test_config & 0x7F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_SELF_TEST_CONFIG, temp) != IMU_OK) return IMU_ERROR;
 
 	IMU_SetRegBank(imu, IMU_BANK_SEL_1);
 
-	// SENSOR_CONFIG0
+	// SENSOR_CONFIG0 (RMW: Preserve 7:6)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_SENSOR_CONFIG0, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0xC0;
-	temp |= 0;	// Enable all axes
+	temp |= (imu->config.sensor_config0 & 0x3F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_SENSOR_CONFIG0, temp) != IMU_OK) return IMU_ERROR;
 
-	// CLKDIV before AAF Config
+	// CLKDIV (RMW: Preserve 7)
 	IMU_SetRegBank(imu, IMU_BANK_SEL_3);
 	if(IMU_SPI_ReadReg(imu, IMU_REG_CLKDIV, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x80;
-	temp |= IMU_SETUP_GYRO_NF_CLKDIV;
+	temp |= (imu->config.clkdiv & 0x7F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_CLKDIV, temp) != IMU_OK) return IMU_ERROR;
 	IMU_SetRegBank(imu, IMU_BANK_SEL_1);
 
-	// GYRO_CONFIG_STATIC2 to GYRO_CONFIG_STATIC_10
+	// GYRO_CONFIG_STATIC2 (RMW: Preserve 7:2)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_GYRO_CONFIG_STATIC2, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0xFC;
-	temp |= IMU_SETUP_GYRO_AAF_EN | IMU_SETUP_GYRO_NF_EN;
+	temp |= (imu->config.gyro_config_static2 & 0x03);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG_STATIC2, temp) != IMU_OK) return IMU_ERROR;
 
+	// GYRO_CONFIG_STATIC3 (RMW: Preserve 7:6)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_GYRO_CONFIG_STATIC3, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0xC0;
-	temp |= IMU_SETUP_GYRO_AAF_DELT;
+	temp |= (imu->config.gyro_config_static3 & 0x3F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG_STATIC3, temp) != IMU_OK) return IMU_ERROR;
 
-	temp = (uint8_t)(IMU_GYRO_AAF_DELTSQR(IMU_SETUP_GYRO_AAF_DELT) & 0xFF);
-	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG_STATIC4, temp) != IMU_OK) return IMU_ERROR;
+	// Direct Writes for calculated filters (Static 4-8)
+	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG_STATIC4, imu->config.gyro_config_static4) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG_STATIC5, imu->config.gyro_config_static5) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG_STATIC6, imu->config.gyro_config_static6) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG_STATIC7, imu->config.gyro_config_static7) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG_STATIC8, imu->config.gyro_config_static8) != IMU_OK) return IMU_ERROR;
 
-	temp = (uint8_t)((IMU_GYRO_AAF_DELTSQR(IMU_SETUP_GYRO_AAF_DELT) >> 8) & 0x0F) | IMU_GYRO_AAF_BITSHIFT(IMU_SETUP_GYRO_AAF_DELT);
-	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG_STATIC5, temp) != IMU_OK) return IMU_ERROR;
+	// GYRO_CONFIG_STATIC9 (RMW: Preserve 7:6)
+	if(IMU_SPI_ReadReg(imu, IMU_REG_GYRO_CONFIG_STATIC9, &temp) != IMU_OK) return IMU_ERROR;
+	temp &= 0xC0;
+	temp |= (imu->config.gyro_config_static9 & 0x3F);
+	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG_STATIC9, temp) != IMU_OK) return IMU_ERROR;
 
-	uint8_t temp2 = 0;
-	if(IMU_SPI_ReadReg(imu, IMU_REG_GYRO_CONFIG_STATIC9, &temp2) != IMU_OK) return IMU_ERROR;
-	temp2 &= 0xC0;
-	float fdrv = 19200000.0f / ((float)IMU_SETUP_GYRO_NF_CLKDIV * 10.0f);
-	for(int i = 0; i < 3; i++){
-		uint16_t freq;
-		uint8_t reg;
-		switch (i) {
-		case 0:
-			freq = IMU_SETUP_GYRO_NF_X_FREQ;
-			reg = IMU_REG_GYRO_CONFIG_STATIC6;
-			break;
-		case 1:
-			freq = IMU_SETUP_GYRO_NF_Y_FREQ;
-			reg = IMU_REG_GYRO_CONFIG_STATIC7;
-			break;
-		case 2:
-			freq = IMU_SETUP_GYRO_NF_Z_FREQ;
-			reg = IMU_REG_GYRO_CONFIG_STATIC8;
-			break;
-		default:
-			return IMU_INVALID_CONFIG;
-			break;
-		}
-		float coswz = cosf(2.0f * (float)M_PI * freq / fdrv);
-		int16_t nf_coswz = 0;
-		uint8_t nf_coswz_sel = 0;
-		if(fabsf(coswz) <= 0.875f){
-			nf_coswz = (int16_t)lroundf(coswz * 256.0f);
-			nf_coswz_sel = 0;
-		}
-		else{
-			nf_coswz_sel = 1;
-			if(coswz > 0.875f) nf_coswz = (int16_t)lroundf(8.0f * (1.0f - coswz) * 256.0f);
-			else nf_coswz = (int16_t)lroundf(-8.0f * (1.0f + coswz) * 256.0f);
-		}
-		if(nf_coswz > 255) nf_coswz = 255;
-		else if(nf_coswz < -256) nf_coswz = -256;
-		temp = nf_coswz & 0xFF;
-		if(IMU_SPI_WriteReg(imu, reg, temp) != IMU_OK) return IMU_ERROR;
-		switch (i) {
-		case 0:
-			temp2 |= (uint8_t)((nf_coswz >> 8) & 0x01) | (nf_coswz_sel << 3);
-			break;
-		case 1:
-			temp2 |= ((uint8_t)((nf_coswz >> 8) & 0x01) << 1) | (nf_coswz_sel << 4);
-			break;
-		case 2:
-			temp2 |= ((uint8_t)((nf_coswz >> 8) & 0x01) << 2) | (nf_coswz_sel << 5);
-			break;
-		default:
-			return IMU_INVALID_CONFIG;
-			break;
-		}
-	}
-	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG_STATIC9, temp2) != IMU_OK) return IMU_ERROR;
-
+	// GYRO_CONFIG_STATIC10 (RMW: Preserve 7, 3:0. Original &= 0x8F. Config 6:4)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_GYRO_CONFIG_STATIC10, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x8F;
-	temp |= IMU_SETUP_GYRO_NF_BW;
+	temp |= (imu->config.gyro_config_static10 & 0x70);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_GYRO_CONFIG_STATIC10, temp) != IMU_OK) return IMU_ERROR;
 
-	// INTF_CONFIG4
+	// INTF_CONFIG4 (RMW: Preserve 7,5,4,3,2,0. Original &= 0xBD -> Clear 6,1)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_INTF_CONFIG4, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0xBD;
-	temp |= IMU_SETUP_SPI_WIRE | IMU_SETUP_I3C_BUS_MODE;
+	temp |= (imu->config.intf_config4 & 0x42);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_INTF_CONFIG4, temp) != IMU_OK) return IMU_ERROR;
 
-	// INTF_CONFIG5
+	// INTF_CONFIG5 (RMW: Preserve 7:3, 0. Original &= 0xF9. Config 2:1)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_INTF_CONFIG5, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0xF9;
-	temp |= IMU_SETUP_PIN9_FUNCTION;
+	temp |= (imu->config.intf_config5 & 0x06);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_INTF_CONFIG5, temp) != IMU_OK) return IMU_ERROR;
 
-	// INTF_CONFIG6 (Implement Later)
-
 	IMU_SetRegBank(imu, IMU_BANK_SEL_2);
+	// ACCEL_CONFIG_STATIC2 (RMW: Preserve 7. Original &= 0x80)
 	if(IMU_SPI_ReadReg(imu, IMU_REG_ACCEL_CONFIG_STATIC2, &temp) != IMU_OK) return IMU_ERROR;
 	temp &= 0x80;
-	temp |= IMU_SETUP_ACCEL_AAF_DELT | IMU_SETUP_ACCEL_AAF_EN;
+	temp |= (imu->config.accel_config_static2 & 0x7F);
 	if(IMU_SPI_WriteReg(imu, IMU_REG_ACCEL_CONFIG_STATIC2, temp) != IMU_OK) return IMU_ERROR;
 
-	temp = (uint8_t)(IMU_ACCEL_AAF_DELTSQR(IMU_SETUP_ACCEL_AAF_DELT) & 0xFF);
-	if(IMU_SPI_WriteReg(imu, IMU_REG_ACCEL_CONFIG_STATIC3, temp) != IMU_OK) return IMU_ERROR;
-
-	temp = (uint8_t)((IMU_ACCEL_AAF_DELTSQR(IMU_SETUP_ACCEL_AAF_DELT) >> 8) & 0x0F) | IMU_ACCEL_AAF_BITSHIFT(IMU_SETUP_ACCEL_AAF_DELT);
-	if(IMU_SPI_WriteReg(imu, IMU_REG_ACCEL_CONFIG_STATIC4, temp) != IMU_OK) return IMU_ERROR;
-
-	// APEX CONFIG NOT IMPLEMENTED YET, SKIPPED FOR NOW - NO NEED FOR APEX IN AUV
-	// INT_SOURCEx, x = 1, 4, 6, 7, 8, 9, 10 ARE ALSO SKIPPED
+	if(IMU_SPI_WriteReg(imu, IMU_REG_ACCEL_CONFIG_STATIC3, imu->config.accel_config_static3) != IMU_OK) return IMU_ERROR;
+	if(IMU_SPI_WriteReg(imu, IMU_REG_ACCEL_CONFIG_STATIC4, imu->config.accel_config_static4) != IMU_OK) return IMU_ERROR;
 
 	IMU_SetRegBank(imu, IMU_BANK_SEL_0);
 
-	IMU_MultiplierHelper(imu, IMU_SETUP_ACCEL_FS, IMU_SETUP_GYRO_FS);
+	IMU_MultiplierHelper(imu);
 
 	return IMU_OK;
 }
 
-static inline int16_t IMU_CombineLH_Signed(uint8_t higherBits, uint8_t lowerBits){
-	if(IMU_SETUP_SENSOR_ENDIAN == IMU_SENSOR_DATA_ENDIAN_BIG) return (int16_t)((((uint16_t)higherBits) << 8) | lowerBits);
+static inline int16_t IMU_CombineLH_Signed(IMU_Handler_t* imu, uint8_t higherBits, uint8_t lowerBits){
+	if(imu->config.intf_config0 & IMU_SENSOR_DATA_ENDIAN_BIG) return (int16_t)((((uint16_t)higherBits) << 8) | lowerBits);
 	else return (int16_t)((((uint16_t)lowerBits) << 8) | higherBits);
 }
 
-static inline uint16_t IMU_CombineLH_Unsigned(uint8_t higherBits, uint8_t lowerBits){
-	if(IMU_SETUP_SENSOR_ENDIAN == IMU_SENSOR_DATA_ENDIAN_BIG) return (uint16_t)((((uint16_t)higherBits) << 8) | lowerBits);
+static inline uint16_t IMU_CombineLH_Unsigned(IMU_Handler_t* imu, uint8_t higherBits, uint8_t lowerBits){
+	if(imu->config.intf_config0 & IMU_SENSOR_DATA_ENDIAN_BIG) return (uint16_t)((((uint16_t)higherBits) << 8) | lowerBits);
 	else return (uint16_t)((((uint16_t)lowerBits) << 8) | higherBits);
 }
 
@@ -433,7 +375,7 @@ IMU_Status_t IMU_SPI_ReadAccel(IMU_Handler_t* imu, IMU_Data_t* data){
 
 	if(IMU_SPI_ReadBurst(imu, IMU_REG_ACCEL_DATA_X1, buf, 6) != IMU_OK) return IMU_ERROR;
 
-	for(int i = 0; i < 3; i++) buf2[i] = IMU_CombineLH_Signed(buf[i*2], buf[i*2 + 1]);
+	for(int i = 0; i < 3; i++) buf2[i] = IMU_CombineLH_Signed(imu, buf[i*2], buf[i*2 + 1]);
 
 	data->accelX = (float)buf2[0] * imu->accelMult;
 	data->accelY = (float)buf2[1] * imu->accelMult;
@@ -448,7 +390,7 @@ IMU_Status_t IMU_SPI_ReadGyro(IMU_Handler_t* imu, IMU_Data_t* data){
 
 	if(IMU_SPI_ReadBurst(imu, IMU_REG_GYRO_DATA_X1, buf, 6) != IMU_OK) return IMU_ERROR;
 
-	for(int i = 0; i < 3; i++) buf2[i] = IMU_CombineLH_Signed(buf[2*i], buf[2*i + 1]);
+	for(int i = 0; i < 3; i++) buf2[i] = IMU_CombineLH_Signed(imu, buf[2*i], buf[2*i + 1]);
 
 	data->gyroX = (float)buf2[0] * imu->gyroMult;
 	data->gyroY = (float)buf2[1] * imu->gyroMult;
@@ -463,7 +405,7 @@ IMU_Status_t IMU_SPI_ReadTemp(IMU_Handler_t* imu, IMU_Data_t* data){
 
 	if(IMU_SPI_ReadBurst(imu, IMU_REG_TEMP_DATA1, buf, 2) != IMU_OK) return IMU_ERROR;
 
-	buf2 = IMU_CombineLH_Signed(buf[0], buf[1]);
+	buf2 = IMU_CombineLH_Signed(imu, buf[0], buf[1]);
 
 	data->tempC = (((float)buf2) / 132.48f) + 25.0f;
 
@@ -476,7 +418,7 @@ IMU_Status_t IMU_SPI_GetData(IMU_Handler_t* imu, IMU_Data_t* data){
 
 	if(IMU_SPI_ReadBurst(imu, IMU_REG_TEMP_DATA1, buf, 14) != IMU_OK) return IMU_ERROR;
 
-	for(int i = 0; i < 7; i++) buf2[i] = IMU_CombineLH_Signed(buf[2*i], buf[2*i + 1]);
+	for(int i = 0; i < 7; i++) buf2[i] = IMU_CombineLH_Signed(imu, buf[2*i], buf[2*i + 1]);
 
 	data->tempC = (((float)buf2[0]) / 132.48f) + 25.0f;
 	data->accelX = (float)buf2[1] * imu->accelMult;
@@ -487,4 +429,137 @@ IMU_Status_t IMU_SPI_GetData(IMU_Handler_t* imu, IMU_Data_t* data){
 	data->gyroZ = (float)buf2[6] * imu->gyroMult;
 
 	return IMU_OK;
+}
+
+IMU_Status_t IMU_SPI_ReadFIFO(IMU_Handler_t* imu, IMU_Data_t* data){
+	uint8_t countBuf[2];
+	uint16_t count;
+	uint8_t packet[20]; // Max packet size
+
+	IMU_SetRegBank(imu, IMU_BANK_SEL_0); // Ensure Bank 0
+
+	// Read FIFO Count
+	if(IMU_SPI_ReadBurst(imu, IMU_REG_FIFO_COUNTH, countBuf, 2) != IMU_OK) return IMU_ERROR;
+	
+	// Check Endianness for Count
+	if(imu->config.intf_config0 & IMU_FIFO_COUNT_ENDIAN_BIG)
+		count = (uint16_t)(((uint16_t)countBuf[0] << 8) | countBuf[1]);
+	else
+		count = (uint16_t)(((uint16_t)countBuf[1] << 8) | countBuf[0]);
+
+	if(count == 0) return IMU_OK; // Use IMU_OK but no data updated? Or return special status? For now OK.
+
+	// Calculate Packet Size based on config
+	uint8_t packetSize = 1; // Header
+	if(imu->config.fifo_config1 & IMU_FIFO_ACCEL_EN) packetSize += 6;
+	if(imu->config.fifo_config1 & IMU_FIFO_GYRO_EN) packetSize += 6;
+	if(imu->config.fifo_config1 & IMU_FIFO_TEMP_EN) packetSize += 1;
+	if(imu->config.fifo_config1 & IMU_FIFO_TMST_FSYNC_EN) packetSize += 2;
+	if(imu->config.fifo_config1 & IMU_FIFO_HIRES_EN) packetSize += 3;
+
+	// Note: If Record mode is used, Count is records. If Byte mode, Count is bytes.
+	// Check Record/Byte mode
+	if(imu->config.intf_config0 & IMU_FIFO_COUNT_REC_RECORDS){
+		// Count is number of packets
+		if(count == 0) return IMU_OK;
+	} else {
+		// Count is bytes
+		if(count < packetSize) return IMU_OK;
+	}
+
+	// Read One Packet
+	if(IMU_SPI_ReadBurst(imu, IMU_REG_FIFO_DATA, packet, packetSize) != IMU_OK) return IMU_ERROR;
+
+	// Parse Packet
+	// Packet format: Header, Accel, Gyro, Temp, Tmst, Hires
+	uint8_t idx = 1; // Skip Header
+	
+	if(imu->config.fifo_config1 & IMU_FIFO_ACCEL_EN){
+		int16_t ax = IMU_CombineLH_Signed(imu, packet[idx], packet[idx+1]);
+		int16_t ay = IMU_CombineLH_Signed(imu, packet[idx+2], packet[idx+3]);
+		int16_t az = IMU_CombineLH_Signed(imu, packet[idx+4], packet[idx+5]);
+		data->accelX = (float)ax * imu->accelMult;
+		data->accelY = (float)ay * imu->accelMult;
+		data->accelZ = (float)az * imu->accelMult;
+		idx += 6;
+	}
+
+	if(imu->config.fifo_config1 & IMU_FIFO_GYRO_EN){
+		int16_t gx = IMU_CombineLH_Signed(imu, packet[idx], packet[idx+1]);
+		int16_t gy = IMU_CombineLH_Signed(imu, packet[idx+2], packet[idx+3]);
+		int16_t gz = IMU_CombineLH_Signed(imu, packet[idx+4], packet[idx+5]);
+		data->gyroX = (float)gx * imu->gyroMult;
+		data->gyroY = (float)gy * imu->gyroMult;
+		data->gyroZ = (float)gz * imu->gyroMult;
+		idx += 6;
+	}
+
+	if(imu->config.fifo_config1 & IMU_FIFO_TEMP_EN){
+		int8_t temp = (int8_t)packet[idx];
+		data->tempC = ((float)temp / 2.07f) + 25.0f; // Approx conversion for 8-bit? Needs verification. 
+		// Note: Datasheet for 8-bit temp in FIFO is usually different scale. 
+		// Assuming standard conversion for now.
+		idx += 1;
+	}
+	
+	// Timestamp and HiRes ignored for now in IMU_Data_t
+
+	return IMU_OK;
+}
+
+void IMU_CalculateNotchFilter(IMU_Config_t* config, float freqX, float freqY, float freqZ){
+	uint8_t clkdiv = config->clkdiv & 0x7F; // Mask 7 bits
+	if(clkdiv == 0) clkdiv = 1; // Prevent division by zero, assume 1 as min
+	
+	float fdrv = 19200000.0f / ((float)clkdiv * 10.0f);
+	float freqs[3] = {freqX, freqY, freqZ};
+	
+	// Reset Static 9 (Bits 5:0 used for NF)
+	config->gyro_config_static9 &= 0xC0; // Keep Reserved 7:6
+
+	for(int i = 0; i < 3; i++){
+		float coswz = cosf(2.0f * (float)M_PI * freqs[i] / fdrv);
+		int16_t nf_coswz = 0;
+		uint8_t nf_coswz_sel = 0;
+
+		if(fabsf(coswz) <= 0.875f){
+			nf_coswz = (int16_t)lroundf(coswz * 256.0f);
+			nf_coswz_sel = 0;
+		}
+		else{
+			nf_coswz_sel = 1;
+			if(coswz > 0.875f) nf_coswz = (int16_t)lroundf(8.0f * (1.0f - coswz) * 256.0f);
+			else nf_coswz = (int16_t)lroundf(-8.0f * (1.0f + coswz) * 256.0f);
+		}
+
+		if(nf_coswz > 255) nf_coswz = 255;
+		else if(nf_coswz < -256) nf_coswz = -256;
+
+		// Values are 9-bit signed. 
+		// Low 8 bits go to STATIC6/7/8
+		uint8_t lowByte = (uint8_t)(nf_coswz & 0xFF);
+		
+		// 9th bit (Sign/MSB usually? Or just bit 8?)
+		// nf_coswz is int16. If negative, like -1 (0xFFFF), bit 8 is 1.
+		// If 256 (0x0100), bit 8 is 1.
+		uint8_t highBit = (uint8_t)((nf_coswz >> 8) & 0x01);
+
+		switch(i){
+			case 0: // X
+				config->gyro_config_static6 = lowByte;
+				config->gyro_config_static9 |= highBit;       // Bit 0
+				config->gyro_config_static9 |= (nf_coswz_sel << 3); // Bit 3
+				break;
+			case 1: // Y
+				config->gyro_config_static7 = lowByte;
+				config->gyro_config_static9 |= (highBit << 1); // Bit 1
+				config->gyro_config_static9 |= (nf_coswz_sel << 4); // Bit 4
+				break;
+			case 2: // Z
+				config->gyro_config_static8 = lowByte;
+				config->gyro_config_static9 |= (highBit << 2); // Bit 2
+				config->gyro_config_static9 |= (nf_coswz_sel << 5); // Bit 5
+				break;
+		}
+	}
 }
