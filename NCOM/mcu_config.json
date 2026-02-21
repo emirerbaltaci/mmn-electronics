@@ -1,0 +1,59 @@
+{
+    "mcu": {
+        "SYS_ID": 1,
+        "COMP_ID": 1,
+        "TELEM_RATE_HZ": 10
+    },
+    "freertos": {
+        "TASK_RATE_TELEM": 200,
+        "TASK_RATE_CTRL": 400
+    },
+    "sensors": {
+        "IMU_RATE_HZ": 400,
+        "BAR30_RATE_HZ": 50,
+        "MAG_RATE_HZ": 75
+    },
+    "actuators": {
+        "PWM_MIN_PULSE": 1100,
+        "PWM_MAX_PULSE": 1900,
+        "ESC_MODE": 0
+    },
+    "pid": {
+        "PID_ROLL_P": 125,
+        "PID_ROLL_I": 10,
+        "PID_ROLL_D": 5,
+        "PID_PITCH_P": 125,
+        "PID_PITCH_I": 10,
+        "PID_PITCH_D": 5,
+        "PID_YAW_P": 100,
+        "PID_YAW_I": 0,
+        "PID_YAW_D": 0,
+        "PID_DEPTH_P": 500,
+        "PID_DEPTH_I": 50,
+        "PID_DEPTH_D": 10
+    },
+    "ekf": {
+        "EKF_PROCESS_NOISE": [
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1
+        ],
+        "EKF_MEAS_NOISE": [
+            5,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0,
+            0,
+            5
+        ]
+    }
+}

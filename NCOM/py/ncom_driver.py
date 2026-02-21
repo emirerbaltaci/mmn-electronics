@@ -47,22 +47,32 @@ class CRC16:
             crc &= 0xFFFF
         return crc
 
+_tx_seq = 0
+
 def create_frame(msg_id, *args):
+    global _tx_seq
     payload = ncom.Messages.pack(msg_id, *args)
-    if payload is None: return None
-    data = struct.pack(ncom.ENDIAN_CHAR + "BB", msg_id, len(payload)) + payload
+    if payload is None or len(payload) > 128: return None
+    
+    seq = _tx_seq
+    _tx_seq = (_tx_seq + 1) % 256
+    
+    data = struct.pack(ncom.ENDIAN_CHAR + "BBB", seq, msg_id, len(payload)) + payload
     crc = CRC16.calc(data)
-    return struct.pack(ncom.ENDIAN_CHAR + "B", ncom.SYNC_BYTE) + data + struct.pack(ncom.ENDIAN_CHAR + "H", crc)
+    return struct.pack(ncom.ENDIAN_CHAR + "B", ncom.SYNC_BYTE_1) + struct.pack(ncom.ENDIAN_CHAR + "B", ncom.SYNC_BYTE_2) + data + struct.pack(ncom.ENDIAN_CHAR + "H", crc)
 
 class NCOMParser:
-    STATE_WAIT_SYNC = 0
-    STATE_WAIT_ID = 1
-    STATE_WAIT_LEN = 2
-    STATE_WAIT_PAYLOAD = 3
-    STATE_WAIT_CRC = 4
+    STATE_WAIT_SYNC_1 = 0
+    STATE_WAIT_SYNC_2 = 1
+    STATE_WAIT_SEQ = 2
+    STATE_WAIT_ID = 3
+    STATE_WAIT_LEN = 4
+    STATE_WAIT_PAYLOAD = 5
+    STATE_WAIT_CRC = 6
     
     def __init__(self, on_error=None):
-        self.state = self.STATE_WAIT_SYNC
+        self.state = self.STATE_WAIT_SYNC_1
+        self.seq = 0
         self.msg_id = 0
         self.payload_len = 0
         self.payload_buf = bytearray()
@@ -71,9 +81,19 @@ class NCOMParser:
     
     def parse_byte(self, byte):
     
-        if self.state == self.STATE_WAIT_SYNC:
-            if byte == ncom.SYNC_BYTE:
-                self.state = self.STATE_WAIT_ID
+        if self.state == self.STATE_WAIT_SYNC_1:
+            if byte == ncom.SYNC_BYTE_1:
+                self.state = self.STATE_WAIT_SYNC_2
+                
+        elif self.state == self.STATE_WAIT_SYNC_2:
+            if byte == ncom.SYNC_BYTE_2:
+                self.state = self.STATE_WAIT_SEQ
+            else:
+                self.state = self.STATE_WAIT_SYNC_1
+                
+        elif self.state == self.STATE_WAIT_SEQ:
+            self.seq = byte
+            self.state = self.STATE_WAIT_ID
                 
         elif self.state == self.STATE_WAIT_ID:
             self.msg_id = byte
@@ -99,19 +119,19 @@ class NCOMParser:
                 return self._finalize()
         
         else:
-            self.state = self.STATE_WAIT_SYNC
+            self.state = self.STATE_WAIT_SYNC_1
         
         return None
     
     def _finalize(self):
         rx_crc = struct.unpack(ncom.ENDIAN_CHAR + "H", self.crc_buf)[0]
-        header = struct.pack(ncom.ENDIAN_CHAR + "BB", self.msg_id, self.payload_len)
+        header = struct.pack(ncom.ENDIAN_CHAR + "BBB", self.seq, self.msg_id, self.payload_len)
         calc_crc = CRC16.calc(header + self.payload_buf)
-        self.state = self.STATE_WAIT_SYNC
+        self.state = self.STATE_WAIT_SYNC_1
         if calc_crc == rx_crc:
             unpacked = ncom.Messages.unpack(self.msg_id, self.payload_buf)
             if unpacked:
-                return (self.msg_id, unpacked)
+                return (self.msg_id, self.seq, unpacked)
             elif self.on_error:
                 self.on_error(f"Unpack failed for ID {self.msg_id}")
         else:

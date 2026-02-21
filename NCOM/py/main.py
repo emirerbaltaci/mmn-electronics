@@ -27,6 +27,10 @@ import serial.tools.list_ports
 import time
 import ncom_protocol as ncom
 import ncom_driver as ncd
+import ncom_handlers as nch
+from datetime import datetime
+import threading
+import sys
 
 def find_stm32g4(): # Find the STM32G4 COM port by VID and PID
     for port in serial.tools.list_ports.comports():
@@ -35,32 +39,138 @@ def find_stm32g4(): # Find the STM32G4 COM port by VID and PID
     return None
 
 def parser_error_handler(error):
-    print(f"[NCOMParser Error]: {error}")
+    print(f"[NCOMParser ERROR]: {error}")
+
+last_uptime = -1
+print_hb = False
+
+def handle_packet(msg_id, data, ncom_parser):
+    global last_uptime, print_hb
+    is_hb = (msg_id == ncom.Messages.NAME_TO_ID["HEARTBEAT"])
+    is_ack = (msg_id == ncom.Messages.NAME_TO_ID["ACKNOWLEDGEMENT"])
+    
+    if is_hb and not print_hb:
+        # Update last_uptime without printing anything
+        last_uptime = nch.heartbeat_handler(data, last_uptime, print_hb=False)
+        return
+        
+    timestamp = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+    print(f"\r[{timestamp}]\nSequence: {ncom_parser.seq}\nMessage: {ncom.Messages.ID_TO_NAME[msg_id]} (ID: {msg_id})")
+    
+    if is_hb:
+        last_uptime = nch.heartbeat_handler(data, last_uptime, print_hb=True)
+    elif is_ack:
+        nch.ack_handler(msg_id, data)
+    else:
+        parsed = data # Data is guaranteed to already be the unpacked tuple containing the payload
+        print("  Payload parameters (in order):")
+        for i, value in enumerate(parsed):
+            print(f"    [{i}]: {value}")
+        print("")
+
+def rx_thread_func(ser, parser):
+    while ser.is_open:
+        try:
+            time.sleep(MAINLOOP_SLEEP)
+            if ser.in_waiting: # Check if there are any bytes in the RX buffer
+                chunk = ser.read(ser.in_waiting)   # Read all available bytes
+                for byte in chunk: # Parse each byte
+                    packet = parser.parse_byte(byte) # Get a packet if available
+                    if packet:  # If a packet is received
+                        msg_id, seq, data = packet # Unpack the packet
+                        handle_packet(msg_id, data, parser) # Handle the packet
+        except OSError:
+            print("\n[RX] Connection lost.")
+            break
+        except Exception as e:
+            if ser.is_open:
+                print(f"\n[RX] Error: {e}")
+            break
+
+def udp_listen_func(ser):
+    import socket
+    import json
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("127.0.0.1", 5005))
+    sock.settimeout(1.0)
+    
+    print("Listening for CLI commands on UDP 127.0.0.1:5005\n")
+    
+    while ser.is_open:
+        try:
+            data, addr = sock.recvfrom(1024)
+            msg = json.loads(data.decode('utf-8'))
+            
+            if msg.get("command") == "TOGGLE_HB":
+                global print_hb
+                print_hb = not print_hb
+                status = "ON" if print_hb else "OFF"
+                print(f"\n[UDP] Heartbeat printing toggled {status}\n")
+                continue
+                
+            msg_id = msg.get("msg_id")
+            args = msg.get("args")
+            
+            if msg_id is not None and args is not None:
+                # Create frame
+                frame = ncd.create_frame(msg_id, *args)
+                if frame:
+                    ser.write(frame)
+                    msg_name = ncom.Messages.ID_TO_NAME.get(msg_id, "UNKNOWN")
+                    timestamp = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+                    print(f"\n[{timestamp}] [UDP] Forwarded to MCU: {msg_name} {args}\n")
+                else:
+                    print("\n[UDP] Error packing frame.\n")
+                    
+        except socket.timeout:
+            continue
+        except Exception as e:
+            if ser.is_open:
+                print(f"\n[UDP] Server Error: {e}")
+                
+    sock.close()
 
 def main():
     port = None
     print("Searching for STM32G4...")
-    while port == None:
-        port = find_stm32g4()
-        time.sleep(1)
-    ser = serial.Serial(port, baudrate=115200, timeout=0.1)  # No matter the baudrate, USB CDC runs at full speed
-    print("Device connected.")
     
-    parser = ncd.NCOMParser(on_error=parser_error_handler)   # Create NCOM parser instance
-    
-    while True: # Main loop
-        time.sleep(MAINLOOP_SLEEP)
-        if ser.in_waiting: # Check if there are any bytes in the RX buffer
-            chunk = ser.read(ser.in_waiting)   # Read all available bytes
-            for byte in chunk: # Parse each byte
-                packet = parser.parse_byte(byte) # Get a packet if available
-                if packet:  # If a packet is received
-                    msg_id, data = packet # Unpack the packet
-                    handle_packet(msg_id, data) # Handle the packet
-
-def handle_packet(msg_id, data):
-    if msg_id == ncom.Messages.NAME_TO_ID["HEARTBEAT"]:
-        print(f"Device ID: {data[0]}\nMode: {data[1]}\nFlags: {data[2]}\nUptime: {data[3]}")
+    while True:
+        if port is None:
+            port = find_stm32g4()
+            if port is None:
+                time.sleep(1)
+                continue
+                
+        try:
+            with serial.Serial(port, baudrate=115200, timeout=0.1) as ser:  # No matter the baudrate, USB CDC runs at full speed
+                print("Device connected.\n")
+            
+                parser = ncd.NCOMParser(on_error=parser_error_handler)   # Create NCOM parser instance
+                
+                # Start background thread for listening UDP
+                udp_thread = threading.Thread(target=udp_listen_func, args=(ser,), daemon=True)
+                udp_thread.start()
+                
+                # Run the RX loop blockingly in the main thread now
+                while ser.is_open:
+                    time.sleep(MAINLOOP_SLEEP)
+                    try:
+                        if ser.in_waiting: # Check if there are any bytes in the RX buffer
+                            chunk = ser.read(ser.in_waiting)   # Read all available bytes
+                            for byte in chunk: # Parse each byte
+                                packet = parser.parse_byte(byte) # Get a packet if available
+                                if packet:  # If a packet is received
+                                    msg_id, seq, data = packet # Unpack the packet
+                                    handle_packet(msg_id, data, parser) # Handle the packet
+                    except OSError:
+                        raise serial.SerialException("Connection lost")
+                
+                udp_thread.join(timeout=1.0)
+                
+        except (serial.SerialException, OSError):
+            print("\nDevice disconnected. Trying to reconnect....")
+            port = None
+            time.sleep(1)
 
 if __name__ == "__main__":
     main()

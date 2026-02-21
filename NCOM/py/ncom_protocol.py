@@ -22,7 +22,7 @@
 
 '''
 NCOM Python Module
-Auto-generated on: 07.02.2026 22:21:27
+Auto-generated on: 21.02.2026 21:05:40
 Version: 0.1
 '''
 
@@ -30,7 +30,8 @@ ENDIAN_CHAR = '<'
 
 import struct
 
-SYNC_BYTE = 0xA5
+SYNC_BYTE_1 = 0xA5
+SYNC_BYTE_2 = 0x5A
 
 HEARTBEAT_VEHICLE_STATE = {
     'INIT': 0,
@@ -105,6 +106,171 @@ TARGETS_FLAGS = {
     'TARGET_PITCH_IS_ACTIVE': (1 << 2),
     'TARGET_YAW_IS_ACTIVE': (1 << 3),
 }
+ACKNOWLEDGEMENT_RESPONSE = {
+    'NACK': 0,
+    'ACK': 1,
+    'INVALID_PARAMETER': 254,
+    'UNKNOWN_ERROR': 255,
+}
+CONFIG_REQ_CONFIG_ID = {
+    'SYS_ID': 0,
+    'COMP_ID': 1,
+    'TELEM_RATE_HZ': 2,
+    'TASK_RATE_TELEM': 10,
+    'TASK_RATE_CTRL': 11,
+    'IMU_RATE_HZ': 20,
+    'BAR30_RATE_HZ': 21,
+    'MAG_RATE_HZ': 22,
+    'PWM_MIN_PULSE': 30,
+    'PWM_MAX_PULSE': 31,
+    'ESC_MODE': 32,
+    'PID_ROLL_P': 40,
+    'PID_ROLL_I': 41,
+    'PID_ROLL_D': 42,
+    'PID_PITCH_P': 43,
+    'PID_PITCH_I': 44,
+    'PID_PITCH_D': 45,
+    'PID_YAW_P': 46,
+    'PID_YAW_I': 47,
+    'PID_YAW_D': 48,
+    'PID_DEPTH_P': 49,
+    'PID_DEPTH_I': 50,
+    'PID_DEPTH_D': 51,
+    'EKF_PROCESS_NOISE': 60,
+    'EKF_MEAS_NOISE': 61,
+}
+CONFIG_RESP_CONFIG_ID = {
+    'SYS_ID': 0,
+    'COMP_ID': 1,
+    'TELEM_RATE_HZ': 2,
+    'TASK_RATE_TELEM': 10,
+    'TASK_RATE_CTRL': 11,
+    'IMU_RATE_HZ': 20,
+    'BARO_RATE_HZ': 21,
+    'MAG_RATE_HZ': 22,
+    'PWM_MIN_PULSE': 30,
+    'PWM_MAX_PULSE': 31,
+    'ESC_MODE': 32,
+    'PID_ROLL_P': 40,
+    'PID_ROLL_I': 41,
+    'PID_ROLL_D': 42,
+    'PID_PITCH_P': 43,
+    'PID_PITCH_I': 44,
+    'PID_PITCH_D': 45,
+    'PID_YAW_P': 46,
+    'PID_YAW_I': 47,
+    'PID_YAW_D': 48,
+    'PID_DEPTH_P': 49,
+    'PID_DEPTH_I': 50,
+    'PID_DEPTH_D': 51,
+    'EKF_PROCESS_NOISE': 60,
+    'EKF_MEAS_NOISE': 61,
+}
+CONFIG_RESP_DATA_TYPE = {
+    'INT8': 0,
+    'UINT8': 1,
+    'INT16': 2,
+    'UINT16': 3,
+    'INT32': 4,
+    'UINT32': 5,
+    'FLOAT32': 6,
+}
+CONFIG_SET_MCU_CONFIG_ID = {
+    'SYS_ID': 0,
+    'COMP_ID': 1,
+    'TELEM_RATE_HZ': 2,
+}
+CONFIG_SET_MCU_DATA_TYPE = {
+    'INT8': 0,
+    'UINT8': 1,
+    'INT16': 2,
+    'UINT16': 3,
+    'INT32': 4,
+    'UINT32': 5,
+    'FLOAT32': 6,
+}
+CONFIG_SET_FREERTOS_CONFIG_ID = {
+    'TASK_RATE_TELEM': 10,
+    'TASK_RATE_CTRL': 11,
+}
+CONFIG_SET_FREERTOS_DATA_TYPE = {
+    'INT8': 0,
+    'UINT8': 1,
+    'INT16': 2,
+    'UINT16': 3,
+    'INT32': 4,
+    'UINT32': 5,
+    'FLOAT32': 6,
+}
+CONFIG_SET_SENSOR_CONFIG_ID = {
+    'IMU_RATE_HZ': 20,
+    'BARO_RATE_HZ': 21,
+    'MAG_RATE_HZ': 22,
+}
+CONFIG_SET_SENSOR_DATA_TYPE = {
+    'INT8': 0,
+    'UINT8': 1,
+    'INT16': 2,
+    'UINT16': 3,
+    'INT32': 4,
+    'UINT32': 5,
+    'FLOAT32': 6,
+}
+CONFIG_SET_ACTUATOR_CONFIG_ID = {
+    'PWM_MIN_PULSE': 30,
+    'PWM_MAX_PULSE': 31,
+    'ESC_MODE': 32,
+}
+CONFIG_SET_ACTUATOR_DATA_TYPE = {
+    'INT8': 0,
+    'UINT8': 1,
+    'INT16': 2,
+    'UINT16': 3,
+    'INT32': 4,
+    'UINT32': 5,
+    'FLOAT32': 6,
+}
+CONFIG_SET_PID_CONFIG_ID = {
+    'PID_ROLL_P': 40,
+    'PID_ROLL_I': 41,
+    'PID_ROLL_D': 42,
+    'PID_PITCH_P': 43,
+    'PID_PITCH_I': 44,
+    'PID_PITCH_D': 45,
+    'PID_YAW_P': 46,
+    'PID_YAW_I': 47,
+    'PID_YAW_D': 48,
+    'PID_DEPTH_P': 49,
+    'PID_DEPTH_I': 50,
+    'PID_DEPTH_D': 51,
+}
+CONFIG_SET_PID_DATA_TYPE = {
+    'INT8': 0,
+    'UINT8': 1,
+    'INT16': 2,
+    'UINT16': 3,
+    'INT32': 4,
+    'UINT32': 5,
+    'FLOAT32': 6,
+}
+CONFIG_SET_EKF_CONFIG_ID = {
+    'EKF_PROCESS_NOISE': 60,
+    'EKF_MEAS_NOISE': 61,
+}
+CONFIG_SET_EKF_DATA_TYPE = {
+    'INT8': 0,
+    'UINT8': 1,
+    'INT16': 2,
+    'UINT16': 3,
+    'INT32': 4,
+    'UINT32': 5,
+    'FLOAT32': 6,
+}
+INIT_ERROR_ERROR_CODE = {
+    'IMU_INIT_ERR': 0,
+    'MAG_INIT_ERR': 1,
+    'BAR30_INIT_ERR': 2,
+}
 
 class Messages:
     ID_TO_NAME = {
@@ -117,7 +283,16 @@ class Messages:
         6: 'DEPTH',
         7: 'MODE_STATUS',
         8: 'TARGETS',
-        9: 'UNUSED',
+        9: 'ACKNOWLEDGEMENT',
+        40: 'CONFIG_REQ',
+        41: 'CONFIG_RESP',
+        42: 'CONFIG_SET_MCU',
+        43: 'CONFIG_SET_FREERTOS',
+        44: 'CONFIG_SET_SENSOR',
+        45: 'CONFIG_SET_ACTUATOR',
+        46: 'CONFIG_SET_PID',
+        47: 'CONFIG_SET_EKF',
+        200: 'INIT_ERROR',
     }
 
     NAME_TO_ID = {
@@ -130,7 +305,16 @@ class Messages:
         'DEPTH': 6,
         'MODE_STATUS': 7,
         'TARGETS': 8,
-        'UNUSED': 9,
+        'ACKNOWLEDGEMENT': 9,
+        'CONFIG_REQ': 40,
+        'CONFIG_RESP': 41,
+        'CONFIG_SET_MCU': 42,
+        'CONFIG_SET_FREERTOS': 43,
+        'CONFIG_SET_SENSOR': 44,
+        'CONFIG_SET_ACTUATOR': 45,
+        'CONFIG_SET_PID': 46,
+        'CONFIG_SET_EKF': 47,
+        'INIT_ERROR': 200,
     }
 
     FORMATS = {
@@ -143,7 +327,16 @@ class Messages:
         6: '<iiB', # DEPTH
         7: '<H', # MODE_STATUS
         8: '<Bifff', # TARGETS
-        9: '<', # UNUSED
+        9: '<BBB', # ACKNOWLEDGEMENT
+        40: '<H', # CONFIG_REQ
+        41: '<HBiB', # CONFIG_RESP
+        42: '<HBiB', # CONFIG_SET_MCU
+        43: '<HBiB', # CONFIG_SET_FREERTOS
+        44: '<HBiB', # CONFIG_SET_SENSOR
+        45: '<HBiB', # CONFIG_SET_ACTUATOR
+        46: '<HBiB', # CONFIG_SET_PID
+        47: '<HB9iB', # CONFIG_SET_EKF
+        200: '<B', # INIT_ERROR
     }
 
     @staticmethod

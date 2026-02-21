@@ -39,7 +39,8 @@ TYPE_MAP = {
 def generate_c_header(data, output_file):
     protocol = data["protocol"].upper()
     version = data["version"]
-    sync_byte = f"0x{int(data['sync_byte']):02X}"
+    sync_byte_1 = f"0x{int(data['sync_byte_1']):02X}"
+    sync_byte_2 = f"0x{int(data['sync_byte_2']):02X}"
     timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     
     with open(output_file, 'w') as f:
@@ -74,7 +75,8 @@ def generate_c_header(data, output_file):
         f.write("#include <stdint.h>\n")
         f.write("#include <stddef.h>\n\n")
         
-        f.write(f"#define {protocol}_SYNC_BYTE {sync_byte}\n\n")
+        f.write(f"#define {protocol}_SYNC_BYTE_1 {sync_byte_1}\n")
+        f.write(f"#define {protocol}_SYNC_BYTE_2 {sync_byte_2}\n\n")
         
         # 1. Message IDs
         f.write(f"typedef enum {{\n")
@@ -109,8 +111,13 @@ def generate_c_header(data, output_file):
                     c_type = 'float'
                 else:
                     c_type = TYPE_MAP[field['type']]['c']
-                f.write(f"    {c_type} {field['name']};\n")
-                payload_size += TYPE_MAP[field['type']]['size']
+                if 'array_length' in field:
+                    arr_len = int(field['array_length'])
+                    f.write(f"    {c_type} {field['name']}[{arr_len}];\n")
+                    payload_size += TYPE_MAP[field['type']]['size'] * arr_len
+                else:
+                    f.write(f"    {c_type} {field['name']};\n")
+                    payload_size += TYPE_MAP[field['type']]['size']
             
             f.write(f"}} {struct_name};\n")
             # Useful constant for buffer management
@@ -187,7 +194,8 @@ def generate_c_source(data, output_file):
 def generate_python_file(data, output_file):
     protocol = data["protocol"].upper()
     version = data["version"]
-    sync_byte = f"0x{int(data['sync_byte']):02X}"
+    sync_byte_1 = f"0x{int(data['sync_byte_1']):02X}"
+    sync_byte_2 = f"0x{int(data['sync_byte_2']):02X}"
     timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     
     with open(output_file, 'w') as f:
@@ -220,7 +228,8 @@ def generate_python_file(data, output_file):
 
         f.write("import struct\n\n")
         
-        f.write(f"SYNC_BYTE = {sync_byte}\n\n")
+        f.write(f"SYNC_BYTE_1 = {sync_byte_1}\n")
+        f.write(f"SYNC_BYTE_2 = {sync_byte_2}\n\n")
 
         for msg in data["messages"]:
             for field in msg["payload"]:
@@ -255,10 +264,11 @@ def generate_python_file(data, output_file):
         for msg in data["messages"]:
             fmt_string = endian_char 
             for field in msg['payload']:
+                arr_len = str(field.get('array_length', ''))
                 if field.get('encoding') == 'float32':
-                    fmt_string += 'f'
+                    fmt_string += arr_len + 'f'
                 else:
-                    fmt_string += TYPE_MAP[field['type']]['py']
+                    fmt_string += arr_len + TYPE_MAP[field['type']]['py']
             f.write(f"        {msg['id']}: '{fmt_string}', # {msg['name']}\n")
         f.write("    }\n\n")
 

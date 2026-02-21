@@ -58,7 +58,7 @@ extern CRC_HandleTypeDef hcrc;	// For Hardware CRC Calculation
  *	Returns: -
  */
 void NCOM_RX_Init(NCOM_RX_Parser_t* parser){
-	parser->state = NCOM_RX_STATE_SYNC;
+	parser->state = NCOM_RX_STATE_SYNC_1;
 }
 
 /*
@@ -72,8 +72,18 @@ bool NCOM_RX_ParseByte(NCOM_RX_Parser_t* parser, uint8_t byte){
 	
 	switch (parser->state) {
 		
-		case NCOM_RX_STATE_SYNC:
-			if (byte == NCOM_SYNC_BYTE) parser->state = NCOM_RX_STATE_ID;
+		case NCOM_RX_STATE_SYNC_1:
+			if (byte == NCOM_SYNC_BYTE_1) parser->state = NCOM_RX_STATE_SYNC_2;
+			break;
+			
+		case NCOM_RX_STATE_SYNC_2:
+			if (byte == NCOM_SYNC_BYTE_2) parser->state = NCOM_RX_STATE_SEQ;
+			else parser->state = NCOM_RX_STATE_SYNC_1;
+			break;
+			
+		case NCOM_RX_STATE_SEQ:
+			parser->seq = byte;
+			parser->state = NCOM_RX_STATE_ID;
 			break;
 		
 		case NCOM_RX_STATE_ID:
@@ -102,10 +112,10 @@ bool NCOM_RX_ParseByte(NCOM_RX_Parser_t* parser, uint8_t byte){
 		case NCOM_RX_STATE_CRC:
 			parser->crcBuf[parser->crcIndex++] = byte;
 			if(parser->crcIndex >= 2){
-				parser->state = NCOM_RX_STATE_SYNC;
+				parser->state = NCOM_RX_STATE_SYNC_1;
 				uint16_t crcRx = (uint16_t)parser->crcBuf[0] | ((uint16_t)parser->crcBuf[1] << 8);
-				uint8_t header[2] = {parser->msgId, parser->payloadLen};
-				uint32_t crcCalc = HAL_CRC_Calculate(&hcrc, (uint32_t*)header, 2);
+				uint8_t header[3] = {parser->seq, parser->msgId, parser->payloadLen};
+				uint32_t crcCalc = HAL_CRC_Calculate(&hcrc, (uint32_t*)header, 3);
 				if(parser->payloadLen > 0) crcCalc = HAL_CRC_Accumulate(&hcrc, (uint32_t*)parser->payloadBuf, parser->payloadLen);
 				if((uint16_t)crcCalc == crcRx) return true;
 			}

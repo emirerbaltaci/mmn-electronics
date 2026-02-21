@@ -47,7 +47,9 @@
  * 					Enumerations
  * ############################################# */
 typedef enum{	// Parser States
-	NCOM_RX_STATE_SYNC,
+	NCOM_RX_STATE_SYNC_1,
+	NCOM_RX_STATE_SYNC_2,
+	NCOM_RX_STATE_SEQ,
 	NCOM_RX_STATE_ID,
 	NCOM_RX_STATE_LEN,
 	NCOM_RX_STATE_PAYLOAD,
@@ -61,9 +63,10 @@ typedef enum{	// Parser States
  * ############################################# */
 typedef struct{	// Parser Structure
 	NCOM_RX_State_t state;
+	uint8_t seq;
 	uint8_t msgId;
 	uint8_t payloadLen;
-	uint8_t payloadBuf[256];
+	uint8_t payloadBuf[128];
 	uint8_t payloadIndex;
 	uint8_t crcBuf[2];
 	uint8_t crcIndex;

@@ -24,7 +24,7 @@
 
 /*
  * NCOM C Header File
- * Auto-generated on: 07.02.2026 22:21:27
+ * Auto-generated on: 21.02.2026 21:05:40
  * Protocol Version: 0.1
  */
 
@@ -34,7 +34,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define NCOM_SYNC_BYTE 0xA5
+#define NCOM_SYNC_BYTE_1 0xA5
+#define NCOM_SYNC_BYTE_2 0x5A
 
 typedef enum {
     NCOM_MSG_HEARTBEAT = 0,
@@ -46,7 +47,16 @@ typedef enum {
     NCOM_MSG_DEPTH = 6,
     NCOM_MSG_MODE_STATUS = 7,
     NCOM_MSG_TARGETS = 8,
-    NCOM_MSG_UNUSED = 9,
+    NCOM_MSG_ACKNOWLEDGEMENT = 9,
+    NCOM_MSG_CONFIG_REQ = 40,
+    NCOM_MSG_CONFIG_RESP = 41,
+    NCOM_MSG_CONFIG_SET_MCU = 42,
+    NCOM_MSG_CONFIG_SET_FREERTOS = 43,
+    NCOM_MSG_CONFIG_SET_SENSOR = 44,
+    NCOM_MSG_CONFIG_SET_ACTUATOR = 45,
+    NCOM_MSG_CONFIG_SET_PID = 46,
+    NCOM_MSG_CONFIG_SET_EKF = 47,
+    NCOM_MSG_INIT_ERROR = 200,
 } NCOM_MsgID_t;
 
 #define NCOM_HEARTBEAT_VEHICLE_STATE_INIT 0
@@ -116,6 +126,154 @@ typedef enum {
 #define NCOM_FLAG_TARGETS_TARGET_ROLL_IS_ACTIVE (1 << 1)
 #define NCOM_FLAG_TARGETS_TARGET_PITCH_IS_ACTIVE (1 << 2)
 #define NCOM_FLAG_TARGETS_TARGET_YAW_IS_ACTIVE (1 << 3)
+
+#define NCOM_ACKNOWLEDGEMENT_RESPONSE_NACK 0
+#define NCOM_ACKNOWLEDGEMENT_RESPONSE_ACK 1
+#define NCOM_ACKNOWLEDGEMENT_RESPONSE_INVALID_PARAMETER 254
+#define NCOM_ACKNOWLEDGEMENT_RESPONSE_UNKNOWN_ERROR 255
+
+#define NCOM_CONFIG_REQ_CONFIG_ID_SYS_ID 0
+#define NCOM_CONFIG_REQ_CONFIG_ID_COMP_ID 1
+#define NCOM_CONFIG_REQ_CONFIG_ID_TELEM_RATE_HZ 2
+#define NCOM_CONFIG_REQ_CONFIG_ID_TASK_RATE_TELEM 10
+#define NCOM_CONFIG_REQ_CONFIG_ID_TASK_RATE_CTRL 11
+#define NCOM_CONFIG_REQ_CONFIG_ID_IMU_RATE_HZ 20
+#define NCOM_CONFIG_REQ_CONFIG_ID_BAR30_RATE_HZ 21
+#define NCOM_CONFIG_REQ_CONFIG_ID_MAG_RATE_HZ 22
+#define NCOM_CONFIG_REQ_CONFIG_ID_PWM_MIN_PULSE 30
+#define NCOM_CONFIG_REQ_CONFIG_ID_PWM_MAX_PULSE 31
+#define NCOM_CONFIG_REQ_CONFIG_ID_ESC_MODE 32
+#define NCOM_CONFIG_REQ_CONFIG_ID_PID_ROLL_P 40
+#define NCOM_CONFIG_REQ_CONFIG_ID_PID_ROLL_I 41
+#define NCOM_CONFIG_REQ_CONFIG_ID_PID_ROLL_D 42
+#define NCOM_CONFIG_REQ_CONFIG_ID_PID_PITCH_P 43
+#define NCOM_CONFIG_REQ_CONFIG_ID_PID_PITCH_I 44
+#define NCOM_CONFIG_REQ_CONFIG_ID_PID_PITCH_D 45
+#define NCOM_CONFIG_REQ_CONFIG_ID_PID_YAW_P 46
+#define NCOM_CONFIG_REQ_CONFIG_ID_PID_YAW_I 47
+#define NCOM_CONFIG_REQ_CONFIG_ID_PID_YAW_D 48
+#define NCOM_CONFIG_REQ_CONFIG_ID_PID_DEPTH_P 49
+#define NCOM_CONFIG_REQ_CONFIG_ID_PID_DEPTH_I 50
+#define NCOM_CONFIG_REQ_CONFIG_ID_PID_DEPTH_D 51
+#define NCOM_CONFIG_REQ_CONFIG_ID_EKF_PROCESS_NOISE 60
+#define NCOM_CONFIG_REQ_CONFIG_ID_EKF_MEAS_NOISE 61
+
+#define NCOM_CONFIG_RESP_CONFIG_ID_SYS_ID 0
+#define NCOM_CONFIG_RESP_CONFIG_ID_COMP_ID 1
+#define NCOM_CONFIG_RESP_CONFIG_ID_TELEM_RATE_HZ 2
+#define NCOM_CONFIG_RESP_CONFIG_ID_TASK_RATE_TELEM 10
+#define NCOM_CONFIG_RESP_CONFIG_ID_TASK_RATE_CTRL 11
+#define NCOM_CONFIG_RESP_CONFIG_ID_IMU_RATE_HZ 20
+#define NCOM_CONFIG_RESP_CONFIG_ID_BARO_RATE_HZ 21
+#define NCOM_CONFIG_RESP_CONFIG_ID_MAG_RATE_HZ 22
+#define NCOM_CONFIG_RESP_CONFIG_ID_PWM_MIN_PULSE 30
+#define NCOM_CONFIG_RESP_CONFIG_ID_PWM_MAX_PULSE 31
+#define NCOM_CONFIG_RESP_CONFIG_ID_ESC_MODE 32
+#define NCOM_CONFIG_RESP_CONFIG_ID_PID_ROLL_P 40
+#define NCOM_CONFIG_RESP_CONFIG_ID_PID_ROLL_I 41
+#define NCOM_CONFIG_RESP_CONFIG_ID_PID_ROLL_D 42
+#define NCOM_CONFIG_RESP_CONFIG_ID_PID_PITCH_P 43
+#define NCOM_CONFIG_RESP_CONFIG_ID_PID_PITCH_I 44
+#define NCOM_CONFIG_RESP_CONFIG_ID_PID_PITCH_D 45
+#define NCOM_CONFIG_RESP_CONFIG_ID_PID_YAW_P 46
+#define NCOM_CONFIG_RESP_CONFIG_ID_PID_YAW_I 47
+#define NCOM_CONFIG_RESP_CONFIG_ID_PID_YAW_D 48
+#define NCOM_CONFIG_RESP_CONFIG_ID_PID_DEPTH_P 49
+#define NCOM_CONFIG_RESP_CONFIG_ID_PID_DEPTH_I 50
+#define NCOM_CONFIG_RESP_CONFIG_ID_PID_DEPTH_D 51
+#define NCOM_CONFIG_RESP_CONFIG_ID_EKF_PROCESS_NOISE 60
+#define NCOM_CONFIG_RESP_CONFIG_ID_EKF_MEAS_NOISE 61
+
+#define NCOM_CONFIG_RESP_DATA_TYPE_INT8 0
+#define NCOM_CONFIG_RESP_DATA_TYPE_UINT8 1
+#define NCOM_CONFIG_RESP_DATA_TYPE_INT16 2
+#define NCOM_CONFIG_RESP_DATA_TYPE_UINT16 3
+#define NCOM_CONFIG_RESP_DATA_TYPE_INT32 4
+#define NCOM_CONFIG_RESP_DATA_TYPE_UINT32 5
+#define NCOM_CONFIG_RESP_DATA_TYPE_FLOAT32 6
+
+#define NCOM_CONFIG_SET_MCU_CONFIG_ID_SYS_ID 0
+#define NCOM_CONFIG_SET_MCU_CONFIG_ID_COMP_ID 1
+#define NCOM_CONFIG_SET_MCU_CONFIG_ID_TELEM_RATE_HZ 2
+
+#define NCOM_CONFIG_SET_MCU_DATA_TYPE_INT8 0
+#define NCOM_CONFIG_SET_MCU_DATA_TYPE_UINT8 1
+#define NCOM_CONFIG_SET_MCU_DATA_TYPE_INT16 2
+#define NCOM_CONFIG_SET_MCU_DATA_TYPE_UINT16 3
+#define NCOM_CONFIG_SET_MCU_DATA_TYPE_INT32 4
+#define NCOM_CONFIG_SET_MCU_DATA_TYPE_UINT32 5
+#define NCOM_CONFIG_SET_MCU_DATA_TYPE_FLOAT32 6
+
+#define NCOM_CONFIG_SET_FREERTOS_CONFIG_ID_TASK_RATE_TELEM 10
+#define NCOM_CONFIG_SET_FREERTOS_CONFIG_ID_TASK_RATE_CTRL 11
+
+#define NCOM_CONFIG_SET_FREERTOS_DATA_TYPE_INT8 0
+#define NCOM_CONFIG_SET_FREERTOS_DATA_TYPE_UINT8 1
+#define NCOM_CONFIG_SET_FREERTOS_DATA_TYPE_INT16 2
+#define NCOM_CONFIG_SET_FREERTOS_DATA_TYPE_UINT16 3
+#define NCOM_CONFIG_SET_FREERTOS_DATA_TYPE_INT32 4
+#define NCOM_CONFIG_SET_FREERTOS_DATA_TYPE_UINT32 5
+#define NCOM_CONFIG_SET_FREERTOS_DATA_TYPE_FLOAT32 6
+
+#define NCOM_CONFIG_SET_SENSOR_CONFIG_ID_IMU_RATE_HZ 20
+#define NCOM_CONFIG_SET_SENSOR_CONFIG_ID_BARO_RATE_HZ 21
+#define NCOM_CONFIG_SET_SENSOR_CONFIG_ID_MAG_RATE_HZ 22
+
+#define NCOM_CONFIG_SET_SENSOR_DATA_TYPE_INT8 0
+#define NCOM_CONFIG_SET_SENSOR_DATA_TYPE_UINT8 1
+#define NCOM_CONFIG_SET_SENSOR_DATA_TYPE_INT16 2
+#define NCOM_CONFIG_SET_SENSOR_DATA_TYPE_UINT16 3
+#define NCOM_CONFIG_SET_SENSOR_DATA_TYPE_INT32 4
+#define NCOM_CONFIG_SET_SENSOR_DATA_TYPE_UINT32 5
+#define NCOM_CONFIG_SET_SENSOR_DATA_TYPE_FLOAT32 6
+
+#define NCOM_CONFIG_SET_ACTUATOR_CONFIG_ID_PWM_MIN_PULSE 30
+#define NCOM_CONFIG_SET_ACTUATOR_CONFIG_ID_PWM_MAX_PULSE 31
+#define NCOM_CONFIG_SET_ACTUATOR_CONFIG_ID_ESC_MODE 32
+
+#define NCOM_CONFIG_SET_ACTUATOR_DATA_TYPE_INT8 0
+#define NCOM_CONFIG_SET_ACTUATOR_DATA_TYPE_UINT8 1
+#define NCOM_CONFIG_SET_ACTUATOR_DATA_TYPE_INT16 2
+#define NCOM_CONFIG_SET_ACTUATOR_DATA_TYPE_UINT16 3
+#define NCOM_CONFIG_SET_ACTUATOR_DATA_TYPE_INT32 4
+#define NCOM_CONFIG_SET_ACTUATOR_DATA_TYPE_UINT32 5
+#define NCOM_CONFIG_SET_ACTUATOR_DATA_TYPE_FLOAT32 6
+
+#define NCOM_CONFIG_SET_PID_CONFIG_ID_PID_ROLL_P 40
+#define NCOM_CONFIG_SET_PID_CONFIG_ID_PID_ROLL_I 41
+#define NCOM_CONFIG_SET_PID_CONFIG_ID_PID_ROLL_D 42
+#define NCOM_CONFIG_SET_PID_CONFIG_ID_PID_PITCH_P 43
+#define NCOM_CONFIG_SET_PID_CONFIG_ID_PID_PITCH_I 44
+#define NCOM_CONFIG_SET_PID_CONFIG_ID_PID_PITCH_D 45
+#define NCOM_CONFIG_SET_PID_CONFIG_ID_PID_YAW_P 46
+#define NCOM_CONFIG_SET_PID_CONFIG_ID_PID_YAW_I 47
+#define NCOM_CONFIG_SET_PID_CONFIG_ID_PID_YAW_D 48
+#define NCOM_CONFIG_SET_PID_CONFIG_ID_PID_DEPTH_P 49
+#define NCOM_CONFIG_SET_PID_CONFIG_ID_PID_DEPTH_I 50
+#define NCOM_CONFIG_SET_PID_CONFIG_ID_PID_DEPTH_D 51
+
+#define NCOM_CONFIG_SET_PID_DATA_TYPE_INT8 0
+#define NCOM_CONFIG_SET_PID_DATA_TYPE_UINT8 1
+#define NCOM_CONFIG_SET_PID_DATA_TYPE_INT16 2
+#define NCOM_CONFIG_SET_PID_DATA_TYPE_UINT16 3
+#define NCOM_CONFIG_SET_PID_DATA_TYPE_INT32 4
+#define NCOM_CONFIG_SET_PID_DATA_TYPE_UINT32 5
+#define NCOM_CONFIG_SET_PID_DATA_TYPE_FLOAT32 6
+
+#define NCOM_CONFIG_SET_EKF_CONFIG_ID_EKF_PROCESS_NOISE 60
+#define NCOM_CONFIG_SET_EKF_CONFIG_ID_EKF_MEAS_NOISE 61
+
+#define NCOM_CONFIG_SET_EKF_DATA_TYPE_INT8 0
+#define NCOM_CONFIG_SET_EKF_DATA_TYPE_UINT8 1
+#define NCOM_CONFIG_SET_EKF_DATA_TYPE_INT16 2
+#define NCOM_CONFIG_SET_EKF_DATA_TYPE_UINT16 3
+#define NCOM_CONFIG_SET_EKF_DATA_TYPE_INT32 4
+#define NCOM_CONFIG_SET_EKF_DATA_TYPE_UINT32 5
+#define NCOM_CONFIG_SET_EKF_DATA_TYPE_FLOAT32 6
+
+#define NCOM_INIT_ERROR_ERROR_CODE_IMU_INIT_ERR 0
+#define NCOM_INIT_ERROR_ERROR_CODE_MAG_INIT_ERR 1
+#define NCOM_INIT_ERROR_ERROR_CODE_BAR30_INIT_ERR 2
 
 // ID 0: Sent at 1 Hz
 typedef struct __attribute__((packed)) {
@@ -190,10 +348,88 @@ typedef struct __attribute__((packed)) {
 } NCOM_Payload_TARGETS_t;
 #define NCOM_LEN_TARGETS 17
 
-// ID 9: ID 9 is free for a message.
+// ID 9: Acknowledgement message sent after command is received
 typedef struct __attribute__((packed)) {
-} NCOM_Payload_UNUSED_t;
-#define NCOM_LEN_UNUSED 0
+    uint8_t requested_msg_id;
+    uint8_t requested_seq;
+    uint8_t response;
+} NCOM_Payload_ACKNOWLEDGEMENT_t;
+#define NCOM_LEN_ACKNOWLEDGEMENT 3
+
+// ID 40: Request to send configuration value
+typedef struct __attribute__((packed)) {
+    uint16_t config_id;
+} NCOM_Payload_CONFIG_REQ_t;
+#define NCOM_LEN_CONFIG_REQ 2
+
+// ID 41: Response with configuration value
+typedef struct __attribute__((packed)) {
+    uint16_t config_id;
+    uint8_t data_type;
+    int32_t config_value;
+    uint8_t is_saved;
+} NCOM_Payload_CONFIG_RESP_t;
+#define NCOM_LEN_CONFIG_RESP 8
+
+// ID 42: Request to set an MCU layout configuration value
+typedef struct __attribute__((packed)) {
+    uint16_t config_id;
+    uint8_t data_type;
+    int32_t config_value;
+    uint8_t save_to_flash;
+} NCOM_Payload_CONFIG_SET_MCU_t;
+#define NCOM_LEN_CONFIG_SET_MCU 8
+
+// ID 43: Request to set a FreeRTOS configuration value
+typedef struct __attribute__((packed)) {
+    uint16_t config_id;
+    uint8_t data_type;
+    int32_t config_value;
+    uint8_t save_to_flash;
+} NCOM_Payload_CONFIG_SET_FREERTOS_t;
+#define NCOM_LEN_CONFIG_SET_FREERTOS 8
+
+// ID 44: Request to set a Sensor configuration value
+typedef struct __attribute__((packed)) {
+    uint16_t config_id;
+    uint8_t data_type;
+    int32_t config_value;
+    uint8_t save_to_flash;
+} NCOM_Payload_CONFIG_SET_SENSOR_t;
+#define NCOM_LEN_CONFIG_SET_SENSOR 8
+
+// ID 45: Request to set an Actuator configuration value
+typedef struct __attribute__((packed)) {
+    uint16_t config_id;
+    uint8_t data_type;
+    int32_t config_value;
+    uint8_t save_to_flash;
+} NCOM_Payload_CONFIG_SET_ACTUATOR_t;
+#define NCOM_LEN_CONFIG_SET_ACTUATOR 8
+
+// ID 46: Request to set a PID loop configuration value
+typedef struct __attribute__((packed)) {
+    uint16_t config_id;
+    uint8_t data_type;
+    int32_t config_value;
+    uint8_t save_to_flash;
+} NCOM_Payload_CONFIG_SET_PID_t;
+#define NCOM_LEN_CONFIG_SET_PID 8
+
+// ID 47: Request to set an EKF configuration value
+typedef struct __attribute__((packed)) {
+    uint16_t config_id;
+    uint8_t data_type;
+    int32_t config_value[9];
+    uint8_t save_to_flash;
+} NCOM_Payload_CONFIG_SET_EKF_t;
+#define NCOM_LEN_CONFIG_SET_EKF 40
+
+// ID 200: Sent when an error occurs during initialization
+typedef struct __attribute__((packed)) {
+    uint8_t error_code;
+} NCOM_Payload_INIT_ERROR_t;
+#define NCOM_LEN_INIT_ERROR 1
 
 // Pack/Unpack Functions
 // Return value is the size of the payload
@@ -215,7 +451,25 @@ size_t ncom_pack_mode_status(uint8_t *buf, const NCOM_Payload_MODE_STATUS_t *msg
 size_t ncom_unpack_mode_status(const uint8_t *buf, NCOM_Payload_MODE_STATUS_t *msg);
 size_t ncom_pack_targets(uint8_t *buf, const NCOM_Payload_TARGETS_t *msg);
 size_t ncom_unpack_targets(const uint8_t *buf, NCOM_Payload_TARGETS_t *msg);
-size_t ncom_pack_unused(uint8_t *buf, const NCOM_Payload_UNUSED_t *msg);
-size_t ncom_unpack_unused(const uint8_t *buf, NCOM_Payload_UNUSED_t *msg);
+size_t ncom_pack_acknowledgement(uint8_t *buf, const NCOM_Payload_ACKNOWLEDGEMENT_t *msg);
+size_t ncom_unpack_acknowledgement(const uint8_t *buf, NCOM_Payload_ACKNOWLEDGEMENT_t *msg);
+size_t ncom_pack_config_req(uint8_t *buf, const NCOM_Payload_CONFIG_REQ_t *msg);
+size_t ncom_unpack_config_req(const uint8_t *buf, NCOM_Payload_CONFIG_REQ_t *msg);
+size_t ncom_pack_config_resp(uint8_t *buf, const NCOM_Payload_CONFIG_RESP_t *msg);
+size_t ncom_unpack_config_resp(const uint8_t *buf, NCOM_Payload_CONFIG_RESP_t *msg);
+size_t ncom_pack_config_set_mcu(uint8_t *buf, const NCOM_Payload_CONFIG_SET_MCU_t *msg);
+size_t ncom_unpack_config_set_mcu(const uint8_t *buf, NCOM_Payload_CONFIG_SET_MCU_t *msg);
+size_t ncom_pack_config_set_freertos(uint8_t *buf, const NCOM_Payload_CONFIG_SET_FREERTOS_t *msg);
+size_t ncom_unpack_config_set_freertos(const uint8_t *buf, NCOM_Payload_CONFIG_SET_FREERTOS_t *msg);
+size_t ncom_pack_config_set_sensor(uint8_t *buf, const NCOM_Payload_CONFIG_SET_SENSOR_t *msg);
+size_t ncom_unpack_config_set_sensor(const uint8_t *buf, NCOM_Payload_CONFIG_SET_SENSOR_t *msg);
+size_t ncom_pack_config_set_actuator(uint8_t *buf, const NCOM_Payload_CONFIG_SET_ACTUATOR_t *msg);
+size_t ncom_unpack_config_set_actuator(const uint8_t *buf, NCOM_Payload_CONFIG_SET_ACTUATOR_t *msg);
+size_t ncom_pack_config_set_pid(uint8_t *buf, const NCOM_Payload_CONFIG_SET_PID_t *msg);
+size_t ncom_unpack_config_set_pid(const uint8_t *buf, NCOM_Payload_CONFIG_SET_PID_t *msg);
+size_t ncom_pack_config_set_ekf(uint8_t *buf, const NCOM_Payload_CONFIG_SET_EKF_t *msg);
+size_t ncom_unpack_config_set_ekf(const uint8_t *buf, NCOM_Payload_CONFIG_SET_EKF_t *msg);
+size_t ncom_pack_init_error(uint8_t *buf, const NCOM_Payload_INIT_ERROR_t *msg);
+size_t ncom_unpack_init_error(const uint8_t *buf, NCOM_Payload_INIT_ERROR_t *msg);
 
 #endif /* INC_NCOM_PROTOCOL_H_ */

@@ -4,5 +4,24 @@
         200,
         255
     ],
-    "messages": []
+    "messages": [
+        {
+            "id": 200,
+            "name": "INIT_ERROR",
+            "direction": "MCU_TO_HOST",
+            "desc": "Sent when an error occurs during initialization",
+            "payload": [
+                {
+                    "name": "error_code",
+                    "type": "uint8",
+                    "desc": "Error code",
+                    "enum": {
+                        "IMU_INIT_ERR": 0,
+                        "MAG_INIT_ERR": 1,
+                        "BAR30_INIT_ERR": 2
+                    }
+                }
+            ]
+        }
+    ]
 }

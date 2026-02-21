@@ -308,14 +308,30 @@
         },
         {
             "id": 9,
-            "name": "UNUSED",
-            "direction": "BIDIRECTIONAL",
-            "desc": "ID9 is free",
+            "name": "ACKNOWLEDGEMENT",
+            "direction": "MCU_TO_HOST",
+            "desc": "Acknowledgement message sent after command is received",
             "payload": [
                 {
-                    "name": "UNUSED",
+                    "name": "requested_msg_id",
                     "type": "uint8",
-                    "desc": "unused"
+                    "desc": "The message ID that was requested"
+                },
+                {
+                    "name": "requested_seq",
+                    "type": "uint8",
+                    "desc": "The sequence number of the requested message"
+                },
+                {
+                    "name": "response",
+                    "type": "uint8",
+                    "desc": "Response to the command",
+                    "enum": {
+                        "NACK": 0,
+                        "ACK": 1,
+                        "INVALID_PARAMETER": 254,
+                        "UNKNOWN_ERROR": 255
+                    }
                 }
             ]
         }

@@ -2,9 +2,11 @@
     "protocol": "NCOM",
     "name": "Nautronics Communication Protocol",
     "version": "0.1",
+    "max_payload_size_bytes": 128,
     "endianness": "little",
-    "sync_byte": 165,
-    "config_desc": "165 (0xA5) is used as default sync byte. Also, the protocol is little-endian by default.",
+    "sync_byte_1": 165,
+    "sync_byte_2": 90,
+    "config_desc": "0xA5 (165) and 0x5A (90) are used as default sync bytes. Also, the protocol is little-endian by default. Maximum payload size is 128 bytes, overhead excluded.",
     "directions": {
         "MCU_TO_HOST": 0,
         "HOST_TO_MCU": 1,
@@ -42,6 +44,14 @@
                 39
             ],
             "desc": "Actuator data"
+        },
+        {
+            "name": "config",
+            "id_range": [
+                40,
+                49
+            ],
+            "desc": "MCU configuration management"
         },
         {
             "name": "acoustics",
@@ -84,6 +94,10 @@
         "actuator": {
             "enabled": true,
             "path": "msg/actuator.json"
+        },
+        "config": {
+            "enabled": true,
+            "path": "msg/config.json"
         },
         "acoustics": {
             "enabled": true,

@@ -24,7 +24,7 @@
 
 /*
  * NCOM C Source File
- * Auto-generated on: 07.02.2026 22:21:27
+ * Auto-generated on: 21.02.2026 21:05:40
  * Protocol Version: 0.1
  */
 
@@ -112,12 +112,93 @@ size_t ncom_unpack_targets(const uint8_t* buf, NCOM_Payload_TARGETS_t* msg) {
     memcpy(msg, buf, sizeof(NCOM_Payload_TARGETS_t));
     return sizeof(NCOM_Payload_TARGETS_t);
 }
-size_t ncom_pack_unused(uint8_t* buf, const NCOM_Payload_UNUSED_t* msg) {
-    memcpy(buf, msg, sizeof(NCOM_Payload_UNUSED_t));
-    return sizeof(NCOM_Payload_UNUSED_t);
+size_t ncom_pack_acknowledgement(uint8_t* buf, const NCOM_Payload_ACKNOWLEDGEMENT_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_ACKNOWLEDGEMENT_t));
+    return sizeof(NCOM_Payload_ACKNOWLEDGEMENT_t);
 }
 
-size_t ncom_unpack_unused(const uint8_t* buf, NCOM_Payload_UNUSED_t* msg) {
-    memcpy(msg, buf, sizeof(NCOM_Payload_UNUSED_t));
-    return sizeof(NCOM_Payload_UNUSED_t);
+size_t ncom_unpack_acknowledgement(const uint8_t* buf, NCOM_Payload_ACKNOWLEDGEMENT_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_ACKNOWLEDGEMENT_t));
+    return sizeof(NCOM_Payload_ACKNOWLEDGEMENT_t);
+}
+size_t ncom_pack_config_req(uint8_t* buf, const NCOM_Payload_CONFIG_REQ_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_CONFIG_REQ_t));
+    return sizeof(NCOM_Payload_CONFIG_REQ_t);
+}
+
+size_t ncom_unpack_config_req(const uint8_t* buf, NCOM_Payload_CONFIG_REQ_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_CONFIG_REQ_t));
+    return sizeof(NCOM_Payload_CONFIG_REQ_t);
+}
+size_t ncom_pack_config_resp(uint8_t* buf, const NCOM_Payload_CONFIG_RESP_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_CONFIG_RESP_t));
+    return sizeof(NCOM_Payload_CONFIG_RESP_t);
+}
+
+size_t ncom_unpack_config_resp(const uint8_t* buf, NCOM_Payload_CONFIG_RESP_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_CONFIG_RESP_t));
+    return sizeof(NCOM_Payload_CONFIG_RESP_t);
+}
+size_t ncom_pack_config_set_mcu(uint8_t* buf, const NCOM_Payload_CONFIG_SET_MCU_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_CONFIG_SET_MCU_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_MCU_t);
+}
+
+size_t ncom_unpack_config_set_mcu(const uint8_t* buf, NCOM_Payload_CONFIG_SET_MCU_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_CONFIG_SET_MCU_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_MCU_t);
+}
+size_t ncom_pack_config_set_freertos(uint8_t* buf, const NCOM_Payload_CONFIG_SET_FREERTOS_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_CONFIG_SET_FREERTOS_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_FREERTOS_t);
+}
+
+size_t ncom_unpack_config_set_freertos(const uint8_t* buf, NCOM_Payload_CONFIG_SET_FREERTOS_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_CONFIG_SET_FREERTOS_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_FREERTOS_t);
+}
+size_t ncom_pack_config_set_sensor(uint8_t* buf, const NCOM_Payload_CONFIG_SET_SENSOR_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_CONFIG_SET_SENSOR_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_SENSOR_t);
+}
+
+size_t ncom_unpack_config_set_sensor(const uint8_t* buf, NCOM_Payload_CONFIG_SET_SENSOR_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_CONFIG_SET_SENSOR_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_SENSOR_t);
+}
+size_t ncom_pack_config_set_actuator(uint8_t* buf, const NCOM_Payload_CONFIG_SET_ACTUATOR_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_CONFIG_SET_ACTUATOR_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_ACTUATOR_t);
+}
+
+size_t ncom_unpack_config_set_actuator(const uint8_t* buf, NCOM_Payload_CONFIG_SET_ACTUATOR_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_CONFIG_SET_ACTUATOR_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_ACTUATOR_t);
+}
+size_t ncom_pack_config_set_pid(uint8_t* buf, const NCOM_Payload_CONFIG_SET_PID_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_CONFIG_SET_PID_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_PID_t);
+}
+
+size_t ncom_unpack_config_set_pid(const uint8_t* buf, NCOM_Payload_CONFIG_SET_PID_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_CONFIG_SET_PID_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_PID_t);
+}
+size_t ncom_pack_config_set_ekf(uint8_t* buf, const NCOM_Payload_CONFIG_SET_EKF_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_CONFIG_SET_EKF_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_EKF_t);
+}
+
+size_t ncom_unpack_config_set_ekf(const uint8_t* buf, NCOM_Payload_CONFIG_SET_EKF_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_CONFIG_SET_EKF_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_EKF_t);
+}
+size_t ncom_pack_init_error(uint8_t* buf, const NCOM_Payload_INIT_ERROR_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_INIT_ERROR_t));
+    return sizeof(NCOM_Payload_INIT_ERROR_t);
+}
+
+size_t ncom_unpack_init_error(const uint8_t* buf, NCOM_Payload_INIT_ERROR_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_INIT_ERROR_t));
+    return sizeof(NCOM_Payload_INIT_ERROR_t);
 }
