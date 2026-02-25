@@ -22,18 +22,18 @@ The Nautronics Communication Protocol (NCOM) facilitates robust binary communica
 
 NCOM operates on a "Single Source of Truth" principle using a JSON definition file.
 
-1.  **Definition**: The protocol structure (message IDs, payloads, data types) is defined in `NCOM/ncom_def.json`.
+1.  **Definition**: The protocol structure (message IDs, payloads, data types) is defined in `NCOM/ncom_def.json` and other files in `NCOM/msg/`.
 2.  **Code Generation**: The `NCOM/codegen.py` script parses this JSON file and automatically generates:
     -   **C Source/Header** (`NCOM/c/`): Used by the MCU firmware to pack/unpack messages into C structs.
     -   **Python Module** (`NCOM/py/`): Used by the host software to interface with the device.
 
 Currently, the communication frame structure is as follows:
 
-`[SYNC (0xA5)] [MSG_ID] [PAYLOAD_LEN] [PAYLOAD...] [CRC16]`
+`[SYNC1 (0xA5)] [SYNC2 (0x5A)] [SEQ] [MSG_ID] [PAYLOAD_LEN] [PAYLOAD...] [CRC16]`
 
 Note that this shows the current structure to inform the reader, the frame will most likely be changed in the future.
 
--   **SYNC**: Synchronization byte (0xA5) to identify the start of a frame.
+-   **SYNC1 and SYNC2**: Synchronization bytes (0xA5 and 0x5A) to identify the start of a frame.
 -   **CRC16**: Checksum to ensure data integrity.
 
 ### How to Edit the Protocol
