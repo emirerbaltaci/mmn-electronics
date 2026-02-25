@@ -45,6 +45,12 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define TASK_STATEESTIMATE_SLEEP_MS 1
+#define TASK_CONTROL_SLEEP_MS 5
+#define TASK_NCOM_SLEEP_MS 20
+#define TASK_SENSOR_SLEEP_MS 100
+#define TASK_SYSMONITOR_SLEEP_MS 50
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -85,8 +91,9 @@ TaskHandle_t xStateEstimateTaskHandle = NULL;
 TaskHandle_t xControlTaskHandle = NULL;
 TaskHandle_t xNCOMTaskHandle = NULL;
 TaskHandle_t xSensorTaskHandle = NULL;
+TaskHandle_t xSysMonitorTaskHandle = NULL;
 
-SemaphoreHandle_t xStateEstimateMutex = NULL;
+SemaphoreHandle_t xStateMutex = NULL;
 SemaphoreHandle_t xCommandMutex = NULL;
 
 NCOM_RX_t ncomRx;
@@ -96,6 +103,13 @@ Setpoint_t setPoint = {0};
 Setspeed_t setSpeed = {0};
 bool axisSpeedMode[6] = {false};
 
+volatile uint32_t ulIdleCycleCount = 0;
+uint32_t ulMaxIdleCycles = 0;
+float cpuLoad = 0.0f;
+
+volatile uint8_t hbStateEstimateTask = 0;
+volatile uint8_t hbControlTask = 0;
+volatile uint8_t hbNCOMTask = 0;
 
 /* USER CODE END PV */
 
@@ -127,7 +141,6 @@ void Task_Control(void *pvParameters);
 void Task_NCOM(void *pvParameters);
 void Task_Sensor(void *pvParameters);
 void Task_SysMonitor(void *pvParameters);
-void Task_Idle(void *pvParameters);
 
 /* USER CODE END PFP */
 
@@ -189,8 +202,18 @@ int main(void)
   NCOM_TX_Init();
   NCOM_RX_Init(&ncomRx);
 
+  xStateMutex = xSemaphoreCreateMutex();
+  xCommandMutex = xSemaphoreCreateMutex();
 
-  vTaskStartScheduler();
+  if(xStateMutex != NULL && xCommandMutex != NULL){
+	  xTaskCreate(Task_StateEstimate, "EKF_TASK", 2048, NULL, 11, &xStateEstimateTaskHandle);
+	  xTaskCreate(Task_Control, "CTRL_TASK", 1024, NULL, 10, &xControlTaskHandle);
+	  xTaskCreate(Task_NCOM, "NCOM_TASK", 2048, NULL, 9, &xNCOMTaskHandle);
+	  xTaskCreate(Task_Sensor, "SENSOR_TASK", 256, NULL, 8, &xSensorTaskHandle);
+	  xTaskCreate(Task_SysMonitor, "MONITOR_TASK", 256, NULL, 7, &xSysMonitorTaskHandle);
+
+	  vTaskStartScheduler();
+  }
 
   /* USER CODE END 2 */
 
@@ -521,7 +544,7 @@ static void MX_IWDG_Init(void)
 
   /* USER CODE END IWDG_Init 1 */
   hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_4;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_8;
   hiwdg.Init.Window = 4095;
   hiwdg.Init.Reload = 4095;
   if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
@@ -1297,6 +1320,85 @@ void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer,
     *ppxTimerTaskStackBuffer = uxTimerTaskStack;
     *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
 }
+
+void Task_StateEstimate(void *pvParameters){
+	const TickType_t xFrequency = pdMS_TO_TICKS(TASK_STATEESTIMATE_SLEEP_MS);
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+
+	for(;;){
+		hbStateEstimateTask = 1;
+
+		vTaskDelayUntil(&xLastWakeTime, xFrequency);
+	}
+}
+
+void Task_Control(void *pvParameters){
+	const TickType_t xFrequency = pdMS_TO_TICKS(TASK_CONTROL_SLEEP_MS);
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+
+	for(;;){
+		hbControlTask = 1;
+
+		vTaskDelayUntil(&xLastWakeTime, xFrequency);
+	}
+}
+
+void Task_NCOM(void *pvParameters){
+	const TickType_t xFrequency = pdMS_TO_TICKS(TASK_NCOM_SLEEP_MS);
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+
+	for(;;){
+		hbNCOMTask = 1;
+
+		vTaskDelayUntil(&xLastWakeTime, xFrequency);
+	}
+}
+
+void Task_Sensor(void *pvParameters){
+	const TickType_t xFrequency = pdMS_TO_TICKS(TASK_SENSOR_SLEEP_MS);
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+
+	for(;;){
+
+		vTaskDelayUntil(&xLastWakeTime, xFrequency);
+	}
+}
+
+void Task_SysMonitor(void *pvParameters){
+	const TickType_t xFrequency = pdMS_TO_TICKS(TASK_SYSMONITOR_SLEEP_MS);
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+
+	uint32_t oneSecondTimer = 0;
+
+	for(;;){
+
+		if((hbControlTask == 1 && hbStateEstimateTask == 1) && hbNCOMTask == 1){
+			HAL_IWDG_Refresh(&hiwdg);
+			hbControlTask = 0;
+			hbStateEstimateTask = 0;
+			hbNCOMTask = 0;
+		}
+
+		oneSecondTimer += 50;
+		if(oneSecondTimer >= 1000){
+			oneSecondTimer = 0;
+			taskENTER_CRITICAL();
+			uint32_t currentIdleCount = ulIdleCycleCount;
+			ulIdleCycleCount = 0;
+			taskEXIT_CRITICAL();
+			if(currentIdleCount > ulMaxIdleCycles) ulMaxIdleCycles = currentIdleCount;
+			if(ulMaxIdleCycles > 0) cpuLoad = 100.0f - (((float)currentIdleCount / (float)ulMaxIdleCycles) * 100.0f);
+			if(cpuLoad < 0.0f) cpuLoad = 0.0f;
+		}
+
+		vTaskDelayUntil(&xLastWakeTime, xFrequency);
+	}
+}
+
+void vApplicationIdleHook(void){
+	ulIdleCycleCount++;
+}
+
 
 /* USER CODE END 4 */
 
