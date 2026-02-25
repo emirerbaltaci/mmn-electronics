@@ -52,14 +52,22 @@ _tx_seq = 0
 def create_frame(msg_id, *args):
     global _tx_seq
     payload = ncom.Messages.pack(msg_id, *args)
-    if payload is None or len(payload) > 128: return None
+    if payload is None or len(payload) > ncom.MAX_PAYLOAD_LEN: return None
     
     seq = _tx_seq
     _tx_seq = (_tx_seq + 1) % 256
     
     data = struct.pack(ncom.ENDIAN_CHAR + "BBB", seq, msg_id, len(payload)) + payload
     crc = CRC16.calc(data)
-    return struct.pack(ncom.ENDIAN_CHAR + "B", ncom.SYNC_BYTE_1) + struct.pack(ncom.ENDIAN_CHAR + "B", ncom.SYNC_BYTE_2) + data + struct.pack(ncom.ENDIAN_CHAR + "H", crc)
+    
+    # We still need to pack the sync bytes and header
+    frame = bytearray()
+    frame.extend(struct.pack(ncom.ENDIAN_CHAR + "B", ncom.SYNC_BYTE_1))
+    frame.extend(struct.pack(ncom.ENDIAN_CHAR + "B", ncom.SYNC_BYTE_2))
+    frame.extend(data)
+    frame.extend(struct.pack(ncom.ENDIAN_CHAR + "H", crc))
+    
+    return bytes(frame)
 
 class NCOMParser:
     STATE_WAIT_SYNC_1 = 0

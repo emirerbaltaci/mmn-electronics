@@ -24,6 +24,14 @@ dist/
 *.swp
 *.swo
 
+# STM32CubeIDE / Eclipse
+MCU/.cproject
+MCU/.project
+MCU/.mxproject
+MCU/.settings/
+MCU/Debug/
+MCU/Release/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -32,3 +40,4 @@ Desktop.ini
 # Documentation
 imu_ds.pdf
 mag_ds.pdf
+mcu_refmanual.pdf

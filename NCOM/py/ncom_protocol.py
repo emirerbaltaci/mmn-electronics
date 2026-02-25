@@ -22,7 +22,7 @@
 
 '''
 NCOM Python Module
-Auto-generated on: 21.02.2026 21:05:40
+Auto-generated on: 25.02.2026 14:09:23
 Version: 0.1
 '''
 
@@ -32,6 +32,12 @@ import struct
 
 SYNC_BYTE_1 = 0xA5
 SYNC_BYTE_2 = 0x5A
+
+MAX_PAYLOAD_LEN = 255
+HEADER_LEN = 5
+FOOTER_LEN = 2
+OVERHEAD_LEN = HEADER_LEN + FOOTER_LEN
+SYNCBYTE_COUNT = 2
 
 HEARTBEAT_VEHICLE_STATE = {
     'INIT': 0,
@@ -329,13 +335,13 @@ class Messages:
         8: '<Bifff', # TARGETS
         9: '<BBB', # ACKNOWLEDGEMENT
         40: '<H', # CONFIG_REQ
-        41: '<HBiB', # CONFIG_RESP
+        41: '<HBi', # CONFIG_RESP
         42: '<HBiB', # CONFIG_SET_MCU
         43: '<HBiB', # CONFIG_SET_FREERTOS
         44: '<HBiB', # CONFIG_SET_SENSOR
         45: '<HBiB', # CONFIG_SET_ACTUATOR
         46: '<HBiB', # CONFIG_SET_PID
-        47: '<HB9iB', # CONFIG_SET_EKF
+        47: '<HB9i', # CONFIG_SET_EKF
         200: '<B', # INIT_ERROR
     }
 

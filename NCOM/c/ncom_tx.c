@@ -60,10 +60,10 @@ extern CRC_HandleTypeDef hcrc;	// For Hardware CRC Calculation
  */
 uint8_t NCOM_TX_SendPacket(uint8_t msgId, const void* payload, uint8_t len){
 	
-	if(len > 128) return USBD_FAIL;
+	if(len > NCOM_MAX_PAYLOAD_LEN) return USBD_FAIL;
 	
 	static uint8_t tx_seq = 0;
-	static uint8_t txBuf[135];
+	static uint8_t txBuf[NCOM_MAX_PAYLOAD_LEN + NCOM_OVERHEAD_LEN];
 	
 	txBuf[0] = NCOM_SYNC_BYTE_1;
 	txBuf[1] = NCOM_SYNC_BYTE_2;
@@ -71,14 +71,14 @@ uint8_t NCOM_TX_SendPacket(uint8_t msgId, const void* payload, uint8_t len){
 	txBuf[3] = msgId;
 	txBuf[4] = len;
 	
-	if(len > 0 && payload != NULL) memcpy(&txBuf[5], payload, len);
+	if(len > 0 && payload != NULL) memcpy(&txBuf[NCOM_HEADER_LEN], payload, len);
 	
-	uint32_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)&txBuf[2], len + 3);
+	uint32_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)&txBuf[2], len + NCOM_HEADER_LEN - 2);
 	uint16_t crc16 = (uint16_t)crc;
-	txBuf[len + 5] = (uint8_t)(crc16 & 0xFF);
-	txBuf[len + 6] = (uint8_t)((crc16 >> 8) & 0xFF);
+	txBuf[len + NCOM_HEADER_LEN] = (uint8_t)(crc16 & 0xFF);
+	txBuf[len + NCOM_HEADER_LEN + 1] = (uint8_t)((crc16 >> 8) & 0xFF);
 	
-	uint8_t status = CDC_Transmit_FS(txBuf, len + 7);
+	uint8_t status = CDC_Transmit_FS(txBuf, len + NCOM_HEADER_LEN + NCOM_FOOTER_LEN);
 	
 	if(status == USBD_OK){
 		tx_seq++;

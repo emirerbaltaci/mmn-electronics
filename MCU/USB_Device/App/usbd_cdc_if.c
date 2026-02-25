@@ -23,9 +23,6 @@
 
 /* USER CODE BEGIN INCLUDE */
 
-#include "FreeRTOS.h"
-#include "stream_buffer.h"
-
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -35,14 +32,12 @@
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
-USBD_CDC_HandleTypeDef LineCode = {
-	115200,
-	0x00,
-	0x00,
-	0x08
+USBD_CDC_LineCodingTypeDef LineCode = {
+		115200,
+		0x00,
+		0x00,
+		0x08
 };
-
-extern StreamBufferHandle_t xRxStreamBuffer;
 
 /* USER CODE END PV */
 
@@ -232,23 +227,23 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   /* 6      | bDataBits  |   1   | Number Data bits (5, 6, 7, 8 or 16).          */
   /*******************************************************************************/
     case CDC_SET_LINE_CODING:
-	
-	LineCode.bitrate = (uint32_t)(pbuf[0] | (pbuf[1] << 8) | (pbuf[2] << 16) | (pbuf[3] << 24));
-    LineCode.format = pbuf[4];
-    LineCode.paritytype = pbuf[5];
-    LineCode.datatype = pbuf[6];
+
+    	LineCode.bitrate = (uint32_t)(pbuf[0] | (pbuf[1] << 8) | (pbuf[2] << 16) | (pbuf[3] << 24));
+    	LineCode.format = pbuf[4];
+    	LineCode.paritytype = pbuf[5];
+    	LineCode.datatype = pbuf[6];
 
     break;
 
     case CDC_GET_LINE_CODING:
-	
-	pbuf[0] = (uint8_t)LineCode.bitrate;
-    pbuf[1] = (uint8_t)(LineCode.bitrate >> 8);
-    pbuf[2] = (uint8_t)(LineCode.bitrate >> 16);
-    pbuf[3] = (uint8_t)(LineCode.bitrate >> 24);
-    pbuf[4] = LineCode.format;
-    pbuf[5] = LineCode.paritytype;
-    pbuf[6] = LineCode.datatype;
+
+    	pbuf[0] = (uint8_t)LineCode.bitrate;
+    	pbuf[1] = (uint8_t)(LineCode.bitrate >> 8);
+    	pbuf[2] = (uint8_t)(LineCode.bitrate >> 16);
+    	pbuf[3] = (uint8_t)(LineCode.bitrate >> 24);
+    	pbuf[4] = LineCode.format;
+    	pbuf[5] = LineCode.paritytype;
+    	pbuf[6] = LineCode.datatype;
 
     break;
 
@@ -286,14 +281,8 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
-  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-  
-  if(xRxStreamBuffer != NULL) xStreamBufferSendFromISR(xRxStreamBuffer, Buf, *Len, &xHigherPriorityTaskWoken);
-  
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  
-  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
   return (USBD_OK);
   /* USER CODE END 6 */
 }

@@ -78,6 +78,16 @@ def generate_c_header(data, output_file):
         f.write(f"#define {protocol}_SYNC_BYTE_1 {sync_byte_1}\n")
         f.write(f"#define {protocol}_SYNC_BYTE_2 {sync_byte_2}\n\n")
         
+        max_payload = data.get('max_payload_size_bytes', 255)
+        sync_byte_count = data.get('sync_byte_count', 2)
+        header_len = data.get('header_size_bytes', 5)
+        footer_len = data.get('footer_size_bytes', 2)
+        f.write(f"#define {protocol}_MAX_PAYLOAD_LEN {max_payload}\n")
+        f.write(f"#define {protocol}_HEADER_LEN {header_len}\n")
+        f.write(f"#define {protocol}_FOOTER_LEN {footer_len}\n")
+        f.write(f"#define {protocol}_OVERHEAD_LEN ({protocol}_HEADER_LEN + {protocol}_FOOTER_LEN)\n")
+        f.write(f"#define {protocol}_SYNCBYTE_COUNT {sync_byte_count}\n\n")
+        
         # 1. Message IDs
         f.write(f"typedef enum {{\n")
         for msg in data['messages']:
@@ -230,6 +240,16 @@ def generate_python_file(data, output_file):
         
         f.write(f"SYNC_BYTE_1 = {sync_byte_1}\n")
         f.write(f"SYNC_BYTE_2 = {sync_byte_2}\n\n")
+        
+        max_payload = data.get('max_payload_size_bytes', 255)
+        sync_byte_count = data.get('sync_byte_count', 2)
+        header_len = data.get('header_size_bytes', 5)
+        footer_len = data.get('footer_size_bytes', 2)
+        f.write(f"MAX_PAYLOAD_LEN = {max_payload}\n")
+        f.write(f"HEADER_LEN = {header_len}\n")
+        f.write(f"FOOTER_LEN = {footer_len}\n")
+        f.write(f"OVERHEAD_LEN = HEADER_LEN + FOOTER_LEN\n")
+        f.write(f"SYNCBYTE_COUNT = {sync_byte_count}\n\n")
 
         for msg in data["messages"]:
             for field in msg["payload"]:

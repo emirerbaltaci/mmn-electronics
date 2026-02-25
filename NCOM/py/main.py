@@ -22,12 +22,12 @@
 
 MAINLOOP_SLEEP = 0.01 # Seconds
 
-import serial
-import serial.tools.list_ports
-import time
 import ncom_protocol as ncom
 import ncom_driver as ncd
 import ncom_handlers as nch
+import serial
+import serial.tools.list_ports
+import time
 from datetime import datetime
 import threading
 import sys
@@ -49,11 +49,10 @@ def handle_packet(msg_id, data, ncom_parser):
     is_hb = (msg_id == ncom.Messages.NAME_TO_ID["HEARTBEAT"])
     is_ack = (msg_id == ncom.Messages.NAME_TO_ID["ACKNOWLEDGEMENT"])
     
-    if is_hb and not print_hb:
-        # Update last_uptime without printing anything
+    if is_hb and not print_hb: # Update last_uptime without printing anything
         last_uptime = nch.heartbeat_handler(data, last_uptime, print_hb=False)
         return
-        
+    
     timestamp = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
     print(f"\r[{timestamp}]\nSequence: {ncom_parser.seq}\nMessage: {ncom.Messages.ID_TO_NAME[msg_id]} (ID: {msg_id})")
     
@@ -62,7 +61,7 @@ def handle_packet(msg_id, data, ncom_parser):
     elif is_ack:
         nch.ack_handler(msg_id, data)
     else:
-        parsed = data # Data is guaranteed to already be the unpacked tuple containing the payload
+        parsed = data
         print("  Payload parameters (in order):")
         for i, value in enumerate(parsed):
             print(f"    [{i}]: {value}")

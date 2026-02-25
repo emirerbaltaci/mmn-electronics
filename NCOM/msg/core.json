@@ -55,9 +55,9 @@
                     }
                 },
                 {
-                    "name": "uptime_s",
+                    "name": "uptime_ms",
                     "type": "uint32",
-                    "desc": "MCU uptime in seconds"
+                    "desc": "MCU uptime in milliseconds"
                 }
             ]
         },
