@@ -23,6 +23,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include <math.h>
+
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
@@ -31,9 +33,16 @@
 #include "auvmath.h"
 #include "auvcontrol.h"
 
+#include "auvflags.h"
+
 #include "ncom_tx.h"
 #include "ncom_rx.h"
 #include "ncom_handlers.h"
+
+#include "auvdefaults.h"
+
+#include "imu_config.h"
+#include "magnetometer_config.h"
 
 /* USER CODE END Includes */
 
@@ -51,6 +60,8 @@
 #define TASK_SENSOR_SLEEP_MS 100
 #define TASK_SYSMONITOR_SLEEP_MS 50
 
+#define TASK_CONTROL_PID_DT 0.005f
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -62,6 +73,8 @@
 ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc3;
 DMA_HandleTypeDef hdma_adc1;
+
+CORDIC_HandleTypeDef hcordic;
 
 CRC_HandleTypeDef hcrc;
 
@@ -107,9 +120,13 @@ volatile uint32_t ulIdleCycleCount = 0;
 uint32_t ulMaxIdleCycles = 0;
 float cpuLoad = 0.0f;
 
-volatile uint8_t hbStateEstimateTask = 0;
-volatile uint8_t hbControlTask = 0;
-volatile uint8_t hbNCOMTask = 0;
+volatile uint8_t hbStateEstimateTask = AUV_TASK_DEAD;
+volatile uint8_t hbControlTask = AUV_TASK_DEAD;
+volatile uint8_t hbNCOMTask = AUV_TASK_DEAD;
+volatile uint8_t armStatus = AUV_DISARMED;
+
+IMU_Handler_t icm;
+MAG_Handler_t lis;
 
 /* USER CODE END PV */
 
@@ -134,6 +151,7 @@ static void MX_UART5_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_CORDIC_Init(void);
 /* USER CODE BEGIN PFP */
 
 void Task_StateEstimate(void *pvParameters);
@@ -197,10 +215,19 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
+  MX_CORDIC_Init();
   /* USER CODE BEGIN 2 */
 
   NCOM_TX_Init();
   NCOM_RX_Init(&ncomRx);
+
+  icm.pSPIx = &hspi1;
+  icm.pGPIOx = GPIOA;
+  lis.pSPIx = &hspi2;
+  lis.pGPIOx = GPIOA;
+
+  IMU_SPI_Init(&icm);
+  MAG_SPI_Init(&lis);
 
   xStateMutex = xSemaphoreCreateMutex();
   xCommandMutex = xSemaphoreCreateMutex();
@@ -400,6 +427,32 @@ static void MX_ADC3_Init(void)
   /* USER CODE BEGIN ADC3_Init 2 */
 
   /* USER CODE END ADC3_Init 2 */
+
+}
+
+/**
+  * @brief CORDIC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CORDIC_Init(void)
+{
+
+  /* USER CODE BEGIN CORDIC_Init 0 */
+
+  /* USER CODE END CORDIC_Init 0 */
+
+  /* USER CODE BEGIN CORDIC_Init 1 */
+
+  /* USER CODE END CORDIC_Init 1 */
+  hcordic.Instance = CORDIC;
+  if (HAL_CORDIC_Init(&hcordic) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CORDIC_Init 2 */
+
+  /* USER CODE END CORDIC_Init 2 */
 
 }
 
@@ -1290,6 +1343,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
   /* USER CODE END MX_GPIO_Init_2 */
@@ -1325,10 +1382,91 @@ void Task_StateEstimate(void *pvParameters){
 	const TickType_t xFrequency = pdMS_TO_TICKS(TASK_STATEESTIMATE_SLEEP_MS);
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
-	for(;;){
-		hbStateEstimateTask = 1;
+	float x[12] = {0};
+	float P[144] = {0};
+	float Q[144] = {0};
 
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
+	for(int i = 0; i < 12; i++){
+		P[12 * i + i] = 1.0f;
+		Q[12 * i + i] = 0.001f;
+	}
+
+	float R_acc[9] = {0};
+	for(int i = 0; i < 3; i++) R_acc[3 * i + i] = 0.05f;
+
+	const float g = 9.80665f;
+	IMU_Data_t imuData;
+	MAG_Data_t magData;
+
+	for(;;){
+
+		uint32_t notifyValue = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(5));
+
+		if(notifyValue > 0){
+			hbStateEstimateTask = AUV_TASK_ALIVE;
+
+			IMU_SPI_GetData(&icm, &imuData);
+
+			x[9] = imuData.gyroX;
+			x[10] = imuData.gyroY;
+			x[11] = imuData.gyroZ;
+
+			ekf_predict_12state(x, P, Q, 0.001f);
+
+			float phi = x[3];
+			float theta = x[4];
+
+			float s_phi = sinf(phi);
+			float c_phi = cosf(phi);
+			float s_the = sinf(theta);
+			float c_the = cosf(theta);
+
+			float h_acc[3];
+			h_acc[0] = -g * s_the;
+			h_acc[1] = g * s_phi * c_the;
+			h_acc[2] = g * c_phi * c_the;
+
+			float z_acc[3] = {imuData.accelX, imuData.accelY, imuData.accelZ};
+
+			static float H_acc[36] = {0};
+
+			H_acc[0 * 12 + 4] = -g * c_the;
+			H_acc[1 * 12 + 3] =  g * c_phi * c_the;
+			H_acc[1 * 12 + 4] = -g * s_phi * s_the;
+			H_acc[2 * 12 + 3] = -g * s_phi * c_the;
+			H_acc[2 * 12 + 4] = -g * c_phi * s_the;
+
+			ekf_update_dynamic(x, P, z_acc, h_acc, H_acc, R_acc, 3, 12);
+
+			if(HAL_GPIO_ReadPin(lis.pGPIOx, lis.GPIO_PIN_x) == GPIO_PIN_SET){
+				MAG_SPI_GetData(&lis, &magData);
+
+				float Xh = magData.magX * c_the + magData.magY * s_phi * s_the + magData.magZ * c_phi * s_the;
+				float Yh = magData.magY * c_phi - magData.magZ * s_phi;
+
+				float z_yaw = atan2f(-Yh, Xh);
+				float h_yaw = x[5];
+				float yaw_err = z_yaw - h_yaw;
+				if (yaw_err > (float)M_PI) z_yaw -= 2.0f * (float)M_PI;
+				else if (yaw_err < -(float)M_PI) z_yaw += 2.0f * (float)M_PI;
+
+				static float H_yaw[12] = {0};
+				H_yaw[5] = 1.0f;
+
+				static float R_yaw[1] = {0.1f};
+
+				ekf_update_dynamic(x, P, &z_yaw, &h_yaw, H_yaw, R_yaw, 1, 12);
+			}
+
+
+			if(xSemaphoreTake(xStateMutex, pdMS_TO_TICKS(1)) == pdTRUE){
+				memcpy(&ekfState[0], x, sizeof(float) * 12);
+				xSemaphoreGive(xStateMutex);
+			}
+		}
+		else{
+			; // Implement IMU Failsafe
+		}
 	}
 }
 
@@ -1336,8 +1474,87 @@ void Task_Control(void *pvParameters){
 	const TickType_t xFrequency = pdMS_TO_TICKS(TASK_CONTROL_SLEEP_MS);
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
+	PID_Controller_t pidsSetpoint[6];
+	PID_Controller_t pidsSetspeed[6];
+	Controller_State ctrl = {0};
+
+	float torque[6] = {0};
+	float force[8] = {0};
+	uint16_t pwmArr[8] = {1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500};
+
+	for(int i = 0; i < 6; i++){
+		PID_Init(&pidsSetpoint[i], AUV_DEFAULT_PID_SP_P, AUV_DEFAULT_PID_SP_I, AUV_DEFAULT_PID_SP_D, AUV_DEFAULT_PID_SP_MAXOUT, AUV_DEFAULT_PID_SP_MINOUT, AUV_DEFAULT_PID_SP_WRAPBOUND);
+		PID_Init(&pidsSetspeed[i], AUV_DEFAULT_PID_SS_P, AUV_DEFAULT_PID_SS_I, AUV_DEFAULT_PID_SS_D, AUV_DEFAULT_PID_SS_MAXOUT, AUV_DEFAULT_PID_SS_MINOUT, AUV_DEFAULT_PID_SS_WRAPBOUND);
+	}
+
+	pidsSetpoint[5].wrap_bound = (float)M_PI;
+
 	for(;;){
-		hbControlTask = 1;
+
+		hbControlTask = AUV_TASK_ALIVE;
+
+		static float currPosition[6] = {0};
+		static float currSpeed[6] = {0};
+		static Setpoint_t currSetpoint = {0};
+		static Setspeed_t currSetspeed = {0};
+		static bool currMode[6] = {false};
+
+		// BUG 2 FIX: Mod değişimlerini yakalamak için önceki durumu tutuyoruz
+		static bool prevMode[6] = {false};
+
+		if(xSemaphoreTake(xStateMutex, pdMS_TO_TICKS(1)) == pdTRUE){
+			memcpy(currPosition, &ekfState[0], sizeof(float) * 6);
+			memcpy(currSpeed, &ekfState[6], sizeof(float) * 6);
+			xSemaphoreGive(xStateMutex);
+		}
+
+		if(xSemaphoreTake(xCommandMutex, pdMS_TO_TICKS(1)) == pdTRUE){
+			currSetpoint = setPoint;
+			currSetspeed = setSpeed;
+			memcpy(currMode, axisSpeedMode, sizeof(bool) * 6);
+			xSemaphoreGive(xCommandMutex);
+		}
+
+		if(armStatus == AUV_ARMED){
+
+			for(int i = 0; i < 6; i++){
+				if(currMode[i] != prevMode[i]){
+					if(currMode[i] == true){
+						PID_Reset(&pidsSetspeed[i]);
+					} else {
+						PID_Reset(&pidsSetpoint[i]);
+					}
+					prevMode[i] = currMode[i];
+				}
+			}
+
+			PID_CalculateHybrid(currSetpoint, currSetspeed, currMode, currPosition, currSpeed, torque, pidsSetpoint, pidsSetspeed, &ctrl, TASK_CONTROL_PID_DT);
+			Thrust_Allocate(torque, force);
+			Process_All_Thrusters(force, pwmArr, 8);
+		}
+		else{
+			for(int i = 0; i < 8; i++) {
+				pwmArr[i] = 1500;
+				force[i] = 0.0f;
+			}
+			for(int i = 0; i < 6; i++){
+				torque[i] = 0.0f;
+				PID_Reset(&pidsSetpoint[i]);
+				PID_Reset(&pidsSetspeed[i]);
+			}
+			memcpy(prevMode, currMode, sizeof(bool) * 6);
+		}
+
+		taskENTER_CRITICAL();
+		TIM1->CCR1 = pwmArr[0];
+		TIM1->CCR2 = pwmArr[1];
+		TIM1->CCR3 = pwmArr[2];
+		TIM1->CCR4 = pwmArr[3];
+		TIM2->CCR1 = pwmArr[4];
+		TIM2->CCR2 = pwmArr[5];
+		TIM2->CCR3 = pwmArr[6];
+		TIM2->CCR4 = pwmArr[7];
+		taskEXIT_CRITICAL();
 
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}
@@ -1347,8 +1564,34 @@ void Task_NCOM(void *pvParameters){
 	const TickType_t xFrequency = pdMS_TO_TICKS(TASK_NCOM_SLEEP_MS);
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
+	bool isConnected = false;
+	uint8_t byteBuf;
+	uint32_t handshakeTimer = 0;
+
+	while(!isConnected){
+		hbNCOMTask = AUV_TASK_ALIVE;
+
+		handshakeTimer += TASK_NCOM_SLEEP_MS;
+		if(handshakeTimer >= 500){
+			handshakeTimer = 0;
+			NCOM_TX_SendPacket(NCOM_MSG_CONFIG_REQ_STARTUP, NULL, 0);
+		}
+
+		while(NCOM_RX_RingBuffer_Read(&ncomRx, &byteBuf)){
+			if(NCOM_RX_ParseByte(&ncomRx, byteBuf)){
+				if(ncomRx.parser.msgId == NCOM_MSG_CONFIG_SET_STARTUP) isConnected = NCOM_Handlers_ConfigSetStartup(&ncomRx);
+			}
+		}
+
+		vTaskDelayUntil(&xLastWakeTime, xFrequency);
+	}
+
 	for(;;){
-		hbNCOMTask = 1;
+		hbNCOMTask = AUV_TASK_ALIVE;
+
+		while(NCOM_RX_RingBuffer_Read(&ncomRx, &byteBuf)){
+			if(NCOM_RX_ParseByte(&ncomRx, byteBuf)) NCOM_Handlers_Selector(&ncomRx);
+		}
 
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}
@@ -1372,11 +1615,11 @@ void Task_SysMonitor(void *pvParameters){
 
 	for(;;){
 
-		if((hbControlTask == 1 && hbStateEstimateTask == 1) && hbNCOMTask == 1){
+		if((hbControlTask == AUV_TASK_ALIVE && hbStateEstimateTask == AUV_TASK_ALIVE) && hbNCOMTask == AUV_TASK_ALIVE){
 			HAL_IWDG_Refresh(&hiwdg);
-			hbControlTask = 0;
-			hbStateEstimateTask = 0;
-			hbNCOMTask = 0;
+			hbControlTask = AUV_TASK_DEAD;
+			hbStateEstimateTask = AUV_TASK_DEAD;
+			hbNCOMTask = AUV_TASK_DEAD;
 		}
 
 		oneSecondTimer += 50;
@@ -1399,6 +1642,14 @@ void vApplicationIdleHook(void){
 	ulIdleCycleCount++;
 }
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if(GPIO_Pin == icm.GPIO_PIN_x){	// IMU
+		if(xStateEstimateTaskHandle == NULL) return;
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		vTaskNotifyGiveFromISR(xStateEstimateTaskHandle, &xHigherPriorityTaskWoken);
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+}
 
 /* USER CODE END 4 */
 

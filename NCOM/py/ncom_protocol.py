@@ -22,7 +22,7 @@
 
 '''
 NCOM Python Module
-Auto-generated on: 25.02.2026 14:09:23
+Auto-generated on: 25.02.2026 17:53:02
 Version: 0.1
 '''
 
@@ -73,11 +73,7 @@ COMMAND_CMD_ID = {
     'START_MISSION': 3,
     'ABORT_MISSION': 4,
     'CLEAR_FLAGS': 5,
-    'SET_MODE_AUTO': 10,
-    'SET_MODE_MANUAL': 11,
-    'SET_MODE_HOLD_DEPTH': 12,
-    'SET_MODE_HOLD_ATTITUDE': 13,
-    'SET_MODE_STABILIZE': 14,
+    'SET_MODE': 10,
     'SET_TARGET_DEPTH_MM': 20,
     'SET_TARGET_ROLL_DEG': 21,
     'SET_TARGET_PITCH_DEG': 22,
@@ -85,15 +81,12 @@ COMMAND_CMD_ID = {
     'SET_TARGET_SURGE_MM_S': 24,
     'SET_TARGET_SWAY_MM_S': 25,
     'SET_TARGET_HEAVE_MM_S': 26,
-    'SET_LIGHTS_MAIN': 30,
-    'SET_LIGHTS_AUX': 31,
+    'SET_LIGHTS': 30,
     'REBOOT_MCU': 40,
     'CALIBRATE_DEPTH_0': 100,
     'CALIBRATE_AXES_0': 101,
     'SET_HEARTBEAT_RATE': 200,
-    'EMERGENCY_SURFACE': 253,
-    'EMERGENCY_STOP': 254,
-    'EMERGENCY_SOFTKILL': 255,
+    'EMERGENCY': 255,
 }
 MODE_STATUS_FLAGS = {
     'DISARMED': (1 << 0),
@@ -298,6 +291,8 @@ class Messages:
         45: 'CONFIG_SET_ACTUATOR',
         46: 'CONFIG_SET_PID',
         47: 'CONFIG_SET_EKF',
+        48: 'CONFIG_REQ_STARTUP',
+        49: 'CONFIG_SET_STARTUP',
         200: 'INIT_ERROR',
     }
 
@@ -320,13 +315,15 @@ class Messages:
         'CONFIG_SET_ACTUATOR': 45,
         'CONFIG_SET_PID': 46,
         'CONFIG_SET_EKF': 47,
+        'CONFIG_REQ_STARTUP': 48,
+        'CONFIG_SET_STARTUP': 49,
         'INIT_ERROR': 200,
     }
 
     FORMATS = {
         0: '<BBBI', # HEARTBEAT
         1: '<BHf', # SYS_STATUS
-        2: '<Bi', # COMMAND
+        2: '<Biiiiii', # COMMAND
         3: '<fffB', # ATTITUDE
         4: '<fff', # ROTATION_RATES
         5: '<fff', # LINEAR_VELOCITY
@@ -342,6 +339,8 @@ class Messages:
         45: '<HBiB', # CONFIG_SET_ACTUATOR
         46: '<HBiB', # CONFIG_SET_PID
         47: '<HB9i', # CONFIG_SET_EKF
+        48: '<', # CONFIG_REQ_STARTUP
+        49: '<', # CONFIG_SET_STARTUP
         200: '<B', # INIT_ERROR
     }
 

@@ -25,6 +25,21 @@
 #ifndef NCOM_HANDLERS_H
 #define NCOM_HANDLERS_H
 
+#include <stdbool.h>
+#include <string.h>
+#include "ncom_rx.h"
 
+
+bool NCOM_Handlers_Selector(NCOM_RX_t *rx);
+
+bool NCOM_Handlers_Command(NCOM_RX_t *rx);
+bool NCOM_Handlers_ConfigReq(NCOM_RX_t *rx);
+bool NCOM_Handlers_ConfigSetMcu(NCOM_RX_t *rx);
+bool NCOM_Handlers_ConfigSetFreertos(NCOM_RX_t *rx);
+bool NCOM_Handlers_ConfigSetSensor(NCOM_RX_t *rx);
+bool NCOM_Handlers_ConfigSetActuator(NCOM_RX_t *rx);
+bool NCOM_Handlers_ConfigSetPID(NCOM_RX_t *rx);
+bool NCOM_Handlers_ConfigSetEKF(NCOM_RX_t *rx);
+bool NCOM_Handlers_ConfigSetStartup(NCOM_RX_t *rx);
 
 #endif // NCOM_HANDLERS_H

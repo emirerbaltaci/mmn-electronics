@@ -24,7 +24,7 @@
 
 /*
  * NCOM C Source File
- * Auto-generated on: 25.02.2026 14:09:23
+ * Auto-generated on: 25.02.2026 17:53:02
  * Protocol Version: 0.1
  */
 
@@ -192,6 +192,24 @@ size_t ncom_pack_config_set_ekf(uint8_t* buf, const NCOM_Payload_CONFIG_SET_EKF_
 size_t ncom_unpack_config_set_ekf(const uint8_t* buf, NCOM_Payload_CONFIG_SET_EKF_t* msg) {
     memcpy(msg, buf, sizeof(NCOM_Payload_CONFIG_SET_EKF_t));
     return sizeof(NCOM_Payload_CONFIG_SET_EKF_t);
+}
+size_t ncom_pack_config_req_startup(uint8_t* buf, const NCOM_Payload_CONFIG_REQ_STARTUP_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_CONFIG_REQ_STARTUP_t));
+    return sizeof(NCOM_Payload_CONFIG_REQ_STARTUP_t);
+}
+
+size_t ncom_unpack_config_req_startup(const uint8_t* buf, NCOM_Payload_CONFIG_REQ_STARTUP_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_CONFIG_REQ_STARTUP_t));
+    return sizeof(NCOM_Payload_CONFIG_REQ_STARTUP_t);
+}
+size_t ncom_pack_config_set_startup(uint8_t* buf, const NCOM_Payload_CONFIG_SET_STARTUP_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_CONFIG_SET_STARTUP_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_STARTUP_t);
+}
+
+size_t ncom_unpack_config_set_startup(const uint8_t* buf, NCOM_Payload_CONFIG_SET_STARTUP_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_CONFIG_SET_STARTUP_t));
+    return sizeof(NCOM_Payload_CONFIG_SET_STARTUP_t);
 }
 size_t ncom_pack_init_error(uint8_t* buf, const NCOM_Payload_INIT_ERROR_t* msg) {
     memcpy(buf, msg, sizeof(NCOM_Payload_INIT_ERROR_t));

@@ -12,7 +12,7 @@ const float T_pinv[8][6] = {
     { 0.0f,   0.0f,   0.25f, -1.15f, -1.15f,  0.0f }
 };
 
-void pid_init(PID_Controller_t *pid, float p, float i, float d, float max, float min, float wrap_bound) {
+void PID_Init(PID_Controller_t *pid, float p, float i, float d, float max, float min, float wrap_bound) {
     pid->kp = p;
     pid->ki = i;
     pid->kd = d;
@@ -33,14 +33,14 @@ void pid_init(PID_Controller_t *pid, float p, float i, float d, float max, float
     }
 }
 
-void pid_reset(PID_Controller_t *pid) {
+void PID_Reset(PID_Controller_t *pid) {
     pid->integral = 0.0f;
     pid->prev_error = 0.0f;
     pid->prev_measurement = 0.0f;
     pid->first_run = true;
 }
 
-float pid_update(PID_Controller_t *pid, float setpoint, float measurement, float dt) {
+float PID_Update(PID_Controller_t *pid, float setpoint, float measurement, float dt) {
     if (dt <= 1e-6f) return 0.0f;
 
     if (pid->first_run) {
@@ -90,7 +90,7 @@ static void compute_err_body(float err_x, float err_y, float err_z, float roll, 
     err_body[2] = (cr * sp * cy + sr * sy) * err_x + (cr * sp * sy - sr * cy) * err_y + (cr * cp) * err_z;
 }
 
-void calculate_pid(Setpoint_t sp, float *state, float *tau, PID_Controller_t *pids, float dt) {
+void PID_Calculate(Setpoint_t sp, float *state, float *tau, PID_Controller_t *pids, float dt) {
     float err_x_earth = sp.x - state[0];
     float err_y_earth = sp.y - state[1];
     float err_z_earth = sp.z - state[2];
@@ -100,24 +100,24 @@ void calculate_pid(Setpoint_t sp, float *state, float *tau, PID_Controller_t *pi
     
     // Pass internally rotated body errors into the PID updates
     // By forcing measurement to 0, we track the pre-transformed error directly.
-    tau[0] = pid_update(&pids[0], err_body[0], 0.0f, dt);
-    tau[1] = pid_update(&pids[1], err_body[1], 0.0f, dt);
-    tau[2] = pid_update(&pids[2], err_body[2], 0.0f, dt);
-    tau[3] = pid_update(&pids[3], sp.roll, state[3], dt);
-    tau[4] = pid_update(&pids[4], sp.pitch, state[4], dt);
-    tau[5] = pid_update(&pids[5], sp.yaw, state[5], dt);
+    tau[0] = PID_Update(&pids[0], err_body[0], 0.0f, dt);
+    tau[1] = PID_Update(&pids[1], err_body[1], 0.0f, dt);
+    tau[2] = PID_Update(&pids[2], err_body[2], 0.0f, dt);
+    tau[3] = PID_Update(&pids[3], sp.roll, state[3], dt);
+    tau[4] = PID_Update(&pids[4], sp.pitch, state[4], dt);
+    tau[5] = PID_Update(&pids[5], sp.yaw, state[5], dt);
 }
 
-void calculate_speed_pid(Setspeed_t ss, float *state_vel, float *tau, PID_Controller_t *pids_vel, float dt) {
-    tau[0] = pid_update(&pids_vel[0], ss.u, state_vel[0], dt);
-    tau[1] = pid_update(&pids_vel[1], ss.v, state_vel[1], dt);
-    tau[2] = pid_update(&pids_vel[2], ss.w, state_vel[2], dt);
-    tau[3] = pid_update(&pids_vel[3], ss.p, state_vel[3], dt);
-    tau[4] = pid_update(&pids_vel[4], ss.q, state_vel[4], dt);
-    tau[5] = pid_update(&pids_vel[5], ss.r, state_vel[5], dt);
+void PID_CalculateSpeed(Setspeed_t ss, float *state_vel, float *tau, PID_Controller_t *pids_vel, float dt) {
+    tau[0] = PID_Update(&pids_vel[0], ss.u, state_vel[0], dt);
+    tau[1] = PID_Update(&pids_vel[1], ss.v, state_vel[1], dt);
+    tau[2] = PID_Update(&pids_vel[2], ss.w, state_vel[2], dt);
+    tau[3] = PID_Update(&pids_vel[3], ss.p, state_vel[3], dt);
+    tau[4] = PID_Update(&pids_vel[4], ss.q, state_vel[4], dt);
+    tau[5] = PID_Update(&pids_vel[5], ss.r, state_vel[5], dt);
 }
 
-void calculate_hybrid_pid(Setpoint_t sp, Setspeed_t ss, const bool *use_speed, float *state_pos, float *state_vel, float *tau, PID_Controller_t *pids_pos, PID_Controller_t *pids_vel, Controller_State *ctrl_state, float dt) {
+void PID_CalculateHybrid(Setpoint_t sp, Setspeed_t ss, const bool *use_speed, float *state_pos, float *state_vel, float *tau, PID_Controller_t *pids_pos, PID_Controller_t *pids_vel, Controller_State *ctrl_state, float dt) {
     float err_x_earth = sp.x - state_pos[0];
     float err_y_earth = sp.y - state_pos[1];
     float err_z_earth = sp.z - state_pos[2];
@@ -129,23 +129,23 @@ void calculate_hybrid_pid(Setpoint_t sp, Setspeed_t ss, const bool *use_speed, f
         // Did the mode just switch for this axis?
         if (use_speed[i] != ctrl_state->prev_use_speed[i]) {
             if (use_speed[i]) {
-                pid_reset(&pids_vel[i]); // Switching to speed, reset speed integral
+                PID_Reset(&pids_vel[i]); // Switching to speed, reset speed integral
             } else {
-                pid_reset(&pids_pos[i]); // Switching to position, reset position integral
+                PID_Reset(&pids_pos[i]); // Switching to position, reset position integral
             }
             ctrl_state->prev_use_speed[i] = use_speed[i];
         }
     }
 
-    tau[0] = use_speed[0] ? pid_update(&pids_vel[0], ss.u, state_vel[0], dt) : pid_update(&pids_pos[0], err_body[0], 0.0f, dt);
-    tau[1] = use_speed[1] ? pid_update(&pids_vel[1], ss.v, state_vel[1], dt) : pid_update(&pids_pos[1], err_body[1], 0.0f, dt);
-    tau[2] = use_speed[2] ? pid_update(&pids_vel[2], ss.w, state_vel[2], dt) : pid_update(&pids_pos[2], err_body[2], 0.0f, dt);
-    tau[3] = use_speed[3] ? pid_update(&pids_vel[3], ss.p, state_vel[3], dt) : pid_update(&pids_pos[3], sp.roll, state_pos[3], dt);
-    tau[4] = use_speed[4] ? pid_update(&pids_vel[4], ss.q, state_vel[4], dt) : pid_update(&pids_pos[4], sp.pitch, state_pos[4], dt);
-    tau[5] = use_speed[5] ? pid_update(&pids_vel[5], ss.r, state_vel[5], dt) : pid_update(&pids_pos[5], sp.yaw, state_pos[5], dt);
+    tau[0] = use_speed[0] ? PID_Update(&pids_vel[0], ss.u, state_vel[0], dt) : PID_Update(&pids_pos[0], err_body[0], 0.0f, dt);
+    tau[1] = use_speed[1] ? PID_Update(&pids_vel[1], ss.v, state_vel[1], dt) : PID_Update(&pids_pos[1], err_body[1], 0.0f, dt);
+    tau[2] = use_speed[2] ? PID_Update(&pids_vel[2], ss.w, state_vel[2], dt) : PID_Update(&pids_pos[2], err_body[2], 0.0f, dt);
+    tau[3] = use_speed[3] ? PID_Update(&pids_vel[3], ss.p, state_vel[3], dt) : PID_Update(&pids_pos[3], sp.roll, state_pos[3], dt);
+    tau[4] = use_speed[4] ? PID_Update(&pids_vel[4], ss.q, state_vel[4], dt) : PID_Update(&pids_pos[4], sp.pitch, state_pos[4], dt);
+    tau[5] = use_speed[5] ? PID_Update(&pids_vel[5], ss.r, state_vel[5], dt) : PID_Update(&pids_pos[5], sp.yaw, state_pos[5], dt);
 }
 
-void calculate_visual_servo_pid(VisualServo_t vs, float *tau, PID_Controller_t *pid_surge, PID_Controller_t *pid_heave, PID_Controller_t *pid_yaw, float dt) {
+void PID_CalculateVisualServo(VisualServo_t vs, float *tau, PID_Controller_t *pid_surge, PID_Controller_t *pid_heave, PID_Controller_t *pid_yaw, float dt) {
     // Zero out any unhandled forces (Sway, Roll, Pitch are generally not used to track an object unless it's a very specific application)
     tau[1] = 0.0f; // sway (y)
     tau[3] = 0.0f; // roll
@@ -155,30 +155,30 @@ void calculate_visual_servo_pid(VisualServo_t vs, float *tau, PID_Controller_t *
     // The AUV should only yaw in place to find the target again.
     if (vs.scale <= 0.001f) {
         // Flush any stale integrals built up before the target was lost
-        pid_reset(pid_surge);
-        pid_reset(pid_heave);
+        PID_Reset(pid_surge);
+        PID_Reset(pid_heave);
         
         tau[0] = 0.0f;
         tau[2] = 0.0f;
-        tau[5] = pid_update(pid_yaw, 0.0f, vs.x_offset, dt);
+        tau[5] = PID_Update(pid_yaw, 0.0f, vs.x_offset, dt);
         return;
     }
 
     // 1. Yaw Control: Convert X pixel offset on screen to Yaw rotation
     // Positive pixel error (target to the right) -> Positive Yaw torque to spin right
-    tau[5] = pid_update(pid_yaw, 0.0f, vs.x_offset, dt);
+    tau[5] = PID_Update(pid_yaw, 0.0f, vs.x_offset, dt);
     
     // 2. Heave Control: Convert Y pixel offset on screen to Heave (Z)
     // Positive pixel error (target is low on screen) -> Positive Heave (thrust down)
-    tau[2] = pid_update(pid_heave, 0.0f, vs.y_offset, dt);
+    tau[2] = PID_Update(pid_heave, 0.0f, vs.y_offset, dt);
     
     // 3. Surge Control: Convert Target Scale difference to Surge (X)
     // target_scale is how big we want it. scale is how big it is right now.
     // If target_scale > scale, we need to get closer -> Positive Surge
-    tau[0] = pid_update(pid_surge, vs.target_scale, vs.scale, dt);
+    tau[0] = PID_Update(pid_surge, vs.target_scale, vs.scale, dt);
 }
 
-void allocate_thrust(float *tau, float *forces) {
+void Thrust_Allocate(float *tau, float *forces) {
     for (int i = 0; i < 8; i++) {
         forces[i] = 0.0f;
         for (int j = 0; j < 6; j++) {
@@ -187,7 +187,7 @@ void allocate_thrust(float *tau, float *forces) {
     }
 }
 
-uint16_t thrust_to_pwm(float thrust_newtons) {
+uint16_t Thrust_to_PWM(float thrust_newtons) {
     float max_thrust = 40.0f; 
     float min_thrust = -40.0f;
     float deadband = 0.15f;
@@ -204,8 +204,8 @@ uint16_t thrust_to_pwm(float thrust_newtons) {
     }
 }
 
-void process_all_thrusters(float *forces, uint16_t *pwms, int num) {
+void Process_All_Thrusters(float *forces, uint16_t *pwms, int num) {
     for (int i = 0; i < num; i++) {
-        pwms[i] = thrust_to_pwm(forces[i]);
+        pwms[i] = Thrust_to_PWM(forces[i]);
     }
 }

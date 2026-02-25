@@ -358,6 +358,20 @@
                     "desc": "Configuration data array (9 values for flattened 3x3 matrix, scaled into int32)"
                 }
             ]
-        }
+        },
+		{
+			"id": 48,
+			"name": "CONFIG_REQ_STARTUP",
+			"direction": "MCU_TO_HOST",
+			"desc": "Request saved config file after system reset",
+			"payload": []
+		},
+		{
+			"id": 49,
+			"name": "CONFIG_SET_STARTUP",
+			"direction": "HOST_TO_MCU",
+			"desc": "Send config file data to MCU",
+			"payload": []
+		}
     ]
 }

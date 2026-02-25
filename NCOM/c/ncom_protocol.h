@@ -24,7 +24,7 @@
 
 /*
  * NCOM C Header File
- * Auto-generated on: 25.02.2026 14:09:23
+ * Auto-generated on: 25.02.2026 17:53:02
  * Protocol Version: 0.1
  */
 
@@ -62,6 +62,8 @@ typedef enum {
     NCOM_MSG_CONFIG_SET_ACTUATOR = 45,
     NCOM_MSG_CONFIG_SET_PID = 46,
     NCOM_MSG_CONFIG_SET_EKF = 47,
+    NCOM_MSG_CONFIG_REQ_STARTUP = 48,
+    NCOM_MSG_CONFIG_SET_STARTUP = 49,
     NCOM_MSG_INIT_ERROR = 200,
 } NCOM_MsgID_t;
 
@@ -96,11 +98,7 @@ typedef enum {
 #define NCOM_COMMAND_CMD_ID_START_MISSION 3
 #define NCOM_COMMAND_CMD_ID_ABORT_MISSION 4
 #define NCOM_COMMAND_CMD_ID_CLEAR_FLAGS 5
-#define NCOM_COMMAND_CMD_ID_SET_MODE_AUTO 10
-#define NCOM_COMMAND_CMD_ID_SET_MODE_MANUAL 11
-#define NCOM_COMMAND_CMD_ID_SET_MODE_HOLD_DEPTH 12
-#define NCOM_COMMAND_CMD_ID_SET_MODE_HOLD_ATTITUDE 13
-#define NCOM_COMMAND_CMD_ID_SET_MODE_STABILIZE 14
+#define NCOM_COMMAND_CMD_ID_SET_MODE 10
 #define NCOM_COMMAND_CMD_ID_SET_TARGET_DEPTH_MM 20
 #define NCOM_COMMAND_CMD_ID_SET_TARGET_ROLL_DEG 21
 #define NCOM_COMMAND_CMD_ID_SET_TARGET_PITCH_DEG 22
@@ -108,15 +106,12 @@ typedef enum {
 #define NCOM_COMMAND_CMD_ID_SET_TARGET_SURGE_MM_S 24
 #define NCOM_COMMAND_CMD_ID_SET_TARGET_SWAY_MM_S 25
 #define NCOM_COMMAND_CMD_ID_SET_TARGET_HEAVE_MM_S 26
-#define NCOM_COMMAND_CMD_ID_SET_LIGHTS_MAIN 30
-#define NCOM_COMMAND_CMD_ID_SET_LIGHTS_AUX 31
+#define NCOM_COMMAND_CMD_ID_SET_LIGHTS 30
 #define NCOM_COMMAND_CMD_ID_REBOOT_MCU 40
 #define NCOM_COMMAND_CMD_ID_CALIBRATE_DEPTH_0 100
 #define NCOM_COMMAND_CMD_ID_CALIBRATE_AXES_0 101
 #define NCOM_COMMAND_CMD_ID_SET_HEARTBEAT_RATE 200
-#define NCOM_COMMAND_CMD_ID_EMERGENCY_SURFACE 253
-#define NCOM_COMMAND_CMD_ID_EMERGENCY_STOP 254
-#define NCOM_COMMAND_CMD_ID_EMERGENCY_SOFTKILL 255
+#define NCOM_COMMAND_CMD_ID_EMERGENCY 255
 
 #define NCOM_FLAG_MODE_STATUS_DISARMED (1 << 0)
 #define NCOM_FLAG_MODE_STATUS_PREARMED (1 << 1)
@@ -301,9 +296,14 @@ typedef struct __attribute__((packed)) {
 // ID 2: Core commands to the MCU from RPi
 typedef struct __attribute__((packed)) {
     uint8_t cmd_id;
-    int32_t cmd_param;
+    int32_t cmd_param0;
+    int32_t cmd_param1;
+    int32_t cmd_param2;
+    int32_t cmd_param3;
+    int32_t cmd_param4;
+    int32_t cmd_param5;
 } NCOM_Payload_COMMAND_t;
-#define NCOM_LEN_COMMAND 5
+#define NCOM_LEN_COMMAND 25
 
 // ID 3: Vehicle orientation in 3-D space
 typedef struct __attribute__((packed)) {
@@ -429,6 +429,16 @@ typedef struct __attribute__((packed)) {
 } NCOM_Payload_CONFIG_SET_EKF_t;
 #define NCOM_LEN_CONFIG_SET_EKF 39
 
+// ID 48: Request saved config file after system reset
+typedef struct __attribute__((packed)) {
+} NCOM_Payload_CONFIG_REQ_STARTUP_t;
+#define NCOM_LEN_CONFIG_REQ_STARTUP 0
+
+// ID 49: Send config file data to MCU
+typedef struct __attribute__((packed)) {
+} NCOM_Payload_CONFIG_SET_STARTUP_t;
+#define NCOM_LEN_CONFIG_SET_STARTUP 0
+
 // ID 200: Sent when an error occurs during initialization
 typedef struct __attribute__((packed)) {
     uint8_t error_code;
@@ -473,6 +483,10 @@ size_t ncom_pack_config_set_pid(uint8_t *buf, const NCOM_Payload_CONFIG_SET_PID_
 size_t ncom_unpack_config_set_pid(const uint8_t *buf, NCOM_Payload_CONFIG_SET_PID_t *msg);
 size_t ncom_pack_config_set_ekf(uint8_t *buf, const NCOM_Payload_CONFIG_SET_EKF_t *msg);
 size_t ncom_unpack_config_set_ekf(const uint8_t *buf, NCOM_Payload_CONFIG_SET_EKF_t *msg);
+size_t ncom_pack_config_req_startup(uint8_t *buf, const NCOM_Payload_CONFIG_REQ_STARTUP_t *msg);
+size_t ncom_unpack_config_req_startup(const uint8_t *buf, NCOM_Payload_CONFIG_REQ_STARTUP_t *msg);
+size_t ncom_pack_config_set_startup(uint8_t *buf, const NCOM_Payload_CONFIG_SET_STARTUP_t *msg);
+size_t ncom_unpack_config_set_startup(const uint8_t *buf, NCOM_Payload_CONFIG_SET_STARTUP_t *msg);
 size_t ncom_pack_init_error(uint8_t *buf, const NCOM_Payload_INIT_ERROR_t *msg);
 size_t ncom_unpack_init_error(const uint8_t *buf, NCOM_Payload_INIT_ERROR_t *msg);
 
