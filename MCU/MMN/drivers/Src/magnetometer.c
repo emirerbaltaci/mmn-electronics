@@ -142,7 +142,7 @@ static inline uint16_t MAG_CombineLH_Unsigned(uint8_t higherBits, uint8_t lowerB
 	else return (uint16_t)((((uint16_t)lowerBits) << 8) | higherBits);
 }
 
-MAG_Status_t MAG_SPI_GetData(MAG_Handler_t* mag, MAG_Data_t* data){
+MAG_Status_t MAG_SPI_GetData(MAG_Handler_t* mag){
 	uint8_t buf[8];
 	int16_t buf2[4];
 
@@ -150,10 +150,10 @@ MAG_Status_t MAG_SPI_GetData(MAG_Handler_t* mag, MAG_Data_t* data){
 
 	for(int i = 0; i < 4; i++) buf2[i] = MAG_CombineLH_Signed(buf[2*i + 1], buf[2*i]);
 
-	data->magX = (float)buf2[0] * 1.5f;
-	data->magY = (float)buf2[1] * 1.5f;
-	data->magZ = (float)buf2[2] * 1.5f;
-	data->tempC = 25.0f + (float)buf2[3] * 0.125f;
+	mag->data.magX = (float)buf2[0] * 1.5f;
+	mag->data.magY = (float)buf2[1] * 1.5f;
+	mag->data.magZ = (float)buf2[2] * 1.5f;
+	mag->data.tempC = 25.0f + (float)buf2[3] * 0.125f;
 
 	return MAG_OK;
 }

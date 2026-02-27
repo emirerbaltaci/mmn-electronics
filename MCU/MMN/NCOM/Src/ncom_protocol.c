@@ -24,7 +24,7 @@
 
 /*
  * NCOM C Source File
- * Auto-generated on: 25.02.2026 17:53:02
+ * Auto-generated on: 27.02.2026 15:02:40
  * Protocol Version: 0.1
  */
 
@@ -219,4 +219,13 @@ size_t ncom_pack_init_error(uint8_t* buf, const NCOM_Payload_INIT_ERROR_t* msg) 
 size_t ncom_unpack_init_error(const uint8_t* buf, NCOM_Payload_INIT_ERROR_t* msg) {
     memcpy(msg, buf, sizeof(NCOM_Payload_INIT_ERROR_t));
     return sizeof(NCOM_Payload_INIT_ERROR_t);
+}
+size_t ncom_pack_dying_gasp(uint8_t* buf, const NCOM_Payload_DYING_GASP_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_DYING_GASP_t));
+    return sizeof(NCOM_Payload_DYING_GASP_t);
+}
+
+size_t ncom_unpack_dying_gasp(const uint8_t* buf, NCOM_Payload_DYING_GASP_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_DYING_GASP_t));
+    return sizeof(NCOM_Payload_DYING_GASP_t);
 }

@@ -1,5 +1,5 @@
-#ifndef INC_AUVDEFAULTS_H_
-#define INC_AUVDEFAULTS_H_
+#ifndef INC_PID_CONFIG_H_
+#define INC_PID_CONFIG_H_
 
 #define AUV_DEFAULT_PID_SP_P 1.5f
 #define AUV_DEFAULT_PID_SP_I 0.1f
@@ -15,6 +15,4 @@
 #define AUV_DEFAULT_PID_SS_MINOUT -40.0f
 #define AUV_DEFAULT_PID_SS_WRAPBOUND 0.0f
 
-
-
-#endif /* INC_AUVDEFAULTS_H_ */
+#endif /* INC_PID_CONFIG_H_ */

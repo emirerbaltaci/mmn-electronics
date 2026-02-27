@@ -46,6 +46,9 @@
  * ############################################# */
 void NCOM_TX_Init(void);
 uint8_t NCOM_TX_SendPacket(uint8_t msgId, const void* payload, uint8_t len);
+#ifdef INC_FREERTOS_H
+uint8_t NCOM_TX_DyingGasp(const void* payload, uint8_t len);
+#endif
 
 
 

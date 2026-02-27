@@ -22,6 +22,25 @@
                     }
                 }
             ]
-        }
+        },
+		{
+			"id": 255,
+			"name": "DYING_GASP",
+			"direction": "MCU_TO_HOST",
+			"desc": "Sent when a critical task does not respond. The MCU then undergoes IWDG reset",
+			"payload": [
+				{
+					"name": "dead_tasks",
+					"type": "uint8",
+					"desc": "Dead tasks list, sent as a bitmask",
+					"flags_type": "bitmask",
+					"flags": {
+						"EKF_TASK_DEAD": 0,
+						"CONTROL_TASK_DEAD": 1,
+						"NCOM_TASK_DEAD": 2
+					}
+				}
+				]
+		}
     ]
 }

@@ -80,6 +80,7 @@ bool NCOM_RX_ParseByte(NCOM_RX_t* rx, uint8_t byte){
 			
 		case NCOM_RX_STATE_SYNC_2:
 			if (byte == NCOM_SYNC_BYTE_2) rx->parser.state = NCOM_RX_STATE_SEQ;
+			else if (byte == NCOM_SYNC_BYTE_1) break;
 			else rx->parser.state = NCOM_RX_STATE_SYNC_1;
 			break;
 			

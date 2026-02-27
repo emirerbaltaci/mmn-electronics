@@ -460,7 +460,7 @@ IMU_Status_t IMU_SPI_ReadTemp(IMU_Handler_t* imu, IMU_Data_t* data){
 	return IMU_OK;
 }
 
-IMU_Status_t IMU_SPI_GetData(IMU_Handler_t* imu, IMU_Data_t* data){
+IMU_Status_t IMU_SPI_GetData(IMU_Handler_t* imu){
 	uint8_t buf[14];
 	int16_t buf2[7];
 
@@ -468,13 +468,13 @@ IMU_Status_t IMU_SPI_GetData(IMU_Handler_t* imu, IMU_Data_t* data){
 
 	for(int i = 0; i < 7; i++) buf2[i] = IMU_CombineLH_Signed(imu, buf[2*i], buf[2*i + 1]);
 
-	data->tempC = (((float)buf2[0]) / 132.48f) + 25.0f;
-	data->accelX = (float)buf2[1] * imu->accelMult;
-	data->accelY = (float)buf2[2] * imu->accelMult;
-	data->accelZ = (float)buf2[3] * imu->accelMult;
-	data->gyroX = (float)buf2[4] * imu->gyroMult;
-	data->gyroY = (float)buf2[5] * imu->gyroMult;
-	data->gyroZ = (float)buf2[6] * imu->gyroMult;
+	imu->data.tempC = (((float)buf2[0]) / 132.48f) + 25.0f;
+	imu->data.accelX = (float)buf2[1] * imu->accelMult;
+	imu->data.accelY = (float)buf2[2] * imu->accelMult;
+	imu->data.accelZ = (float)buf2[3] * imu->accelMult;
+	imu->data.gyroX = (float)buf2[4] * imu->gyroMult;
+	imu->data.gyroY = (float)buf2[5] * imu->gyroMult;
+	imu->data.gyroZ = (float)buf2[6] * imu->gyroMult;
 
 	return IMU_OK;
 }

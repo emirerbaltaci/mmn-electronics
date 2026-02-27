@@ -24,7 +24,7 @@
 
 /*
  * NCOM C Header File
- * Auto-generated on: 25.02.2026 17:53:02
+ * Auto-generated on: 27.02.2026 15:02:40
  * Protocol Version: 0.1
  */
 
@@ -65,6 +65,7 @@ typedef enum {
     NCOM_MSG_CONFIG_REQ_STARTUP = 48,
     NCOM_MSG_CONFIG_SET_STARTUP = 49,
     NCOM_MSG_INIT_ERROR = 200,
+    NCOM_MSG_DYING_GASP = 255,
 } NCOM_MsgID_t;
 
 #define NCOM_HEARTBEAT_VEHICLE_STATE_INIT 0
@@ -276,6 +277,10 @@ typedef enum {
 #define NCOM_INIT_ERROR_ERROR_CODE_MAG_INIT_ERR 1
 #define NCOM_INIT_ERROR_ERROR_CODE_BAR30_INIT_ERR 2
 
+#define NCOM_FLAG_DYING_GASP_EKF_TASK_DEAD (1 << 0)
+#define NCOM_FLAG_DYING_GASP_CONTROL_TASK_DEAD (1 << 1)
+#define NCOM_FLAG_DYING_GASP_NCOM_TASK_DEAD (1 << 2)
+
 // ID 0: Sent at 1 Hz
 typedef struct __attribute__((packed)) {
     uint8_t device_id;
@@ -445,6 +450,12 @@ typedef struct __attribute__((packed)) {
 } NCOM_Payload_INIT_ERROR_t;
 #define NCOM_LEN_INIT_ERROR 1
 
+// ID 255: Sent when a critical task does not respond. The MCU then undergoes IWDG reset
+typedef struct __attribute__((packed)) {
+    uint8_t dead_tasks;
+} NCOM_Payload_DYING_GASP_t;
+#define NCOM_LEN_DYING_GASP 1
+
 // Pack/Unpack Functions
 // Return value is the size of the payload
 size_t ncom_pack_heartbeat(uint8_t *buf, const NCOM_Payload_HEARTBEAT_t *msg);
@@ -489,5 +500,7 @@ size_t ncom_pack_config_set_startup(uint8_t *buf, const NCOM_Payload_CONFIG_SET_
 size_t ncom_unpack_config_set_startup(const uint8_t *buf, NCOM_Payload_CONFIG_SET_STARTUP_t *msg);
 size_t ncom_pack_init_error(uint8_t *buf, const NCOM_Payload_INIT_ERROR_t *msg);
 size_t ncom_unpack_init_error(const uint8_t *buf, NCOM_Payload_INIT_ERROR_t *msg);
+size_t ncom_pack_dying_gasp(uint8_t *buf, const NCOM_Payload_DYING_GASP_t *msg);
+size_t ncom_unpack_dying_gasp(const uint8_t *buf, NCOM_Payload_DYING_GASP_t *msg);
 
 #endif /* INC_NCOM_PROTOCOL_H_ */

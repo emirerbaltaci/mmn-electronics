@@ -1,0 +1,33 @@
+#ifndef INC_EKF_CONFIG_H_
+#define INC_EKF_CONFIG_H_
+
+#define EKF_IMU_LEVER_ARM_X 0.1f
+#define EKF_IMU_LEVER_ARM_Y 0.0f
+#define EKF_IMU_LEVER_ARM_Z 0.05f
+
+#define EKF_MAG_PRESCALER 10
+
+#define EKF_GRAVITY_NORM_MIN 9.0f
+#define EKF_GRAVITY_NORM_MAX 10.6f
+
+#define EKF_R_ACCEL 0.05f
+#define EKF_R_MAG 0.1f
+#define EKF_R_BARO 0.0025f
+#define EKF_R_ZUPT 0.0001f
+
+#define EKF_P_INIT_POS 0.1f
+#define EKF_P_INIT_VEL 0.1f
+#define EKF_P_INIT_ATT 0.01f
+#define EKF_P_INIT_BG 0.001f
+#define EKF_P_INIT_BA 0.001f
+
+#define EKF_Q_VEL_NOISE 4.712e-7f
+#define EKF_Q_ATT_NOISE 2.388e-9f
+#define EKF_Q_BG_NOISE 1.0e-7f
+#define EKF_Q_BA_NOISE 1.0e-7f
+
+#define EKF_EARTH_MAG_X 0.549f
+#define EKF_EARTH_MAG_Y 0.054f
+#define EKF_EARTH_MAG_Z 0.834f
+
+#endif /* INC_EKF_CONFIG_H_ */

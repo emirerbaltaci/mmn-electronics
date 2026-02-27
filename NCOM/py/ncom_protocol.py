@@ -22,7 +22,7 @@
 
 '''
 NCOM Python Module
-Auto-generated on: 25.02.2026 17:53:02
+Auto-generated on: 27.02.2026 15:02:40
 Version: 0.1
 '''
 
@@ -270,6 +270,11 @@ INIT_ERROR_ERROR_CODE = {
     'MAG_INIT_ERR': 1,
     'BAR30_INIT_ERR': 2,
 }
+DYING_GASP_FLAGS = {
+    'EKF_TASK_DEAD': (1 << 0),
+    'CONTROL_TASK_DEAD': (1 << 1),
+    'NCOM_TASK_DEAD': (1 << 2),
+}
 
 class Messages:
     ID_TO_NAME = {
@@ -294,6 +299,7 @@ class Messages:
         48: 'CONFIG_REQ_STARTUP',
         49: 'CONFIG_SET_STARTUP',
         200: 'INIT_ERROR',
+        255: 'DYING_GASP',
     }
 
     NAME_TO_ID = {
@@ -318,6 +324,7 @@ class Messages:
         'CONFIG_REQ_STARTUP': 48,
         'CONFIG_SET_STARTUP': 49,
         'INIT_ERROR': 200,
+        'DYING_GASP': 255,
     }
 
     FORMATS = {
@@ -342,6 +349,7 @@ class Messages:
         48: '<', # CONFIG_REQ_STARTUP
         49: '<', # CONFIG_SET_STARTUP
         200: '<B', # INIT_ERROR
+        255: '<B', # DYING_GASP
     }
 
     @staticmethod
