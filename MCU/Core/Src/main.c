@@ -25,6 +25,8 @@
 
 #include <math.h>
 
+#include "usbd_cdc_if.h"
+
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "semphr.h"
@@ -133,10 +135,13 @@ BAR30_Handler_t bar __attribute__((section(".sram2_data")));
 
 uint8_t imuBufDMATx[15] __attribute__((section(".sram2_data")));
 uint8_t imuBufDMARx[15] __attribute__((section(".sram2_data")));
-;
 uint8_t imuBuf[15] __attribute__((section(".ccmram")));
+uint8_t magBufDMATx[9] __attribute__((section(".sram2_data")));
+uint8_t magBufDMARx[9] __attribute__((section(".sram2_data")));
+uint8_t magBuf[9] __attribute__((section(".ccmram")));
 
 volatile bool isDepthUpdated = false;
+volatile bool isMagUpdated = false;
 
 volatile uint32_t ulHighWordOverflows = 0;
 float cpuLoad = 0.0f;
@@ -240,16 +245,16 @@ int main(void) {
   memset(axisSpeedMode, 0, sizeof(axisSpeedMode));
   memset(imuBuf, 0, sizeof(imuBuf));
 
-  NCOM_TX_Init();
   NCOM_RX_Init(&ncomRx);
 
   icm.pSPIx = &hspi2;
   icm.pGPIOx = GPIOB;
   icm.GPIO_PIN_x = GPIO_PIN_12;
   icm.GPIO_PIN_x_INT = GPIO_PIN_8;
-  lis.pSPIx = &hspi2;
-  lis.pGPIOx = GPIOB;
-  lis.GPIO_PIN_x = GPIO_PIN_11;
+  lis.pSPIx = &hspi1;
+  lis.pGPIOx = GPIOC;
+  lis.GPIO_PIN_x = GPIO_PIN_4;
+  lis.GPIO_PIN_x_INT = GPIO_PIN_4;
 
   IMU_SPI_Init(&icm);
   MAG_SPI_Init(&lis);
@@ -1279,9 +1284,6 @@ static void MX_GPIO_Init(void) {
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_4 | GPIO_PIN_5, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
@@ -1301,9 +1303,8 @@ static void MX_GPIO_Init(void) {
 
   /*Configure GPIO pin : PA4 */
   GPIO_InitStruct.Pin = GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PC4 PC5 */
@@ -1340,6 +1341,9 @@ static void MX_GPIO_Init(void) {
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
+  // HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
   // HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
@@ -1405,8 +1409,6 @@ void Task_StateEstimate(void *pvParameters) {
   float accel[3] = {0};
   float gyro[3] = {0};
 
-  uint8_t mag_prescaler = 0; // Used to downsample the 100Hz magnetometer
-
   for (int i = 1; i < 15; i++)
     imuBufDMATx[i] = 0;
   imuBufDMATx[0] = 0x80 | IMU_REG_TEMP_DATA1;
@@ -1414,6 +1416,7 @@ void Task_StateEstimate(void *pvParameters) {
   HAL_TIM_Base_Start(&htim7);
   uint16_t last_time_us = __HAL_TIM_GET_COUNTER(&htim7);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 
   for (;;) {
 
@@ -1465,86 +1468,94 @@ void Task_StateEstimate(void *pvParameters) {
       eskf_predict(nominal_x, P, accel, gyro, Q, dt);
 
       float R[9], RT[9];
+      quat_to_rot_matrix(&nominal_x[3], R);
+      matrix_transpose(R, RT, 3, 3);
 
-      mag_prescaler++;
-      if (mag_prescaler >= EKF_MAG_PRESCALER) {
-        mag_prescaler = 0;
+      float a_comp[3] = {accel[0] - nominal_x[13], accel[1] - nominal_x[14],
+                         accel[2] - nominal_x[15]};
+      float acc_norm = sqrtf(a_comp[0] * a_comp[0] + a_comp[1] * a_comp[1] +
+                             a_comp[2] * a_comp[2]);
 
-        MAG_SPI_GetData(&lis);
-        float mag_meas[3] = {lis.data.magX, lis.data.magY, lis.data.magZ};
-        quat_to_rot_matrix(&nominal_x[3], R);
-        matrix_transpose(R, RT, 3, 3);
+      if (acc_norm > EKF_GRAVITY_NORM_MIN && acc_norm < EKF_GRAVITY_NORM_MAX) {
+        float g_earth[3] = {0.0f, 0.0f, -1.0f};
 
-        float a_comp[3] = {accel[0] - nominal_x[13], accel[1] - nominal_x[14],
-                           accel[2] - nominal_x[15]};
-        float acc_norm = sqrtf(a_comp[0] * a_comp[0] + a_comp[1] * a_comp[1] +
-                               a_comp[2] * a_comp[2]);
+        float z_hat_acc[3];
+        matrix_mult(RT, g_earth, z_hat_acc, 3, 3, 1);
 
-        if (acc_norm > EKF_GRAVITY_NORM_MIN &&
-            acc_norm < EKF_GRAVITY_NORM_MAX) {
-          float g_earth[3] = {0.0f, 0.0f, -1.0f};
+        float z_acc[3] = {a_comp[0] / acc_norm, a_comp[1] / acc_norm,
+                          a_comp[2] / acc_norm};
 
-          float z_hat_acc[3];
-          matrix_mult(RT, g_earth, z_hat_acc, 3, 3, 1);
+        float dz_acc[3] = {z_acc[0] - z_hat_acc[0], z_acc[1] - z_hat_acc[1],
+                           z_acc[2] - z_hat_acc[2]};
 
-          float z_acc[3] = {a_comp[0] / acc_norm, a_comp[1] / acc_norm,
-                            a_comp[2] / acc_norm};
+        float H_acc[45] = {0}; // 3 rows * 15 cols
+        H_acc[0 * 15 + 7] = -z_hat_acc[2];
+        H_acc[0 * 15 + 8] = z_hat_acc[1];
+        H_acc[1 * 15 + 6] = z_hat_acc[2];
+        H_acc[1 * 15 + 8] = -z_hat_acc[0];
+        H_acc[2 * 15 + 6] = -z_hat_acc[1];
+        H_acc[2 * 15 + 7] = z_hat_acc[0];
 
-          float dz_acc[3] = {z_acc[0] - z_hat_acc[0], z_acc[1] - z_hat_acc[1],
-                             z_acc[2] - z_hat_acc[2]};
+        float R_acc[9] = {0};
+        R_acc[0] = EKF_R_ACCEL;
+        R_acc[4] = EKF_R_ACCEL;
+        R_acc[8] = EKF_R_ACCEL;
 
-          float H_acc[45] = {0}; // 3 rows * 15 cols
-          H_acc[0 * 15 + 7] = -z_hat_acc[2];
-          H_acc[0 * 15 + 8] = z_hat_acc[1];
-          H_acc[1 * 15 + 6] = z_hat_acc[2];
-          H_acc[1 * 15 + 8] = -z_hat_acc[0];
-          H_acc[2 * 15 + 6] = -z_hat_acc[1];
-          H_acc[2 * 15 + 7] = z_hat_acc[0];
+        if (eskf_update(error_x, P, dz_acc, H_acc, R_acc, 3)) {
+          eskf_inject(nominal_x, error_x, P);
 
-          float R_acc[9] = {0};
-          R_acc[0] = EKF_R_ACCEL;
-          R_acc[4] = EKF_R_ACCEL;
-          R_acc[8] = EKF_R_ACCEL;
-
-          if (eskf_update(error_x, P, dz_acc, H_acc, R_acc, 3)) {
-            eskf_inject(nominal_x, error_x, P);
-
-            quat_to_rot_matrix(&nominal_x[3], R);
-            matrix_transpose(R, RT, 3, 3);
-          }
+          quat_to_rot_matrix(&nominal_x[3], R);
+          matrix_transpose(R, RT, 3, 3);
         }
+      }
 
-        float m_earth[3] = {EKF_EARTH_MAG_X, EKF_EARTH_MAG_Y, EKF_EARTH_MAG_Z};
+      if (isMagUpdated) {
 
-        float z_hat_mag[3];
-        matrix_mult(RT, m_earth, z_hat_mag, 3, 3, 1);
+        if (xSemaphoreTake(xStateMutex, 0) == pdTRUE) {
+          float mag_meas[3];
 
-        float mag_norm =
-            sqrtf(mag_meas[0] * mag_meas[0] + mag_meas[1] * mag_meas[1] +
-                  mag_meas[2] * mag_meas[2]);
+          mag_meas[0] = lis.data.magX;
+          mag_meas[1] = lis.data.magY;
+          mag_meas[2] = lis.data.magZ;
+          isMagUpdated = false;
+          xSemaphoreGive(xStateMutex);
 
-        if (mag_norm > 0.1f) { // Guard against division by zero
-          float z_mag[3] = {mag_meas[0] / mag_norm, mag_meas[1] / mag_norm,
-                            mag_meas[2] / mag_norm};
+          quat_to_rot_matrix(&nominal_x[3], R);
+          matrix_transpose(R, RT, 3, 3);
 
-          float dz_mag[3] = {z_mag[0] - z_hat_mag[0], z_mag[1] - z_hat_mag[1],
-                             z_mag[2] - z_hat_mag[2]};
+          float m_earth[3] = {EKF_EARTH_MAG_X, EKF_EARTH_MAG_Y,
+                              EKF_EARTH_MAG_Z};
 
-          float H_mag[45] = {0}; // 3 rows * 15 cols
-          H_mag[0 * 15 + 7] = -z_hat_mag[2];
-          H_mag[0 * 15 + 8] = z_hat_mag[1];
-          H_mag[1 * 15 + 6] = z_hat_mag[2];
-          H_mag[1 * 15 + 8] = -z_hat_mag[0];
-          H_mag[2 * 15 + 6] = -z_hat_mag[1];
-          H_mag[2 * 15 + 7] = z_hat_mag[0];
+          float z_hat_mag[3];
+          matrix_mult(RT, m_earth, z_hat_mag, 3, 3, 1);
 
-          float R_mag[9] = {0};
-          R_mag[0] = EKF_R_MAG;
-          R_mag[4] = EKF_R_MAG;
-          R_mag[8] = EKF_R_MAG;
+          float mag_norm =
+              sqrtf(mag_meas[0] * mag_meas[0] + mag_meas[1] * mag_meas[1] +
+                    mag_meas[2] * mag_meas[2]);
 
-          if (eskf_update(error_x, P, dz_mag, H_mag, R_mag, 3)) {
-            eskf_inject(nominal_x, error_x, P);
+          if (mag_norm > 0.1f) { // Guard against division by zero
+            float z_mag[3] = {mag_meas[0] / mag_norm, mag_meas[1] / mag_norm,
+                              mag_meas[2] / mag_norm};
+
+            float dz_mag[3] = {z_mag[0] - z_hat_mag[0], z_mag[1] - z_hat_mag[1],
+                               z_mag[2] - z_hat_mag[2]};
+
+            float H_mag[45] = {0}; // 3 rows * 15 cols
+            H_mag[0 * 15 + 7] = -z_hat_mag[2];
+            H_mag[0 * 15 + 8] = z_hat_mag[1];
+            H_mag[1 * 15 + 6] = z_hat_mag[2];
+            H_mag[1 * 15 + 8] = -z_hat_mag[0];
+            H_mag[2 * 15 + 6] = -z_hat_mag[1];
+            H_mag[2 * 15 + 7] = z_hat_mag[0];
+
+            float R_mag[9] = {0};
+            R_mag[0] = EKF_R_MAG;
+            R_mag[4] = EKF_R_MAG;
+            R_mag[8] = EKF_R_MAG;
+
+            if (eskf_update(error_x, P, dz_mag, H_mag, R_mag, 3)) {
+              eskf_inject(nominal_x, error_x, P);
+            }
           }
         }
       }
@@ -1733,12 +1744,26 @@ void Task_NCOM(void *pvParameters) {
 }
 
 void Task_Sensor(void *pvParameters) {
-  const TickType_t xFrequency = pdMS_TO_TICKS(TASK_SENSOR_SLEEP_MS);
-  TickType_t xLastWakeTime = xTaskGetTickCount();
 
   for (;;) {
 
-    vTaskDelayUntil(&xLastWakeTime, xFrequency);
+    if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(20)) > 0) {
+      taskENTER_CRITICAL();
+      float magx = (float)((int16_t)((magBuf[2] << 8) | magBuf[1])) * lis.mult;
+      float magy = (float)((int16_t)((magBuf[4] << 8) | magBuf[3])) * lis.mult;
+      float magz = (float)((int16_t)((magBuf[6] << 8) | magBuf[5])) * lis.mult;
+      float magTemp = (float)((int16_t)((magBuf[8] << 8) | magBuf[7])) * 0.125f;
+      taskEXIT_CRITICAL();
+
+      if (xSemaphoreTake(xStateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
+        lis.data.magX = magx;
+        lis.data.magY = magy;
+        lis.data.magZ = magz;
+        lis.data.tempC = magTemp;
+        isMagUpdated = true;
+        xSemaphoreGive(xStateMutex);
+      }
+    }
   }
 }
 
@@ -1756,10 +1781,8 @@ void Task_SysMonitor(void *pvParameters) {
   uint8_t missedHbTolControlTask = 2;
   uint8_t missedHbTolNCOMTask = 10;
 
-  TaskStatus_t *pxTaskStatusArray;
-  volatile UBaseType_t uxAllocatedArraySize, x;
-  uxAllocatedArraySize = uxTaskGetNumberOfTasks();
-  pxTaskStatusArray = pvPortMalloc(uxAllocatedArraySize * sizeof(TaskStatus_t));
+  static TaskStatus_t pxTaskStatusArray[16];
+  volatile UBaseType_t uxAllocatedArraySize = 16, x;
   TaskHandle_t xIdleTaskHandle = xTaskGetIdleTaskHandle();
 
   static uint32_t prevIdleCounter = 0;
@@ -1797,11 +1820,18 @@ void Task_SysMonitor(void *pvParameters) {
         deadTaskBitmask |= (1 << 1);
       if (missedHbNCOMTask > missedHbTolNCOMTask)
         deadTaskBitmask |= (1 << 2);
-      vTaskSuspendAll();
-      while (NCOM_TX_DyingGasp(&deadTaskBitmask, 1) != USBD_OK)
+
+      __disable_irq();
+
+      extern USBD_HandleTypeDef hUsbDeviceFS;
+      USBD_CDC_HandleTypeDef *hcdc =
+          (USBD_CDC_HandleTypeDef *)hUsbDeviceFS.pClassData;
+      if (hcdc != NULL)
+        hcdc->TxState = 0;
+      NCOM_TX_SendPacket(NCOM_MSG_DYING_GASP, &deadTaskBitmask, 1);
+      while (1) {
         ;
-      while (1)
-        ;
+      }
     }
 
     oneSecondTimer += TASK_SYSMONITOR_SLEEP_MS;
@@ -1841,13 +1871,15 @@ void Task_SysMonitor(void *pvParameters) {
 
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
-  vPortFree(pxTaskStatusArray);
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
   if (GPIO_Pin == icm.GPIO_PIN_x_INT) { // IMU
     HAL_GPIO_WritePin(icm.pGPIOx, icm.GPIO_PIN_x, GPIO_PIN_RESET);
     HAL_SPI_TransmitReceive_DMA(icm.pSPIx, imuBufDMATx, imuBufDMARx, 15);
+  } else if (GPIO_Pin == lis.GPIO_PIN_x_INT) {
+    HAL_GPIO_WritePin(lis.pGPIOx, lis.GPIO_PIN_x, GPIO_PIN_RESET);
+    HAL_SPI_TransmitReceive_DMA(&hspi1, magBufDMATx, magBufDMARx, 9);
   }
 }
 
@@ -1859,6 +1891,16 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
       return;
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     vTaskNotifyGiveFromISR(xStateEstimateTaskHandle, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+  }
+
+  else if (hspi == lis.pSPIx) {
+    HAL_GPIO_WritePin(lis.pGPIOx, lis.GPIO_PIN_x, GPIO_PIN_SET);
+    memcpy(magBuf, magBufDMARx, 9);
+    if (xSensorTaskHandle == NULL)
+      return;
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    vTaskNotifyGiveFromISR(xSensorTaskHandle, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
   }
 }

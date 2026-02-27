@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 MAINLOOP_SLEEP = 0.01 # Seconds
+RECONNECT_SLEEP = 0.1 # Seconds
 
 import ncom_protocol as ncom
 import ncom_driver as ncd
@@ -137,7 +138,7 @@ def main():
         if port is None:
             port = find_stm32g4()
             if port is None:
-                time.sleep(1)
+                time.sleep(RECONNECT_SLEEP)
                 continue
                 
         try:
@@ -169,7 +170,7 @@ def main():
         except (serial.SerialException, OSError):
             print("\nDevice disconnected. Trying to reconnect....")
             port = None
-            time.sleep(1)
+            time.sleep(RECONNECT_SLEEP)
 
 if __name__ == "__main__":
     main()

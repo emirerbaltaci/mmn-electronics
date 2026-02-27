@@ -285,38 +285,39 @@ void eskf_predict(float *nominal_x, float *P, const float *accel,
     P[i * 15 + 2] += dt * P[i * 15 + 5];
   }
 
+  static float P_col_back[15 * 3] __attribute__((section(".ccmram")));
   for (int i = 0; i < 15; i++) {
-    float col6 = dF_vel_att[0] * P[i * 15 + 3] + dF_vel_att[3] * P[i * 15 + 4] +
-                 dF_vel_att[6] * P[i * 15 + 5] +
-                 (-w_dt[2] * P[i * 15 + 7] + w_dt[1] * P[i * 15 + 8]);
-    float col7 = dF_vel_att[1] * P[i * 15 + 3] + dF_vel_att[4] * P[i * 15 + 4] +
-                 dF_vel_att[7] * P[i * 15 + 5] +
-                 (w_dt[2] * P[i * 15 + 6] - w_dt[0] * P[i * 15 + 8]);
-    float col8 = dF_vel_att[2] * P[i * 15 + 3] + dF_vel_att[5] * P[i * 15 + 4] +
-                 dF_vel_att[8] * P[i * 15 + 5] +
-                 (-w_dt[1] * P[i * 15 + 6] + w_dt[0] * P[i * 15 + 7]);
+    P_col_back[i * 3 + 0] =
+        dF_vel_att[0] * P[i * 15 + 6] + dF_vel_att[1] * P[i * 15 + 7] +
+        dF_vel_att[2] * P[i * 15 + 8] + dF_vel_ba[0] * P[i * 15 + 12] +
+        dF_vel_ba[1] * P[i * 15 + 13] + dF_vel_ba[2] * P[i * 15 + 14];
+    P_col_back[i * 3 + 1] =
+        dF_vel_att[3] * P[i * 15 + 6] + dF_vel_att[4] * P[i * 15 + 7] +
+        dF_vel_att[5] * P[i * 15 + 8] + dF_vel_ba[3] * P[i * 15 + 12] +
+        dF_vel_ba[4] * P[i * 15 + 13] + dF_vel_ba[5] * P[i * 15 + 14];
+    P_col_back[i * 3 + 2] =
+        dF_vel_att[6] * P[i * 15 + 6] + dF_vel_att[7] * P[i * 15 + 7] +
+        dF_vel_att[8] * P[i * 15 + 8] + dF_vel_ba[6] * P[i * 15 + 12] +
+        dF_vel_ba[7] * P[i * 15 + 13] + dF_vel_ba[8] * P[i * 15 + 14];
+  }
+
+  for (int i = 0; i < 15; i++) {
+    P[i * 15 + 3] += P_col_back[i * 3 + 0];
+    P[i * 15 + 4] += P_col_back[i * 3 + 1];
+    P[i * 15 + 5] += P_col_back[i * 3 + 2];
+  }
+
+  for (int i = 0; i < 15; i++) {
+    float col6 =
+        w_dt[2] * P[i * 15 + 7] - w_dt[1] * P[i * 15 + 8] - dt * P[i * 15 + 9];
+    float col7 = -w_dt[2] * P[i * 15 + 6] + w_dt[0] * P[i * 15 + 8] -
+                 dt * P[i * 15 + 10];
+    float col8 =
+        w_dt[1] * P[i * 15 + 6] - w_dt[0] * P[i * 15 + 7] - dt * P[i * 15 + 11];
 
     P[i * 15 + 6] += col6;
     P[i * 15 + 7] += col7;
     P[i * 15 + 8] += col8;
-  }
-
-  for (int i = 0; i < 15; i++) {
-    P[i * 15 + 9] -= dt * P[i * 15 + 6];
-    P[i * 15 + 10] -= dt * P[i * 15 + 7];
-    P[i * 15 + 11] -= dt * P[i * 15 + 8];
-  }
-
-  for (int i = 0; i < 15; i++) {
-    float col12 = dF_vel_ba[0] * P[i * 15 + 3] + dF_vel_ba[3] * P[i * 15 + 4] +
-                  dF_vel_ba[6] * P[i * 15 + 5];
-    float col13 = dF_vel_ba[1] * P[i * 15 + 3] + dF_vel_ba[4] * P[i * 15 + 4] +
-                  dF_vel_ba[7] * P[i * 15 + 5];
-    float col14 = dF_vel_ba[2] * P[i * 15 + 3] + dF_vel_ba[5] * P[i * 15 + 4] +
-                  dF_vel_ba[8] * P[i * 15 + 5];
-    P[i * 15 + 12] += col12;
-    P[i * 15 + 13] += col13;
-    P[i * 15 + 14] += col14;
   }
 
   for (int i = 3; i < 15; i++)
