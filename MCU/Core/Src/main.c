@@ -46,6 +46,7 @@
 #include "imu_config.h"
 #include "magnetometer_config.h"
 #include "pid_config.h"
+#include "task_config.h"
 
 /* USER CODE END Includes */
 
@@ -56,14 +57,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
-#define TASK_STATEESTIMATE_SLEEP_MS 1
-#define TASK_CONTROL_SLEEP_MS 5
-#define TASK_NCOM_SLEEP_MS 20
-#define TASK_SENSOR_SLEEP_MS 100
-#define TASK_SYSMONITOR_SLEEP_MS 50
-
-#define TASK_CONTROL_PID_DT 0.005f
 
 /* USER CODE END PD */
 
@@ -1641,8 +1634,6 @@ void Task_Control(void *pvParameters) {
     static Setpoint_t currSetpoint = {0};
     static Setspeed_t currSetspeed = {0};
     static bool currMode[6] = {false};
-
-    // BUG 2 FIX: Mod değişimlerini yakalamak için önceki durumu tutuyoruz
     static bool prevMode[6] = {false};
 
     if (xSemaphoreTake(xStateMutex, pdMS_TO_TICKS(1)) == pdTRUE) {
@@ -1744,26 +1735,32 @@ void Task_NCOM(void *pvParameters) {
 }
 
 void Task_Sensor(void *pvParameters) {
+  const TickType_t xFrequency = pdMS_TO_TICKS(TASK_SENSOR_SLEEP_MS);
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+
+  float mag[4];
 
   for (;;) {
 
     if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(20)) > 0) {
       taskENTER_CRITICAL();
-      float magx = (float)((int16_t)((magBuf[2] << 8) | magBuf[1])) * lis.mult;
-      float magy = (float)((int16_t)((magBuf[4] << 8) | magBuf[3])) * lis.mult;
-      float magz = (float)((int16_t)((magBuf[6] << 8) | magBuf[5])) * lis.mult;
-      float magTemp = (float)((int16_t)((magBuf[8] << 8) | magBuf[7])) * 0.125f;
+      mag[0] = (float)((int16_t)((magBuf[2] << 8) | magBuf[1])) * lis.mult;
+      mag[1] = (float)((int16_t)((magBuf[4] << 8) | magBuf[3])) * lis.mult;
+      mag[2] = (float)((int16_t)((magBuf[6] << 8) | magBuf[5])) * lis.mult;
+      mag[3] = (float)((int16_t)((magBuf[8] << 8) | magBuf[7])) * 0.125f;
       taskEXIT_CRITICAL();
 
       if (xSemaphoreTake(xStateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
-        lis.data.magX = magx;
-        lis.data.magY = magy;
-        lis.data.magZ = magz;
-        lis.data.tempC = magTemp;
+        lis.data.magX = mag[0];
+        lis.data.magY = mag[1];
+        lis.data.magZ = mag[2];
+        lis.data.tempC = mag[3];
         isMagUpdated = true;
         xSemaphoreGive(xStateMutex);
       }
     }
+
+    vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
 }
 
@@ -1813,6 +1810,9 @@ void Task_SysMonitor(void *pvParameters) {
         (missedHbNCOMTask <= missedHbTolNCOMTask)) {
       HAL_IWDG_Refresh(&hiwdg);
     } else {
+
+      __disable_irq();
+
       uint8_t deadTaskBitmask = 0;
       if (missedHbStateEstimateTask > missedHbTolStateEstimateTask)
         deadTaskBitmask |= (1 << 0);
@@ -1820,8 +1820,6 @@ void Task_SysMonitor(void *pvParameters) {
         deadTaskBitmask |= (1 << 1);
       if (missedHbNCOMTask > missedHbTolNCOMTask)
         deadTaskBitmask |= (1 << 2);
-
-      __disable_irq();
 
       extern USBD_HandleTypeDef hUsbDeviceFS;
       USBD_CDC_HandleTypeDef *hcdc =
@@ -1841,29 +1839,27 @@ void Task_SysMonitor(void *pvParameters) {
       uint32_t ulTotalRunTime;
       UBaseType_t uxReturnedTaskCount;
 
-      if (pxTaskStatusArray != NULL) {
-        uxReturnedTaskCount = uxTaskGetSystemState(
-            pxTaskStatusArray, uxAllocatedArraySize, &ulTotalRunTime);
+      uxReturnedTaskCount = uxTaskGetSystemState(
+          pxTaskStatusArray, uxAllocatedArraySize, &ulTotalRunTime);
 
-        if (ulTotalRunTime > 0) {
-          for (x = 0; x < uxReturnedTaskCount; x++) {
-            if (pxTaskStatusArray[x].xHandle == xIdleTaskHandle) {
-              uint32_t currIdleCounter = pxTaskStatusArray[x].ulRunTimeCounter;
-              uint32_t deltaIdle = currIdleCounter - prevIdleCounter;
-              uint32_t deltaTotal = ulTotalRunTime - prevTotalRunTime;
-              prevIdleCounter = currIdleCounter;
-              prevTotalRunTime = ulTotalRunTime;
+      if (ulTotalRunTime > 0) {
+        for (x = 0; x < uxReturnedTaskCount; x++) {
+          if (pxTaskStatusArray[x].xHandle == xIdleTaskHandle) {
+            uint32_t currIdleCounter = pxTaskStatusArray[x].ulRunTimeCounter;
+            uint32_t deltaIdle = currIdleCounter - prevIdleCounter;
+            uint32_t deltaTotal = ulTotalRunTime - prevTotalRunTime;
+            prevIdleCounter = currIdleCounter;
+            prevTotalRunTime = ulTotalRunTime;
 
-              if (deltaTotal > 0) {
-                float idlePct = (float)deltaIdle / (float)deltaTotal * 100.0f;
-                cpuLoad = 100.0f - idlePct;
-                if (cpuLoad < 0.0f)
-                  cpuLoad = 0.0f;
-                if (cpuLoad > 100.0f)
-                  cpuLoad = 100.0f;
-              }
-              break;
+            if (deltaTotal > 0) {
+              float idlePct = (float)deltaIdle / (float)deltaTotal * 100.0f;
+              cpuLoad = 100.0f - idlePct;
+              if (cpuLoad < 0.0f)
+                cpuLoad = 0.0f;
+              else if (cpuLoad > 100.0f)
+                cpuLoad = 100.0f;
             }
+            break;
           }
         }
       }

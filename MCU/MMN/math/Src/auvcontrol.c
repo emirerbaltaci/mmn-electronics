@@ -1,14 +1,8 @@
 #include "auvcontrol.h"
+#include "thruster_config.h"
 #include <math.h>
 
-const float T_pinv[8][6] = {{0.25f, 0.25f, 0.0f, 0.0f, 0.0f, 1.15f},
-                            {0.25f, -0.25f, 0.0f, 0.0f, 0.0f, -1.15f},
-                            {-0.25f, 0.25f, 0.0f, 0.0f, 0.0f, -1.15f},
-                            {-0.25f, -0.25f, 0.0f, 0.0f, 0.0f, 1.15f},
-                            {0.0f, 0.0f, 0.25f, 1.15f, 1.15f, 0.0f},
-                            {0.0f, 0.0f, 0.25f, -1.15f, 1.15f, 0.0f},
-                            {0.0f, 0.0f, 0.25f, 1.15f, -1.15f, 0.0f},
-                            {0.0f, 0.0f, 0.25f, -1.15f, -1.15f, 0.0f}};
+const float T_pinv[8][6] = AUV_TAM_MATRIX;
 
 void PID_Init(PID_Controller_t *pid, float p, float i, float d, float max,
               float min, float wrap_bound) {
@@ -235,9 +229,9 @@ void Thrust_Allocate(float *tau, float *forces) {
 }
 
 uint16_t Thrust_to_PWM(float thrust_newtons) {
-  float max_thrust = 40.0f;
-  float min_thrust = -40.0f;
-  float deadband = 0.15f;
+  float max_thrust = AUV_THRUST_MAX;
+  float min_thrust = AUV_THRUST_MIN;
+  float deadband = AUV_THRUST_DEADBAND;
 
   if (thrust_newtons > max_thrust)
     thrust_newtons = max_thrust;
@@ -246,19 +240,22 @@ uint16_t Thrust_to_PWM(float thrust_newtons) {
 
   uint16_t pwm;
   if (thrust_newtons > deadband) {
-    pwm = (uint16_t)(1500.0f + 12.5f * sqrtf(thrust_newtons) +
-                     3.2f * thrust_newtons);
+    pwm = (uint16_t)(AUV_PWM_CENTER +
+                     AUV_THRUST_TO_PWM_COEF_SQRT * sqrtf(thrust_newtons) +
+                     AUV_THRUST_TO_PWM_COEF_LIN * thrust_newtons);
   } else if (thrust_newtons < -deadband) {
-    pwm = (uint16_t)(1500.0f - 12.5f * sqrtf(fabsf(thrust_newtons)) -
-                     3.2f * fabsf(thrust_newtons));
+    pwm =
+        (uint16_t)(AUV_PWM_CENTER -
+                   AUV_THRUST_TO_PWM_COEF_SQRT * sqrtf(fabsf(thrust_newtons)) -
+                   AUV_THRUST_TO_PWM_COEF_LIN * fabsf(thrust_newtons));
   } else {
-    pwm = 1500;
+    pwm = AUV_PWM_CENTER;
   }
 
-  if (pwm > 1900)
-    pwm = 1900;
-  if (pwm < 1100)
-    pwm = 1100;
+  if (pwm > AUV_PWM_MAX)
+    pwm = AUV_PWM_MAX;
+  if (pwm < AUV_PWM_MIN)
+    pwm = AUV_PWM_MIN;
 
   return pwm;
 }

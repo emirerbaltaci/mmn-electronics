@@ -1,8 +1,10 @@
 #include "auvmath.h"
+#include "ekf_config.h"
 #include <assert.h>
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
+
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
@@ -455,13 +457,13 @@ bool eskf_update(float *error_x, float *P, const float *dz, const float *H,
 
   float chi_square_threshold = 999.0f;
   if (n == 1)
-    chi_square_threshold = 6.635f;
+    chi_square_threshold = EKF_CHI_SQUARE_TH_DOF1;
   else if (n == 2)
-    chi_square_threshold = 9.210f;
+    chi_square_threshold = EKF_CHI_SQUARE_TH_DOF2;
   else if (n == 3)
-    chi_square_threshold = 11.345f;
+    chi_square_threshold = EKF_CHI_SQUARE_TH_DOF3;
   else if (n == 6)
-    chi_square_threshold = 16.812f;
+    chi_square_threshold = EKF_CHI_SQUARE_TH_DOF6;
   if (mahalanobis_sq > chi_square_threshold) {
     return false;
   }
