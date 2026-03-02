@@ -65,11 +65,14 @@ typedef enum{	// Parser States
  * ############################################# */
 typedef struct{	// Parser Structure
 	NCOM_RX_State_t state;
+	
 	uint8_t seq;
 	uint8_t msgId;
+	
 	uint8_t payloadLen;
 	uint8_t payloadBuf[NCOM_MAX_PAYLOAD_LEN];
 	uint8_t payloadIndex;
+	
 	uint8_t crcBuf[2];
 	uint8_t crcIndex;
 } NCOM_RX_Parser_t;
@@ -80,6 +83,7 @@ typedef struct{
 	uint8_t buf[NCOM_RINGBUFFER_SIZE];
 	volatile uint16_t head;
 	volatile uint16_t tail;
+	volatile uint8_t overflow;
 }NCOM_RingBuffer_t;
 
 
@@ -96,7 +100,7 @@ typedef struct{
  * ############################################# */
 void NCOM_RX_Init(NCOM_RX_t* rx);
 bool NCOM_RX_ParseByte(NCOM_RX_t* rx, uint8_t byte);
-void NCOM_RX_RingBuffer_Write(NCOM_RX_t* rx, uint8_t* data, uint16_t len);
+void NCOM_RX_RingBuffer_Write(NCOM_RX_t* rx, const uint8_t* data, uint16_t len);
 bool NCOM_RX_RingBuffer_Read(NCOM_RX_t* rx, uint8_t* byte);
 uint16_t NCOM_RX_RingBuffer_GetSize(NCOM_RX_t* rx);
 

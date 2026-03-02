@@ -61,6 +61,9 @@ void NCOM_RX_Init(NCOM_RX_t* rx){
 	rx->parser.state = NCOM_RX_STATE_SYNC_1;
 	rx->ringBuffer.head = 0;	
 	rx->ringBuffer.tail = 0;
+	rx->ringBuffer.overflow = 0;
+	__HAL_CRC_DR_RESET(&hcrc);
+	memset(&rx->stats, 0, sizeof(NCOM_RX_Stats_t));
 }
 
 /*
@@ -72,77 +75,128 @@ void NCOM_RX_Init(NCOM_RX_t* rx){
  */
 bool NCOM_RX_ParseByte(NCOM_RX_t* rx, uint8_t byte){
 	
+	rx->stats.receivedBytes++;
+
 	switch (rx->parser.state) {
 		
 		case NCOM_RX_STATE_SYNC_1:
+		
 			if (byte == NCOM_SYNC_BYTE_1) rx->parser.state = NCOM_RX_STATE_SYNC_2;
+			
 			break;
+			
 			
 		case NCOM_RX_STATE_SYNC_2:
-			if (byte == NCOM_SYNC_BYTE_2) rx->parser.state = NCOM_RX_STATE_SEQ;
+		
+			if (byte == NCOM_SYNC_BYTE_2){
+				__HAL_CRC_DR_RESET(&hcrc);
+				rx->parser.state = NCOM_RX_STATE_SEQ;
+			}
 			else if (byte == NCOM_SYNC_BYTE_1) break;
 			else rx->parser.state = NCOM_RX_STATE_SYNC_1;
+			
 			break;
 			
+			
 		case NCOM_RX_STATE_SEQ:
+		
 			rx->parser.seq = byte;
+			*(volatile uint8_t*)(&hcrc.Instance->DR) = byte;
 			rx->parser.state = NCOM_RX_STATE_ID;
+			
 			break;
+		
 		
 		case NCOM_RX_STATE_ID:
+		
 			rx->parser.msgId = byte;
+			*(volatile uint8_t*)(&hcrc.Instance->DR) = byte;
 			rx->parser.state = NCOM_RX_STATE_LEN;
+			
 			break;
 		
+		
 		case NCOM_RX_STATE_LEN:
-			if(byte > NCOM_MAX_PAYLOAD_LEN){
+		
+			if (byte > NCOM_MAX_PAYLOAD_LEN) {
 				rx->parser.state = NCOM_RX_STATE_SYNC_1;
-				break;
+				rx->stats.lenErrors++;
+				return false;
 			}
+			
 			rx->parser.payloadLen = byte;
+			*(volatile uint8_t*)(&hcrc.Instance->DR) = byte;
 			rx->parser.payloadIndex = 0;
+			
 			if(rx->parser.payloadLen == 0){
 				rx->parser.state = NCOM_RX_STATE_CRC;
 				rx->parser.crcIndex = 0;
 			}
 			else rx->parser.state = NCOM_RX_STATE_PAYLOAD;
+			
 			break;
+		
 		
 		case NCOM_RX_STATE_PAYLOAD:
-			rx->parser.payloadBuf[rx->parser.payloadIndex++] = byte;
-			if(rx->parser.payloadIndex >= rx->parser.payloadLen){
-				rx->parser.state = NCOM_RX_STATE_CRC;
-				rx->parser.crcIndex = 0;
+		
+			if (rx->parser.payloadIndex < NCOM_MAX_PAYLOAD_LEN) {
+				rx->parser.payloadBuf[rx->parser.payloadIndex++] = byte;
+				*(volatile uint8_t*)(&hcrc.Instance->DR) = byte;
 			}
+			else {
+				rx->parser.state = NCOM_RX_STATE_SYNC_1;
+				return false;
+			}
+			if (rx->parser.payloadIndex >= rx->parser.payloadLen) {
+				rx->parser.crcIndex = 0;
+				rx->parser.state = NCOM_RX_STATE_CRC;
+			}
+			
 			break;
+			
 		
 		case NCOM_RX_STATE_CRC:
+		
 			rx->parser.crcBuf[rx->parser.crcIndex++] = byte;
-			if(rx->parser.crcIndex >= 2){
+			
+			if (rx->parser.crcIndex >= 2) {
 				rx->parser.state = NCOM_RX_STATE_SYNC_1;
 				uint16_t crcRx = (uint16_t)rx->parser.crcBuf[0] | ((uint16_t)rx->parser.crcBuf[1] << 8);
-				__HAL_CRC_DR_RESET(&hcrc);
-				uint8_t header[3] = {rx->parser.seq, rx->parser.msgId, rx->parser.payloadLen};
-				for(int i = 0; i < 3; i++) *(uint8_t*)(&hcrc.Instance->DR) = header[i];
-				for(int i = 0; i < rx->parser.payloadLen; i++) *(uint8_t*)(&hcrc.Instance->DR) = rx->parser.payloadBuf[i];
-				if((uint16_t)(hcrc.Instance->DR & 0xFFFF) == crcRx) return true;
+				
+				if ((uint16_t)(hcrc.Instance->DR) == crcRx) {
+					rx->stats.validPackets++;
+					rx->parser.payloadIndex = 0;
+					rx->parser.crcIndex = 0;
+					return true;
+				}
+				else{
+					rx->stats.crcErrors++;
+					return false;
+				}
 			}
+			
 			break;
+			
+			
 	}
+	
 	return false;
 }
 
 /*
  *	NCOM_RX_RingBuffer_Write
- *	Writes data to the ring buffer.
+ *	Writes a byte to the ring buffer
  *
- *	Parameters: NCOM RX Structure, Pointer to data, Length of data
+ *	Parameters: NCOM RX Structure, Byte to write
  *	Returns: -
  */
-void NCOM_RX_RingBuffer_Write(NCOM_RX_t* rx, uint8_t* data, uint16_t len){
+void NCOM_RX_RingBuffer_Write(NCOM_RX_t* rx, const uint8_t* data, uint16_t len){
 	for(uint16_t i = 0; i < len; i++){
 		uint16_t next_head = (rx->ringBuffer.head + 1) & (NCOM_RINGBUFFER_SIZE - 1);
-		if(next_head == rx->ringBuffer.tail) return;
+		if(next_head == rx->ringBuffer.tail){
+			rx->ringBuffer.overflow = 1;
+			return;
+		}
 		rx->ringBuffer.buf[rx->ringBuffer.head] = data[i];
 		rx->ringBuffer.head = next_head;
 	}
@@ -152,8 +206,8 @@ void NCOM_RX_RingBuffer_Write(NCOM_RX_t* rx, uint8_t* data, uint16_t len){
  *	NCOM_RX_RingBuffer_Read
  *	Reads a byte from the ring buffer
  *
- *	Parameters: NCOM RX Structure, Byte buffer
- *	Returns: false if the ring buffer is empty, true otherwise.
+ *	Parameters: NCOM RX Structure, Byte to write
+ *	Returns: -
  */
 bool NCOM_RX_RingBuffer_Read(NCOM_RX_t* rx, uint8_t* byte){
 	if(rx->ringBuffer.head == rx->ringBuffer.tail) return false;
@@ -166,7 +220,7 @@ bool NCOM_RX_RingBuffer_Read(NCOM_RX_t* rx, uint8_t* byte){
  *	NCOM_RX_RingBuffer_GetSize
  *	Gets the size of the ring buffer
  *
- *	Parameters: NCOM RX Parser Structure
+ *	Parameters: NCOM RX Structure
  *	Returns: Size of the ring buffer
  */
 uint16_t NCOM_RX_RingBuffer_GetSize(NCOM_RX_t* rx){
@@ -178,3 +232,4 @@ uint16_t NCOM_RX_RingBuffer_GetSize(NCOM_RX_t* rx){
 /* #############################################
  * #############################################
  * ############################################# */
+ 

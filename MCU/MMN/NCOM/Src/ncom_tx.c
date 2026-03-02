@@ -36,25 +36,22 @@
  * ############################################# */
 #include "ncom_tx.h"
 #include "usbd_cdc_if.h"
+#include "main.h"
 #include <string.h>
-
-#include "FreeRTOS.h"
 
 
 
 /* #############################################
  * 					 Variables
  * ############################################# */
-extern USBD_HandleTypeDef hUsbDeviceFS;
 extern CRC_HandleTypeDef hcrc;	// For Hardware CRC Calculation
-
 
 
 
 /* #############################################
  * 			   Function Definitions
  * ############################################# */
-
+ 
 /*
  *	NCOM_TX_SendPacket
  *	Transmits the message via USB OTG FS
@@ -62,41 +59,39 @@ extern CRC_HandleTypeDef hcrc;	// For Hardware CRC Calculation
  *	Parameters: Message ID, Message Payload, Payload Size in Bytes
  *	Returns: USB Transmit Status
  */
-uint8_t NCOM_TX_SendPacket(uint8_t msgId, const void *payload, uint8_t len) {
+uint8_t NCOM_TX_SendPacket(uint8_t msgId, const void* payload, uint8_t len){
+	
+	if(len > NCOM_MAX_PAYLOAD_LEN) return 0;
+	
+	static uint8_t tx_seq;
+	uint8_t seq = tx_seq++;
+	static uint8_t txBuf[NCOM_MAX_PAYLOAD_LEN + NCOM_OVERHEAD_LEN];
+	
+	txBuf[0] = NCOM_SYNC_BYTE_1;
+	txBuf[1] = NCOM_SYNC_BYTE_2;
+	txBuf[2] = seq;
+	txBuf[3] = msgId;
+	txBuf[4] = len;
+	
+	if(len > 0 && payload != NULL) memcpy(&txBuf[NCOM_HEADER_LEN], payload, len);
+	
+	__HAL_CRC_DR_RESET(&hcrc);
 
-  if (len > NCOM_MAX_PAYLOAD_LEN)
-    return USBD_FAIL;
+	for(size_t i = NCOM_SYNCBYTE_COUNT; i < (len + NCOM_HEADER_LEN); i++) *(volatile uint8_t*)(&hcrc.Instance->DR) = txBuf[i];
 
-  USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
-  if (hcdc == NULL || hcdc->TxState != 0)
-	return USBD_BUSY;
+	uint16_t crc16 = (uint16_t)(hcrc.Instance->DR);
 
-  static uint8_t tx_seq = 0;
-  static uint8_t txBuf[NCOM_MAX_PAYLOAD_LEN + NCOM_OVERHEAD_LEN];
-
-  txBuf[0] = NCOM_SYNC_BYTE_1;
-  txBuf[1] = NCOM_SYNC_BYTE_2;
-  txBuf[2] = tx_seq;
-  txBuf[3] = msgId;
-  txBuf[4] = len;
-
-  if (len > 0 && payload != NULL)
-    memcpy(&txBuf[NCOM_HEADER_LEN], payload, len);
-
-  __HAL_CRC_DR_RESET(&hcrc);
-  for (int i = NCOM_SYNCBYTE_COUNT; i < NCOM_HEADER_LEN; i++)
-    *(uint8_t *)(&hcrc.Instance->DR) = txBuf[i];
-  for (int i = 0; i < len; i++)
-    *(uint8_t *)(&hcrc.Instance->DR) = txBuf[NCOM_HEADER_LEN + i];
-  uint16_t crc16 = (uint16_t)(hcrc.Instance->DR & 0xFFFF);
-  txBuf[len + NCOM_HEADER_LEN] = (uint8_t)(crc16 & 0xFF);
-  txBuf[len + NCOM_HEADER_LEN + 1] = (uint8_t)((crc16 >> 8) & 0xFF);
-
-  uint8_t status =
-      CDC_Transmit_FS(txBuf, len + NCOM_HEADER_LEN + NCOM_FOOTER_LEN);
-
-  if (status == USBD_OK)
-    tx_seq++;
-
-  return status;
+	txBuf[len + NCOM_HEADER_LEN] = (uint8_t)(crc16 & 0xFF);
+	txBuf[len + NCOM_HEADER_LEN + 1] = (uint8_t)((crc16 >> 8) & 0xFF);
+	
+	CDC_Transmit_FS(txBuf, len + NCOM_OVERHEAD_LEN);
+	
+	return seq;
 }
+
+
+
+/* #############################################
+ * #############################################
+ * ############################################# */
+ 

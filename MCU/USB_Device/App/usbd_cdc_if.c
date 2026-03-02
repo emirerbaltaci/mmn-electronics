@@ -24,6 +24,8 @@
 /* USER CODE BEGIN INCLUDE */
 
 #include "ncom_rx.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 /* USER CODE END INCLUDE */
 
@@ -120,6 +122,7 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 /* USER CODE BEGIN EXPORTED_VARIABLES */
 
 extern NCOM_RX_t ncomRx;
+extern TaskHandle_t xNCOMTaskHandle;
 
 /* USER CODE END EXPORTED_VARIABLES */
 
@@ -286,6 +289,11 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
   NCOM_RX_RingBuffer_Write(&ncomRx, Buf, (uint16_t)(*Len));
+  if(xNCOMTaskHandle != NULL){
+	  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	  vTaskNotifyGiveFromISR(xNCOMTaskHandle, &xHigherPriorityTaskWoken);
+	  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+  }
 
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);

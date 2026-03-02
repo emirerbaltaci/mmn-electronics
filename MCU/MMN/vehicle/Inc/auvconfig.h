@@ -69,6 +69,8 @@ typedef struct {
   uint32_t stateestimate_sleep_ms;
   uint32_t control_sleep_ms;
   uint32_t ncom_sleep_ms;
+  uint32_t ncom_packet_timeout_ms;
+  uint32_t ncom_handshake_timeout_ms;
   uint32_t sensor_sleep_ms;
   uint32_t sysmonitor_sleep_ms;
   float control_pid_dt;

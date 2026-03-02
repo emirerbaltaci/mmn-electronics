@@ -41,12 +41,13 @@
 #include "ncom_rx.h"
 #include "ncom_tx.h"
 
+#include "task_config.h"
 #include "bar30_config.h"
 #include "ekf_config.h"
 #include "imu_config.h"
 #include "magnetometer_config.h"
 #include "pid_config.h"
-#include "task_config.h"
+#include "auvconfig.h"
 
 /* USER CODE END Includes */
 
@@ -138,6 +139,8 @@ volatile bool isMagUpdated = false;
 
 volatile uint32_t ulHighWordOverflows = 0;
 float cpuLoad = 0.0f;
+
+extern AUV_Config_t auvConfig;
 
 /* USER CODE END PV */
 
@@ -232,6 +235,8 @@ int main(void) {
   MX_TIM7_Init();
   MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
+
+  AUV_Config_Init();
 
   memset(&setPoint, 0, sizeof(Setpoint_t));
   memset(&setSpeed, 0, sizeof(Setspeed_t));
@@ -1696,49 +1701,57 @@ void Task_Control(void *pvParameters) {
 }
 
 void Task_NCOM(void *pvParameters) {
-  const TickType_t xFrequency = pdMS_TO_TICKS(TASK_NCOM_SLEEP_MS);
-  TickType_t xLastWakeTime = xTaskGetTickCount();
+	const TickType_t xPacketTimeout = pdMS_TO_TICKS(auvConfig.task.ncom_packet_timeout_ms);
+	const TickType_t xHandshakeTimeout = pdMS_TO_TICKS(auvConfig.task.ncom_handshake_timeout_ms);
+	bool isConnected = false;
+	uint8_t byteBuf;
 
-  bool isConnected = false;
-  uint8_t byteBuf;
-  uint32_t handshakeTimer = 0;
+	uint8_t seq = NCOM_TX_SendPacket(NCOM_MSG_CONFIG_REQ_STARTUP, NULL, 0);
 
-  while (!isConnected) {
-    hbNCOMTask = AUV_TASK_ALIVE;
+	while(!isConnected){
+		hbNCOMTask = AUV_TASK_ALIVE;
 
-    handshakeTimer += TASK_NCOM_SLEEP_MS;
-    if (handshakeTimer >= 500) {
-      handshakeTimer = 0;
-      NCOM_TX_SendPacket(NCOM_MSG_CONFIG_REQ_STARTUP, NULL, 0);
-    }
+		if(ulTaskNotifyTake(pdTRUE, xHandshakeTimeout) > 0){
+			while(NCOM_RX_RingBuffer_Read(&ncomRx, &byteBuf)){
+				if(NCOM_RX_ParseByte(&ncomRx, byteBuf)){
+					if(ncomRx.parser.msgId == NCOM_MSG_CONFIG_SET_STARTUP) isConnected = NCOM_Handlers_Config_Set_Startup(&ncomRx, &auvConfig);
+					else if(ncomRx.parser.msgId == NCOM_MSG_ACKNOWLEDGEMENT){
+						NCOM_Payload_ACKNOWLEDGEMENT_t msg;
+						ncom_unpack_acknowledgement(ncomRx.parser.payloadBuf, &msg);
+						if(msg.requested_msg_id == NCOM_MSG_CONFIG_REQ_STARTUP && msg.requested_seq == seq && msg.response == NCOM_ACKNOWLEDGEMENT_RESPONSE_NACK){
+							isConnected = true;
+						}
+					}
+				}
+			}
+		}
+		else seq = NCOM_TX_SendPacket(NCOM_MSG_CONFIG_REQ_STARTUP, NULL, 0);
+	}
 
-    while (NCOM_RX_RingBuffer_Read(&ncomRx, &byteBuf)) {
-      if (NCOM_RX_ParseByte(&ncomRx, byteBuf)) {
-        if (ncomRx.parser.msgId == NCOM_MSG_CONFIG_SET_STARTUP)
-          isConnected = NCOM_Handlers_ConfigSetStartup(&ncomRx);
-      }
-    }
+	for (;;) {
 
-    vTaskDelayUntil(&xLastWakeTime, xFrequency);
-  }
+		hbNCOMTask = AUV_TASK_ALIVE;
 
-  for (;;) {
-    hbNCOMTask = AUV_TASK_ALIVE;
+		if(ulTaskNotifyTake(pdTRUE, xPacketTimeout) > 0){
+			while(NCOM_RX_RingBuffer_Read(&ncomRx, &byteBuf)){
+				if(NCOM_RX_ParseByte(&ncomRx, byteBuf)) NCOM_Handlers_Selector(&ncomRx);
+			}
+		}
+		else{
+			if(ncomRx.parser.state != NCOM_RX_STATE_SYNC_1){
+				ncomRx.stats.timeoutErrors++;
+				ncomRx.parser.state = NCOM_RX_STATE_SYNC_1;
+			}
+		}
+	}
 
-    while (NCOM_RX_RingBuffer_Read(&ncomRx, &byteBuf)) {
-      if (NCOM_RX_ParseByte(&ncomRx, byteBuf))
-        NCOM_Handlers_Selector(&ncomRx);
-    }
-
-    vTaskDelayUntil(&xLastWakeTime, xFrequency);
-  }
 }
 
 void Task_Sensor(void *pvParameters) {
-  const TickType_t xFrequency = pdMS_TO_TICKS(TASK_SENSOR_SLEEP_MS);
-  TickType_t xLastWakeTime = xTaskGetTickCount();
+	const TickType_t xFrequency = pdMS_TO_TICKS(TASK_SENSOR_SLEEP_MS);
+	TickType_t xLastWakeTime = xTaskGetTickCount();
 
-  float mag[4];
+	float mag[4];
 
   for (;;) {
 
@@ -1811,7 +1824,9 @@ void Task_SysMonitor(void *pvParameters) {
       HAL_IWDG_Refresh(&hiwdg);
     } else {
 
-      __disable_irq();
+    	HAL_IWDG_Refresh(&hiwdg);
+
+    	__disable_irq();
 
       uint8_t deadTaskBitmask = 0;
       if (missedHbStateEstimateTask > missedHbTolStateEstimateTask)
@@ -1822,10 +1837,8 @@ void Task_SysMonitor(void *pvParameters) {
         deadTaskBitmask |= (1 << 2);
 
       extern USBD_HandleTypeDef hUsbDeviceFS;
-      USBD_CDC_HandleTypeDef *hcdc =
-          (USBD_CDC_HandleTypeDef *)hUsbDeviceFS.pClassData;
-      if (hcdc != NULL)
-        hcdc->TxState = 0;
+      USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef *)hUsbDeviceFS.pClassData;
+      if (hcdc != NULL) hcdc->TxState = 0;
       NCOM_TX_SendPacket(NCOM_MSG_DYING_GASP, &deadTaskBitmask, 1);
       while (1) {
         ;

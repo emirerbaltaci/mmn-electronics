@@ -61,6 +61,8 @@ void NCOM_RX_Init(NCOM_RX_t* rx){
 	rx->parser.state = NCOM_RX_STATE_SYNC_1;
 	rx->ringBuffer.head = 0;	
 	rx->ringBuffer.tail = 0;
+	rx->ringBuffer.overflow = 0;
+	__HAL_CRC_DR_RESET(&hcrc);
 }
 
 /*
@@ -75,54 +77,101 @@ bool NCOM_RX_ParseByte(NCOM_RX_t* rx, uint8_t byte){
 	switch (rx->parser.state) {
 		
 		case NCOM_RX_STATE_SYNC_1:
+		
 			if (byte == NCOM_SYNC_BYTE_1) rx->parser.state = NCOM_RX_STATE_SYNC_2;
+			
 			break;
+			
 			
 		case NCOM_RX_STATE_SYNC_2:
-			if (byte == NCOM_SYNC_BYTE_2) rx->parser.state = NCOM_RX_STATE_SEQ;
+		
+			if (byte == NCOM_SYNC_BYTE_2){
+				__HAL_CRC_DR_RESET(&hcrc);
+				rx->parser.state = NCOM_RX_STATE_SEQ;
+			}
+			else if (byte == NCOM_SYNC_BYTE_1) break;
 			else rx->parser.state = NCOM_RX_STATE_SYNC_1;
+			
 			break;
 			
+			
 		case NCOM_RX_STATE_SEQ:
+		
 			rx->parser.seq = byte;
+			*(volatile uint8_t*)(&hcrc.Instance->DR) = byte;
 			rx->parser.state = NCOM_RX_STATE_ID;
+			
 			break;
+		
 		
 		case NCOM_RX_STATE_ID:
+		
 			rx->parser.msgId = byte;
+			*(volatile uint8_t*)(&hcrc.Instance->DR) = byte;
 			rx->parser.state = NCOM_RX_STATE_LEN;
+			
 			break;
 		
+		
 		case NCOM_RX_STATE_LEN:
+		
+			if (byte > NCOM_MAX_PAYLOAD_LEN) {
+				rx->parser.state = NCOM_RX_STATE_SYNC_1;
+				return false;
+			}
+			
 			rx->parser.payloadLen = byte;
+			*(volatile uint8_t*)(&hcrc.Instance->DR) = byte;
 			rx->parser.payloadIndex = 0;
+			
 			if(rx->parser.payloadLen == 0){
 				rx->parser.state = NCOM_RX_STATE_CRC;
 				rx->parser.crcIndex = 0;
 			}
 			else rx->parser.state = NCOM_RX_STATE_PAYLOAD;
+			
 			break;
+		
 		
 		case NCOM_RX_STATE_PAYLOAD:
-			rx->parser.payloadBuf[rx->parser.payloadIndex++] = byte;
-			if(rx->parser.payloadIndex >= rx->parser.payloadLen){
-				rx->parser.state = NCOM_RX_STATE_CRC;
-				rx->parser.crcIndex = 0;
+		
+			if (rx->parser.payloadIndex < NCOM_MAX_PAYLOAD_LEN) {
+				rx->parser.payloadBuf[rx->parser.payloadIndex++] = byte;
+				*(volatile uint8_t*)(&hcrc.Instance->DR) = byte;
 			}
+			else {
+				rx->parser.state = NCOM_RX_STATE_SYNC_1;
+				return false;
+			}
+			if (rx->parser.payloadIndex >= rx->parser.payloadLen) {
+				rx->parser.crcIndex = 0;
+				rx->parser.state = NCOM_RX_STATE_CRC;
+			}
+			
 			break;
+			
 		
 		case NCOM_RX_STATE_CRC:
+		
 			rx->parser.crcBuf[rx->parser.crcIndex++] = byte;
-			if(rx->parser.crcIndex >= 2){
+			
+			if (rx->parser.crcIndex >= 2) {
 				rx->parser.state = NCOM_RX_STATE_SYNC_1;
 				uint16_t crcRx = (uint16_t)rx->parser.crcBuf[0] | ((uint16_t)rx->parser.crcBuf[1] << 8);
-				uint8_t header[3] = {rx->parser.seq, rx->parser.msgId, rx->parser.payloadLen};
-				uint32_t crcCalc = HAL_CRC_Calculate(&hcrc, (uint32_t*)header, 3);
-				if(rx->parser.payloadLen > 0) crcCalc = HAL_CRC_Accumulate(&hcrc, (uint32_t*)rx->parser.payloadBuf, rx->parser.payloadLen);
-				if((uint16_t)crcCalc == crcRx) return true;
+				
+				if ((uint16_t)(hcrc.Instance->DR) == crcRx) {
+					rx->parser.payloadIndex = 0;
+					rx->parser.crcIndex = 0;
+					return true;
+				}
+				else return false;
 			}
+			
 			break;
+			
+			
 	}
+	
 	return false;
 }
 
@@ -133,10 +182,13 @@ bool NCOM_RX_ParseByte(NCOM_RX_t* rx, uint8_t byte){
  *	Parameters: NCOM RX Parser Structure, Byte to write
  *	Returns: -
  */
-void NCOM_RX_RingBuffer_Write(NCOM_RX_t* rx, uint8_t* data, uint16_t len){
+void NCOM_RX_RingBuffer_Write(NCOM_RX_t* rx, const uint8_t* data, uint16_t len){
 	for(uint16_t i = 0; i < len; i++){
 		uint16_t next_head = (rx->ringBuffer.head + 1) & (NCOM_RINGBUFFER_SIZE - 1);
-		if(next_head == rx->ringBuffer.tail) return;
+		if(next_head == rx->ringBuffer.tail){
+			rx->ringBuffer.overflow = 1;
+			return;
+		}
 		rx->ringBuffer.buf[rx->ringBuffer.head] = data[i];
 		rx->ringBuffer.head = next_head;
 	}

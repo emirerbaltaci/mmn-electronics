@@ -36,6 +36,7 @@
 /* #############################################
  * 					 Includes
  * ############################################# */
+#include <assert.h>
 #include <stdint.h>
 #include "ncom_protocol.h"
 

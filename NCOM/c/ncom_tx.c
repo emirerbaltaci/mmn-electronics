@@ -73,7 +73,7 @@ uint8_t NCOM_TX_SendPacket(uint8_t msgId, const void* payload, uint8_t len){
 	
 	if(len > 0 && payload != NULL) memcpy(&txBuf[NCOM_HEADER_LEN], payload, len);
 	
-	uint32_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)&txBuf[2], len + NCOM_HEADER_LEN - 2);
+	uint32_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)&txBuf[NCOM_SYNCBYTE_COUNT], len + NCOM_HEADER_LEN - 2);
 	uint16_t crc16 = (uint16_t)crc;
 	txBuf[len + NCOM_HEADER_LEN] = (uint8_t)(crc16 & 0xFF);
 	txBuf[len + NCOM_HEADER_LEN + 1] = (uint8_t)((crc16 >> 8) & 0xFF);

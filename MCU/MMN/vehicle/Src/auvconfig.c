@@ -66,6 +66,8 @@ void AUV_Config_Init(void) {
   auvConfig.task.stateestimate_sleep_ms = TASK_STATEESTIMATE_SLEEP_MS;
   auvConfig.task.control_sleep_ms = TASK_CONTROL_SLEEP_MS;
   auvConfig.task.ncom_sleep_ms = TASK_NCOM_SLEEP_MS;
+  auvConfig.task.ncom_packet_timeout_ms = TASK_NCOM_PACKET_TIMEOUT_MS;
+  auvConfig.task.ncom_handshake_timeout_ms = TASK_NCOM_HANDSHAKE_TIMEOUT_MS;
   auvConfig.task.sensor_sleep_ms = TASK_SENSOR_SLEEP_MS;
   auvConfig.task.sysmonitor_sleep_ms = TASK_SYSMONITOR_SLEEP_MS;
   auvConfig.task.control_pid_dt = TASK_CONTROL_PID_DT;
