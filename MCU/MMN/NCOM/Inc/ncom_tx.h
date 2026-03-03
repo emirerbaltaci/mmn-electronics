@@ -10,8 +10,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -22,32 +22,28 @@
  * SOFTWARE.
  */
 
-
-
 /* #############################################
- * 					 ncom_tx.h
+ * 				     ncom_tx.h
  * NCOM MCU-Side Transmission Module Header File
  * ############################################# */
 #ifndef INC_NCOM_TX_H_
 #define INC_NCOM_TX_H_
 
-
-
 /* #############################################
- * 					 Includes
+ * 				      Includes
  * ############################################# */
-#include <assert.h>
-#include <stdint.h>
 #include "ncom_protocol.h"
-
-
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 /* #############################################
  * 				Function Prototypes
  * ############################################# */
-uint8_t NCOM_TX_SendPacket(uint8_t msgId, const void* payload, uint8_t len);
-
-
+void NCOM_TX_Init(void);
+int16_t NCOM_TX_SendPacket(uint8_t msgId, const void *payload, uint8_t len);
+int16_t NCOM_TX_SendPacketUnsafe(uint8_t msgId, const void *payload,
+                                 uint8_t len);
 
 /* #############################################
  * #############################################

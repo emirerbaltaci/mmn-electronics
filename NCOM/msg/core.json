@@ -194,13 +194,13 @@
                     "desc": "Roll rate in deg/s. Transmitted as int32, encoded as float32."
                 },
                 {
-                    "name": "pitch_deg",
+                    "name": "q_deg_s",
                     "type": "int32",
                     "encoding": "float32",
                     "desc": "Pitch rate in deg/s. Transmitted as int32, encoded as float32."
                 },
                 {
-                    "name": "yaw_deg",
+                    "name": "r_deg_s",
                     "type": "int32",
                     "encoding": "float32",
                     "desc": "Yaw rate in deg/s. Transmitted as int32, encoded as float32."

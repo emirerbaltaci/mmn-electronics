@@ -24,7 +24,7 @@
 
 /*
  * NCOM C Header File
- * Auto-generated on: 27.02.2026 15:02:40
+ * Auto-generated on: 03.03.2026 20:05:48
  * Protocol Version: 0.1
  */
 
@@ -322,8 +322,8 @@ typedef struct __attribute__((packed)) {
 // ID 4: Angular rotation rates of the vehicle
 typedef struct __attribute__((packed)) {
     float p_deg_s;
-    float pitch_deg;
-    float yaw_deg;
+    float q_deg_s;
+    float r_deg_s;
 } NCOM_Payload_ROTATION_RATES_t;
 #define NCOM_LEN_ROTATION_RATES 12
 

@@ -1,79 +1,106 @@
-#include "ncom_rx.h"
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 MM Nautronics
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include "auvconfig.h"
+#include "ncom_rx.h"
+
 
 typedef void (*NCOM_Handler)(NCOM_RX_t *rx);
 
-bool NCOM_Handlers_Config_Set_Startup(NCOM_RX_t *rx, AUV_Config_t *auvConfig){
+bool NCOM_Handlers_Config_Set_Startup(NCOM_RX_t *rx, AUV_Config_t *auvConfig) {
 
-	NCOM_Payload_CONFIG_SET_STARTUP_t msg;
-	ncom_unpack_config_set_startup(rx->parser.payloadBuf, &msg);
+  NCOM_Payload_CONFIG_SET_STARTUP_t msg;
+  ncom_unpack_config_set_startup(rx->parser.payloadBuf, &msg);
 
-	return true;
+  return true;
 }
 
-static void NCOM_Handlers_Command(NCOM_RX_t *rx){
+static void NCOM_Handlers_Command(NCOM_RX_t *rx) {
 
-	NCOM_Payload_COMMAND_t msg;
-	ncom_unpack_command(rx->parser.payloadBuf, &msg);
+  NCOM_Payload_COMMAND_t msg;
+  ncom_unpack_command(rx->parser.payloadBuf, &msg);
 }
 
-static void NCOM_Handlers_Config_Req(NCOM_RX_t *rx){
+static void NCOM_Handlers_Config_Req(NCOM_RX_t *rx) {
 
-	NCOM_Payload_CONFIG_REQ_t msg;
-	ncom_unpack_config_req(rx->parser.payloadBuf, &msg);
+  NCOM_Payload_CONFIG_REQ_t msg;
+  ncom_unpack_config_req(rx->parser.payloadBuf, &msg);
 }
 
-static void NCOM_Handlers_Config_Set_Mcu(NCOM_RX_t *rx){
+static void NCOM_Handlers_Config_Set_Mcu(NCOM_RX_t *rx) {
 
-	NCOM_Payload_CONFIG_SET_MCU_t msg;
-	ncom_unpack_config_set_mcu(rx->parser.payloadBuf, &msg);
+  NCOM_Payload_CONFIG_SET_MCU_t msg;
+  ncom_unpack_config_set_mcu(rx->parser.payloadBuf, &msg);
 }
 
-static void NCOM_Handlers_Config_Set_Freertos(NCOM_RX_t *rx){
+static void NCOM_Handlers_Config_Set_Freertos(NCOM_RX_t *rx) {
 
-	NCOM_Payload_CONFIG_SET_FREERTOS_t msg;
-	ncom_unpack_config_set_freertos(rx->parser.payloadBuf, &msg);
+  NCOM_Payload_CONFIG_SET_FREERTOS_t msg;
+  ncom_unpack_config_set_freertos(rx->parser.payloadBuf, &msg);
 }
 
-static void NCOM_Handlers_Config_Set_Sensor(NCOM_RX_t *rx){
+static void NCOM_Handlers_Config_Set_Sensor(NCOM_RX_t *rx) {
 
-	NCOM_Payload_CONFIG_SET_SENSOR_t msg;
-	ncom_unpack_config_set_sensor(rx->parser.payloadBuf, &msg);
+  NCOM_Payload_CONFIG_SET_SENSOR_t msg;
+  ncom_unpack_config_set_sensor(rx->parser.payloadBuf, &msg);
 }
 
-static void NCOM_Handlers_Config_Set_Actuator(NCOM_RX_t *rx){
+static void NCOM_Handlers_Config_Set_Actuator(NCOM_RX_t *rx) {
 
-	NCOM_Payload_CONFIG_SET_ACTUATOR_t msg;
-	ncom_unpack_config_set_actuator(rx->parser.payloadBuf, &msg);
+  NCOM_Payload_CONFIG_SET_ACTUATOR_t msg;
+  ncom_unpack_config_set_actuator(rx->parser.payloadBuf, &msg);
 }
 
-static void NCOM_Handlers_Config_Set_PID(NCOM_RX_t *rx){
+static void NCOM_Handlers_Config_Set_PID(NCOM_RX_t *rx) {
 
-	NCOM_Payload_CONFIG_SET_PID_t msg;
-	ncom_unpack_config_set_pid(rx->parser.payloadBuf, &msg);
+  NCOM_Payload_CONFIG_SET_PID_t msg;
+  ncom_unpack_config_set_pid(rx->parser.payloadBuf, &msg);
 }
 
-static void NCOM_Handlers_Config_Set_EKF(NCOM_RX_t *rx){
+static void NCOM_Handlers_Config_Set_EKF(NCOM_RX_t *rx) {
 
-	NCOM_Payload_CONFIG_SET_EKF_t msg;
-	ncom_unpack_config_set_ekf(rx->parser.payloadBuf, &msg);
+  NCOM_Payload_CONFIG_SET_EKF_t msg;
+  ncom_unpack_config_set_ekf(rx->parser.payloadBuf, &msg);
 }
 
-static const NCOM_Handler NCOM_HandlersTable[256] __attribute__((section(".ccmram"))) = {
-		[NCOM_MSG_COMMAND] = NCOM_Handlers_Command,
-		[NCOM_MSG_CONFIG_REQ] = NCOM_Handlers_Config_Req,
-		[NCOM_MSG_CONFIG_SET_MCU] = NCOM_Handlers_Config_Set_Mcu,
-		[NCOM_MSG_CONFIG_SET_FREERTOS] = NCOM_Handlers_Config_Set_Freertos,
-		[NCOM_MSG_CONFIG_SET_SENSOR] = NCOM_Handlers_Config_Set_Sensor,
-		[NCOM_MSG_CONFIG_SET_ACTUATOR] = NCOM_Handlers_Config_Set_Actuator,
-		[NCOM_MSG_CONFIG_SET_PID] = NCOM_Handlers_Config_Set_PID,
-		[NCOM_MSG_CONFIG_SET_EKF] = NCOM_Handlers_Config_Set_EKF
-};
+static const NCOM_Handler NCOM_HandlersTable[256]
+    __attribute__((section(".ccmram"))) = {
+        [NCOM_MSG_COMMAND] = NCOM_Handlers_Command,
+        [NCOM_MSG_CONFIG_REQ] = NCOM_Handlers_Config_Req,
+        [NCOM_MSG_CONFIG_SET_MCU] = NCOM_Handlers_Config_Set_Mcu,
+        [NCOM_MSG_CONFIG_SET_FREERTOS] = NCOM_Handlers_Config_Set_Freertos,
+        [NCOM_MSG_CONFIG_SET_SENSOR] = NCOM_Handlers_Config_Set_Sensor,
+        [NCOM_MSG_CONFIG_SET_ACTUATOR] = NCOM_Handlers_Config_Set_Actuator,
+        [NCOM_MSG_CONFIG_SET_PID] = NCOM_Handlers_Config_Set_PID,
+        [NCOM_MSG_CONFIG_SET_EKF] = NCOM_Handlers_Config_Set_EKF};
 
-void NCOM_Handlers_Selector(NCOM_RX_t *rx){
+void NCOM_Handlers_Selector(NCOM_RX_t *rx) {
 
-	uint8_t id = rx->parser.msgId;
+  uint8_t id = rx->parser.msgId;
 
-	if(NCOM_HandlersTable[id] != NULL) NCOM_HandlersTable[id](rx);
-	else rx->stats.unknownIDErrors++;
+  if (NCOM_HandlersTable[id] != NULL)
+    NCOM_HandlersTable[id](rx);
+  else
+    rx->stats.unknownIDErrors++;
 }
