@@ -54,7 +54,7 @@ void NCOM_RX_Init(NCOM_RX_t *rx) {
   rx->parser.state = NCOM_RX_STATE_SYNC_1;
   rx->ringBuffer.head = 0;
   rx->ringBuffer.tail = 0;
-  rx->ringBuffer.overflow = 0;
+  rx->ringBuffer.droppedBytes = 0;
   __HAL_CRC_DR_RESET(&hcrc);
   memset(&rx->stats, 0, sizeof(NCOM_RX_Stats_t));
 }
@@ -172,21 +172,25 @@ bool NCOM_RX_ParseByte(NCOM_RX_t *rx, uint8_t byte) {
 
 /*
  *	NCOM_RX_RingBuffer_Write
- *	Writes a byte to the ring buffer
+ *	Writes a chunk of data to the ring buffer (all-or-nothing).
+ *	If there isn't enough space for the entire chunk, the whole
+ *	chunk is dropped to prevent partial packets corrupting the parser.
  *
- *	Parameters: NCOM RX Structure, Byte to write
+ *	Parameters: NCOM RX Structure, Data buffer, Length
  *	Returns: -
  */
 void NCOM_RX_RingBuffer_Write(NCOM_RX_t *rx, const uint8_t *data,
                               uint16_t len) {
+  uint16_t available = (rx->ringBuffer.tail - rx->ringBuffer.head - 1) &
+                       (NCOM_RINGBUFFER_SIZE - 1);
+  if (len > available) {
+    rx->ringBuffer.droppedBytes += len;
+    return;
+  }
   for (uint16_t i = 0; i < len; i++) {
-    uint16_t next_head = (rx->ringBuffer.head + 1) & (NCOM_RINGBUFFER_SIZE - 1);
-    if (next_head == rx->ringBuffer.tail) {
-      rx->ringBuffer.overflow = 1;
-      return;
-    }
     rx->ringBuffer.buf[rx->ringBuffer.head] = data[i];
-    rx->ringBuffer.head = next_head;
+    rx->ringBuffer.head =
+        (rx->ringBuffer.head + 1) & (NCOM_RINGBUFFER_SIZE - 1);
   }
 }
 
