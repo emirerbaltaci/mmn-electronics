@@ -204,45 +204,6 @@ void PID_CalculateHybrid(Setpoint_t sp, Setspeed_t ss, const bool *use_speed,
                         : PID_Update(&pids_pos[5], sp.yaw, state_pos[5], dt);
 }
 
-void PID_CalculateVisualServo(VisualServo_t vs, float *tau,
-                              PID_Controller_t *pid_surge,
-                              PID_Controller_t *pid_heave,
-                              PID_Controller_t *pid_yaw, float dt) {
-  // Zero out any unhandled forces (Sway, Roll, Pitch are generally not used to
-  // track an object unless it's a very specific application)
-  tau[1] = 0.0f; // sway (y)
-  tau[3] = 0.0f; // roll
-  tau[4] = 0.0f; // pitch
-
-  // Safety check: If the target is lost (scale drops to 0), stop moving
-  // forward/down. The AUV should only yaw in place to find the target again.
-  if (vs.scale <= 0.001f) {
-    // Flush any stale integrals built up before the target was lost
-    PID_Reset(pid_surge);
-    PID_Reset(pid_heave);
-
-    tau[0] = 0.0f;
-    tau[2] = 0.0f;
-    tau[5] = PID_Update(pid_yaw, vs.x_offset, 0.0f, dt);
-    return;
-  }
-
-  // 1. Yaw Control: Convert X pixel offset on screen to Yaw rotation
-  // Positive pixel error (target to the right) -> Positive Yaw torque to spin
-  // right
-  tau[5] = PID_Update(pid_yaw, vs.x_offset, 0.0f, dt);
-
-  // 2. Heave Control: Convert Y pixel offset on screen to Heave (Z)
-  // Positive pixel error (target is low on screen) -> Positive Heave (thrust
-  // down)
-  tau[2] = PID_Update(pid_heave, vs.y_offset, 0.0f, dt);
-
-  // 3. Surge Control: Convert Target Scale difference to Surge (X)
-  // target_scale is how big we want it. scale is how big it is right now.
-  // If target_scale > scale, we need to get closer -> Positive Surge
-  tau[0] = PID_Update(pid_surge, vs.target_scale, vs.scale, dt);
-}
-
 void Thrust_Allocate(float *tau, float *forces) {
   for (int i = 0; i < 8; i++) {
     forces[i] = 0.0f;

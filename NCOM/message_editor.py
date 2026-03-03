@@ -13,8 +13,10 @@ class MessageEditor:
         self.root.geometry("1000x800")
         
         self.definitions = {}
-        self.messages = [] # List of dicts with 'file_path', 'section', 'data'
+        self.messages = [] # List of dicts with 'file_path', 'section', 'data', 'original_payload'
         self.sections = {} # Map section name -> info
+        self.file_metadata = {} # Cache for existing file top-level properties (fixing TOCTOU)
+        self.is_dirty = False
         
         # --- UI Setup ---
         
@@ -63,6 +65,15 @@ class MessageEditor:
         
         # Start
         self.load_definitions()
+    
+    def mark_unsaved(self):
+        if not self.is_dirty:
+            self.is_dirty = True
+            self.root.title("NCOM Message Editor *")
+            
+    def clear_unsaved(self):
+        self.is_dirty = False
+        self.root.title("NCOM Message Editor")
         
     def setup_editor_ui(self):
         # Header
@@ -112,10 +123,12 @@ class MessageEditor:
         """Full reload from disk."""
         self.load_data_from_disk()
         self.rebuild_tree()
+        self.clear_unsaved()
 
     def load_data_from_disk(self):
         self.messages = []
         self.sections = {}
+        self.file_metadata = {}
         
         try:
             with open(DEF_FILE, 'r') as f:
@@ -139,11 +152,16 @@ class MessageEditor:
                                 data = json.load(f)
                                 
                             if "messages" in data:
+                                # Cache everything else except messages
+                                self.file_metadata[path] = {k: v for k, v in data.items() if k != "messages"}
+                                
                                 for msg in data["messages"]:
                                     msg_obj = {
                                         "section": sec_name,
                                         "file_path": path,
-                                        "data": msg
+                                        "data": msg,
+                                        # Track actual reference objects for payload items
+                                        "original_payload": list(msg.get("payload", []))
                                     }
                                     self.messages.append(msg_obj)
                         except Exception as e:
@@ -171,12 +189,12 @@ class MessageEditor:
                 # Check if node exists (it might be duplicate if ID reused? using msg_ID as key)
                 node_id = f"msg_{msg['id']}"
                 if self.tree.exists(node_id):
-                    # Edge case: duplicate ID in memory? 
-                    # If so, maybe append suffix or warn?
-                    # For now, let's just let it be or update it. Treeview keys must be unique.
-                    pass
+                    # Duplicate ID in memory
+                    print(f"Warning: Duplicate Message ID {msg['id']} ('{msg['name']}'). Tree will override or ignore.")
                 else:
                     self.tree.insert(sec_name, "end", iid=node_id, text=msg["name"], values=(msg["id"], msg.get("direction", "?")))
+            else:
+                print(f"Warning: message '{msg['name']}' belongs to missing/disabled section '{sec_name}'. It will not be shown.")
 
     def on_tree_select(self, event):
         sel = self.tree.selection()
@@ -186,7 +204,7 @@ class MessageEditor:
         item_id = sel[0]
         if item_id.startswith("msg_"):
             # It's a message
-            msg_id = int(item_id.split("_")[1])
+            msg_id = int(item_id.removeprefix("msg_"))
             # Find in self.messages
             for m in self.messages:
                 if m["data"]["id"] == msg_id:
@@ -209,9 +227,11 @@ class MessageEditor:
         
         # Load payload
         self.tree_payload.delete(*self.tree_payload.get_children())
-        if "payload" in data:
-            for field in data["payload"]:
-                self.tree_payload.insert("", "end", text=field["name"], values=(field["type"], field.get("desc", "")))
+        if "original_payload" not in self.current_msg_ref: # Make sure this key exists in legacy loaded refs
+             self.current_msg_ref["original_payload"] = list(data.get("payload", []))
+             
+        for field in data.get("payload", []):
+            self.tree_payload.insert("", "end", iid=f"field_{id(field)}", text=field["name"], values=(field["type"], field.get("desc", "")))
 
     def commit_changes(self):
         if not self.current_msg_ref:
@@ -249,17 +269,23 @@ class MessageEditor:
         data["direction"] = self.var_dir.get()
         data["desc"] = self.txt_desc.get("1.0", tk.END).strip()
         
-        # Rebuild payload list
+        # Rebuild payload list based on tracked IDs
         new_payload = []
+        original_pool = self.current_msg_ref.get("original_payload", [])
+        
         for child in self.tree_payload.get_children():
             item = self.tree_payload.item(child)
             name = item["text"]
             values = item["values"]
             
-            # Find original field data to preserve extra keys (enum, flags etc)
-            existing_field = next((f for f in data.get("payload", []) if f["name"] == name), None)
+            # Find original field by object ID (stored in tree iid)
+            existing_field = None
+            if child.startswith("field_"):
+                orig_id = int(child.removeprefix("field_"))
+                existing_field = next((f for f in original_pool if id(f) == orig_id), None)
             
-            if existing_field:
+            if existing_field is not None:
+                existing_field["name"] = name
                 existing_field["type"] = values[0]
                 existing_field["desc"] = values[1]
                 new_payload.append(existing_field)
@@ -271,6 +297,7 @@ class MessageEditor:
                 })
         
         data["payload"] = new_payload
+        self.current_msg_ref["original_payload"] = list(new_payload) # update the pool
         
         # Refresh tree and restore selection
         self.rebuild_tree()
@@ -280,7 +307,7 @@ class MessageEditor:
             self.tree.selection_set(node_id)
             self.tree.see(node_id)
             
-        # messagebox.showinfo("Success", "Message updated in memory. Remember to Save All.")
+        self.mark_unsaved()
         
     def save_all(self):
         # 1. Save ncom_def.json (Sections might have changed)
@@ -335,23 +362,27 @@ class MessageEditor:
                     messages_to_write = content["messages"]
                 
                 # Prepare data
-                 # We need to read original file to preserve header/other info?
-                if os.path.exists(path):
-                    with open(path, 'r') as f:
-                        existing_data = json.load(f)
+                if path in self.file_metadata:
+                    existing_data = dict(self.file_metadata[path]) # copy
                 else:
                     # Find section info for range
                     rng = [0, 0]
                     if section_name and section_name in self.sections:
                         rng = self.sections[section_name]["id_range"]
                     
-                    existing_data = {"section": section_name, "id_range": rng} # Fallback
+                    existing_data = {
+                        "section": section_name, 
+                        "id_range": rng
+                    } 
 
                 existing_data["messages"] = messages_to_write
                 
+                # Make sure directories exist for new files
+                os.makedirs(os.path.dirname(path), exist_ok=True)
                 with open(path, 'w') as f:
                     json.dump(existing_data, f, indent=4)
                     
+            self.clear_unsaved()
             messagebox.showinfo("Success", "All files saved successfully.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save: {e}")
@@ -366,6 +397,7 @@ class MessageEditor:
         # Simple Dialog to ask for section
         dialog = tk.Toplevel(self.root)
         dialog.title("Select Section")
+        dialog.grab_set()
         
         ttk.Label(dialog, text="Section:").pack(padx=10, pady=5)
         combo = ttk.Combobox(dialog, values=section_names)
@@ -419,7 +451,8 @@ class MessageEditor:
         msg_obj = {
             "section": section_name,
             "file_path": file_path,
-            "data": new_msg_data
+            "data": new_msg_data,
+            "original_payload": []
         }
         self.messages.append(msg_obj)
         
@@ -429,6 +462,8 @@ class MessageEditor:
         if self.tree.exists(node_id):
             self.tree.selection_set(node_id)
             self.tree.see(node_id)
+            
+        self.mark_unsaved()
 
     def delete_message(self):
         sel = self.tree.selection()
@@ -437,7 +472,7 @@ class MessageEditor:
             
         item_id = sel[0]
         if item_id.startswith("msg_"):
-            msg_id = int(item_id.split("_")[1])
+            msg_id = int(item_id.removeprefix("msg_"))
             # Find in self.messages
             for i, m in enumerate(self.messages):
                 if m["data"]["id"] == msg_id:
@@ -447,10 +482,12 @@ class MessageEditor:
                         self.tree.delete(item_id)
                         # Clear editor
                         self.current_msg_ref = None
+                        self.current_msg_data = None
                         self.var_id.set(0)
                         self.var_name.set("")
                         self.txt_desc.delete("1.0", tk.END)
                         self.tree_payload.delete(*self.tree_payload.get_children())
+                        self.mark_unsaved()
                     break
     
     def manage_sections(self):
@@ -459,6 +496,7 @@ class MessageEditor:
     def on_sections_updated(self, new_sections):
         self.definitions["msg_sections"] = new_sections
         self.rebuild_tree()
+        self.mark_unsaved()
 
     def add_payload_field(self):
         AddPayloadDialog(self.root, self.on_payload_added)
@@ -493,6 +531,7 @@ class ManageSectionsDialog(tk.Toplevel):
         self.sections = sections_list # Reference to list of dicts
         self.title("Manage Sections")
         self.geometry("600x400")
+        self.grab_set()
         
         # Grid layout for editing
         self.frame = ttk.Frame(self)
@@ -518,13 +557,15 @@ class ManageSectionsDialog(tk.Toplevel):
             e_end = ttk.Entry(self.frame, textvariable=var_end, width=8)
             e_end.grid(row=row, column=2)
             
-            # Desc (Current readonly/label) or editable?
-            ttk.Label(self.frame, text=sec.get("desc", "")).grid(row=row, column=3, sticky="w")
+            var_desc = tk.StringVar(value=sec.get("desc", ""))
+            e_desc = ttk.Entry(self.frame, textvariable=var_desc, width=30)
+            e_desc.grid(row=row, column=3, sticky="w")
             
             self.entries.append({
                 "name": sec["name"],
                 "start": var_start,
-                "end": var_end
+                "end": var_end,
+                "desc": var_desc
             })
             
         ttk.Button(self, text="Save Changes", command=self.on_save).pack(pady=10)
@@ -542,6 +583,7 @@ class ManageSectionsDialog(tk.Toplevel):
                          messagebox.showerror("Error", f"Invalid range for {sec['name']}: Start > End")
                          return
                     sec["id_range"] = [start, end]
+                    sec["desc"] = entry["desc"].get()
                 except Exception:
                     messagebox.showerror("Error", f"Invalid input for {sec['name']}")
                     return
@@ -555,6 +597,7 @@ class AddPayloadDialog(tk.Toplevel):
         super().__init__(parent)
         self.callback = callback
         self.title("Payload Field")
+        self.grab_set()
         
         ttk.Label(self, text="Name:").grid(row=0, column=0, padx=5, pady=5)
         self.name_var = tk.StringVar(value=initial_name)
@@ -573,6 +616,9 @@ class AddPayloadDialog(tk.Toplevel):
         ttk.Button(self, text="OK", command=self.on_ok).grid(row=3, column=0, columnspan=2, pady=10)
         
     def on_ok(self):
+        if not self.name_var.get().strip():
+            messagebox.showerror("Error", "Field name cannot be empty.")
+            return
         if self.callback:
             self.callback(self.name_var.get(), self.type_var.get(), self.desc_var.get())
         self.destroy()

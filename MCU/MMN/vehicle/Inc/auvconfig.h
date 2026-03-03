@@ -31,6 +31,7 @@
 #include "pid_config.h"
 #include "task_config.h"
 #include "thruster_config.h"
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef struct {
@@ -72,8 +73,11 @@ typedef struct {
 } PID_Tuning_t;
 
 typedef struct {
-  PID_Tuning_t sp; // Spatial Position
-  PID_Tuning_t ss; // Steady State / Speed
+  PID_Tuning_t roll;
+  PID_Tuning_t pitch;
+  PID_Tuning_t yaw;
+  PID_Tuning_t depth;
+  PID_Tuning_t xy; // Generic X/Y if needed later
 } PID_ConfigParams_t;
 
 typedef struct {
@@ -209,5 +213,7 @@ typedef struct {
 extern AUV_Config_t auvConfig;
 
 void AUV_Config_Init(void);
+bool AUV_Config_Lock(uint32_t timeout_ms);
+void AUV_Config_Unlock(void);
 
 #endif /* VEHICLE_INC_AUVCONFIG_H_ */

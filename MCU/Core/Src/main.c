@@ -49,7 +49,6 @@
 #include "pid_config.h"
 #include "task_config.h"
 
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -1622,12 +1621,9 @@ void Task_Control(void *pvParameters) {
   uint16_t pwmArr[8] = {1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500};
 
   for (int i = 0; i < 6; i++) {
-    PID_Init(&pidsSetpoint[i], AUV_DEFAULT_PID_SP_P, AUV_DEFAULT_PID_SP_I,
-             AUV_DEFAULT_PID_SP_D, AUV_DEFAULT_PID_SP_MAXOUT,
-             AUV_DEFAULT_PID_SP_MINOUT, AUV_DEFAULT_PID_SP_WRAPBOUND);
-    PID_Init(&pidsSetspeed[i], AUV_DEFAULT_PID_SS_P, AUV_DEFAULT_PID_SS_I,
-             AUV_DEFAULT_PID_SS_D, AUV_DEFAULT_PID_SS_MAXOUT,
-             AUV_DEFAULT_PID_SS_MINOUT, AUV_DEFAULT_PID_SS_WRAPBOUND);
+    // Initial dummy init to clear structs and sets wrap bounds
+    PID_Init(&pidsSetpoint[i], 0, 0, 0, 0, 0, 0);
+    PID_Init(&pidsSetspeed[i], 0, 0, 0, 0, 0, 0);
   }
 
   pidsSetpoint[5].wrap_bound = (float)M_PI;
@@ -1657,6 +1653,44 @@ void Task_Control(void *pvParameters) {
     }
 
     if (armStatus == AUV_ARMED) {
+
+      // Update PID gains dynamically from auvConfig
+      if (AUV_Config_Lock(2)) {
+        // Surge (X)
+        pidsSetpoint[0].kp = auvConfig.pid.xy.p;
+        pidsSetpoint[0].ki = auvConfig.pid.xy.i;
+        pidsSetpoint[0].kd = auvConfig.pid.xy.d;
+        // Sway (Y)
+        pidsSetpoint[1].kp = auvConfig.pid.xy.p;
+        pidsSetpoint[1].ki = auvConfig.pid.xy.i;
+        pidsSetpoint[1].kd = auvConfig.pid.xy.d;
+        // Heave (Depth / Z)
+        pidsSetpoint[2].kp = auvConfig.pid.depth.p;
+        pidsSetpoint[2].ki = auvConfig.pid.depth.i;
+        pidsSetpoint[2].kd = auvConfig.pid.depth.d;
+        // Roll
+        pidsSetpoint[3].kp = auvConfig.pid.roll.p;
+        pidsSetpoint[3].ki = auvConfig.pid.roll.i;
+        pidsSetpoint[3].kd = auvConfig.pid.roll.d;
+        // Pitch
+        pidsSetpoint[4].kp = auvConfig.pid.pitch.p;
+        pidsSetpoint[4].ki = auvConfig.pid.pitch.i;
+        pidsSetpoint[4].kd = auvConfig.pid.pitch.d;
+        // Yaw
+        pidsSetpoint[5].kp = auvConfig.pid.yaw.p;
+        pidsSetpoint[5].ki = auvConfig.pid.yaw.i;
+        pidsSetpoint[5].kd = auvConfig.pid.yaw.d;
+
+        // Note: If Setspeed requires separate tuning, you would map it here.
+        // Defaults could just mirror the positional tunings or fall back to xy
+        // if unspecified.
+        for (int i = 0; i < 6; i++) {
+          pidsSetspeed[i].kp = auvConfig.pid.xy.p;
+          pidsSetspeed[i].ki = auvConfig.pid.xy.i;
+          pidsSetspeed[i].kd = auvConfig.pid.xy.d;
+        }
+        AUV_Config_Unlock();
+      }
 
       for (int i = 0; i < 6; i++) {
         if (currMode[i] != prevMode[i]) {

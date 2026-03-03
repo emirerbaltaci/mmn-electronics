@@ -10,8 +10,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -22,32 +22,24 @@
  * SOFTWARE.
  */
 
-
-
 /* #############################################
- * 					 ncom_rx.c
+ * 					        ncom_rx.c
  *   NCOM MCU-Side Reception Module Source File
  * ############################################# */
- 
- 
- 
+
 /* #############################################
- * 					Includes
+ * 					         Includes
  * ############################################# */
 #include "ncom_rx.h"
 #include "main.h"
 
-
-
 /* #############################################
- * 					Variables
+ * 					         Variables
  * ############################################# */
-extern CRC_HandleTypeDef hcrc;	// For Hardware CRC Calculation
-
-
+extern CRC_HandleTypeDef hcrc; // For Hardware CRC Calculation
 
 /* #############################################
- * 			   Function Definitions
+ * 		         Function Definitions
  * ############################################# */
 
 /*
@@ -57,171 +49,178 @@ extern CRC_HandleTypeDef hcrc;	// For Hardware CRC Calculation
  *	Parameters: NCOM RX Parser Structure
  *	Returns: -
  */
-void NCOM_RX_Init(NCOM_RX_t* rx){
-	rx->parser.state = NCOM_RX_STATE_SYNC_1;
-	rx->ringBuffer.head = 0;	
-	rx->ringBuffer.tail = 0;
-	rx->ringBuffer.overflow = 0;
-	__HAL_CRC_DR_RESET(&hcrc);
+void NCOM_RX_Init(NCOM_RX_t *rx) {
+  memset(&rx->parser, 0, sizeof(NCOM_RX_Parser_t));
+  rx->parser.state = NCOM_RX_STATE_SYNC_1;
+  rx->ringBuffer.head = 0;
+  rx->ringBuffer.tail = 0;
+  rx->ringBuffer.droppedBytes = 0;
+  __HAL_CRC_DR_RESET(&hcrc);
+  memset(&rx->stats, 0, sizeof(NCOM_RX_Stats_t));
 }
 
 /*
  *	NCOM_RX_ParseByte
- *	Main parser function, processes the received byte according to the current parser state
+ *	Main parser function, processes the received byte according to the
+ * current parser state
  *
  *	Parameters: NCOM RX Parser Structure, Received Byte
  *	Returns: true (valid data) or false (invalid data)
  */
-bool NCOM_RX_ParseByte(NCOM_RX_t* rx, uint8_t byte){
-	
-	switch (rx->parser.state) {
-		
-		case NCOM_RX_STATE_SYNC_1:
-		
-			if (byte == NCOM_SYNC_BYTE_1) rx->parser.state = NCOM_RX_STATE_SYNC_2;
-			
-			break;
-			
-			
-		case NCOM_RX_STATE_SYNC_2:
-		
-			if (byte == NCOM_SYNC_BYTE_2){
-				__HAL_CRC_DR_RESET(&hcrc);
-				rx->parser.state = NCOM_RX_STATE_SEQ;
-			}
-			else if (byte == NCOM_SYNC_BYTE_1) break;
-			else rx->parser.state = NCOM_RX_STATE_SYNC_1;
-			
-			break;
-			
-			
-		case NCOM_RX_STATE_SEQ:
-		
-			rx->parser.seq = byte;
-			*(volatile uint8_t*)(&hcrc.Instance->DR) = byte;
-			rx->parser.state = NCOM_RX_STATE_ID;
-			
-			break;
-		
-		
-		case NCOM_RX_STATE_ID:
-		
-			rx->parser.msgId = byte;
-			*(volatile uint8_t*)(&hcrc.Instance->DR) = byte;
-			rx->parser.state = NCOM_RX_STATE_LEN;
-			
-			break;
-		
-		
-		case NCOM_RX_STATE_LEN:
-		
-			if (byte > NCOM_MAX_PAYLOAD_LEN) {
-				rx->parser.state = NCOM_RX_STATE_SYNC_1;
-				return false;
-			}
-			
-			rx->parser.payloadLen = byte;
-			*(volatile uint8_t*)(&hcrc.Instance->DR) = byte;
-			rx->parser.payloadIndex = 0;
-			
-			if(rx->parser.payloadLen == 0){
-				rx->parser.state = NCOM_RX_STATE_CRC;
-				rx->parser.crcIndex = 0;
-			}
-			else rx->parser.state = NCOM_RX_STATE_PAYLOAD;
-			
-			break;
-		
-		
-		case NCOM_RX_STATE_PAYLOAD:
-		
-			if (rx->parser.payloadIndex < NCOM_MAX_PAYLOAD_LEN) {
-				rx->parser.payloadBuf[rx->parser.payloadIndex++] = byte;
-				*(volatile uint8_t*)(&hcrc.Instance->DR) = byte;
-			}
-			else {
-				rx->parser.state = NCOM_RX_STATE_SYNC_1;
-				return false;
-			}
-			if (rx->parser.payloadIndex >= rx->parser.payloadLen) {
-				rx->parser.crcIndex = 0;
-				rx->parser.state = NCOM_RX_STATE_CRC;
-			}
-			
-			break;
-			
-		
-		case NCOM_RX_STATE_CRC:
-		
-			rx->parser.crcBuf[rx->parser.crcIndex++] = byte;
-			
-			if (rx->parser.crcIndex >= 2) {
-				rx->parser.state = NCOM_RX_STATE_SYNC_1;
-				uint16_t crcRx = (uint16_t)rx->parser.crcBuf[0] | ((uint16_t)rx->parser.crcBuf[1] << 8);
-				
-				if ((uint16_t)(hcrc.Instance->DR) == crcRx) {
-					rx->parser.payloadIndex = 0;
-					rx->parser.crcIndex = 0;
-					return true;
-				}
-				else return false;
-			}
-			
-			break;
-			
-			
-	}
-	
-	return false;
+bool NCOM_RX_ParseByte(NCOM_RX_t *rx, uint8_t byte) {
+
+  rx->stats.receivedBytes++;
+
+  switch (rx->parser.state) {
+
+  case NCOM_RX_STATE_SYNC_1:
+
+    if (byte == NCOM_SYNC_BYTE_1)
+      rx->parser.state = NCOM_RX_STATE_SYNC_2;
+
+    break;
+
+  case NCOM_RX_STATE_SYNC_2:
+
+    if (byte == NCOM_SYNC_BYTE_2) {
+      __HAL_CRC_DR_RESET(&hcrc);
+      rx->parser.state = NCOM_RX_STATE_SEQ;
+    } else if (byte == NCOM_SYNC_BYTE_1)
+      break;
+    else
+      rx->parser.state = NCOM_RX_STATE_SYNC_1;
+
+    break;
+
+  case NCOM_RX_STATE_SEQ:
+
+    rx->parser.seq = byte;
+    *(volatile uint8_t *)(&hcrc.Instance->DR) = byte;
+    rx->parser.state = NCOM_RX_STATE_ID;
+
+    break;
+
+  case NCOM_RX_STATE_ID:
+
+    rx->parser.msgId = byte;
+    *(volatile uint8_t *)(&hcrc.Instance->DR) = byte;
+    rx->parser.state = NCOM_RX_STATE_LEN;
+
+    break;
+
+  case NCOM_RX_STATE_LEN:
+
+    if (byte > NCOM_MAX_PAYLOAD_LEN) {
+      rx->parser.state = NCOM_RX_STATE_SYNC_1;
+      rx->stats.lenErrors++;
+      return false;
+    }
+
+    rx->parser.payloadLen = byte;
+    *(volatile uint8_t *)(&hcrc.Instance->DR) = byte;
+    rx->parser.payloadIndex = 0;
+
+    if (rx->parser.payloadLen == 0) {
+      rx->parser.state = NCOM_RX_STATE_CRC;
+      rx->parser.crcIndex = 0;
+    } else
+      rx->parser.state = NCOM_RX_STATE_PAYLOAD;
+
+    break;
+
+  case NCOM_RX_STATE_PAYLOAD:
+
+    if (rx->parser.payloadIndex < NCOM_MAX_PAYLOAD_LEN) {
+      rx->parser.payloadBuf[rx->parser.payloadIndex++] = byte;
+      *(volatile uint8_t *)(&hcrc.Instance->DR) = byte;
+    } else {
+      rx->parser.state = NCOM_RX_STATE_SYNC_1;
+      return false;
+    }
+    if (rx->parser.payloadIndex >= rx->parser.payloadLen) {
+      rx->parser.crcIndex = 0;
+      rx->parser.state = NCOM_RX_STATE_CRC;
+    }
+
+    break;
+
+  case NCOM_RX_STATE_CRC:
+
+    rx->parser.crcBuf[rx->parser.crcIndex++] = byte;
+
+    if (rx->parser.crcIndex >= 2) {
+      rx->parser.state = NCOM_RX_STATE_SYNC_1;
+      uint16_t crcRx = (uint16_t)rx->parser.crcBuf[0] |
+                       ((uint16_t)rx->parser.crcBuf[1] << 8);
+
+      if ((uint16_t)(hcrc.Instance->DR) == crcRx) {
+        rx->stats.validPackets++;
+        rx->parser.payloadIndex = 0;
+        rx->parser.crcIndex = 0;
+        return true;
+      } else {
+        rx->stats.crcErrors++;
+        return false;
+      }
+    }
+
+    break;
+  }
+
+  return false;
 }
 
 /*
  *	NCOM_RX_RingBuffer_Write
- *	Writes a byte to the ring buffer
+ *	Writes a chunk of data to the ring buffer (all-or-nothing).
+ *	If there isn't enough space for the entire chunk, the whole
+ *	chunk is dropped to prevent partial packets corrupting the parser.
  *
- *	Parameters: NCOM RX Parser Structure, Byte to write
+ *	Parameters: NCOM RX Structure, Data buffer, Length
  *	Returns: -
  */
-void NCOM_RX_RingBuffer_Write(NCOM_RX_t* rx, const uint8_t* data, uint16_t len){
-	for(uint16_t i = 0; i < len; i++){
-		uint16_t next_head = (rx->ringBuffer.head + 1) & (NCOM_RINGBUFFER_SIZE - 1);
-		if(next_head == rx->ringBuffer.tail){
-			rx->ringBuffer.overflow = 1;
-			return;
-		}
-		rx->ringBuffer.buf[rx->ringBuffer.head] = data[i];
-		rx->ringBuffer.head = next_head;
-	}
+void NCOM_RX_RingBuffer_Write(NCOM_RX_t *rx, const uint8_t *data,
+                              uint16_t len) {
+  uint16_t available = (rx->ringBuffer.tail - rx->ringBuffer.head - 1) &
+                       (NCOM_RINGBUFFER_SIZE - 1);
+  if (len > available) {
+    rx->ringBuffer.droppedBytes += len;
+    return;
+  }
+  for (uint16_t i = 0; i < len; i++) {
+    rx->ringBuffer.buf[rx->ringBuffer.head] = data[i];
+    rx->ringBuffer.head =
+        (rx->ringBuffer.head + 1) & (NCOM_RINGBUFFER_SIZE - 1);
+  }
 }
 
 /*
  *	NCOM_RX_RingBuffer_Read
  *	Reads a byte from the ring buffer
  *
- *	Parameters: NCOM RX Parser Structure, Byte to write
+ *	Parameters: NCOM RX Structure, Byte to write
  *	Returns: -
  */
-bool NCOM_RX_RingBuffer_Read(NCOM_RX_t* rx, uint8_t* byte){
-	if(rx->ringBuffer.head == rx->ringBuffer.tail) return false;
-	*byte = rx->ringBuffer.buf[rx->ringBuffer.tail];
-	rx->ringBuffer.tail = (rx->ringBuffer.tail + 1) & (NCOM_RINGBUFFER_SIZE - 1);
-	return true;
+bool NCOM_RX_RingBuffer_Read(NCOM_RX_t *rx, uint8_t *byte) {
+  if (rx->ringBuffer.head == rx->ringBuffer.tail)
+    return false;
+  *byte = rx->ringBuffer.buf[rx->ringBuffer.tail];
+  rx->ringBuffer.tail = (rx->ringBuffer.tail + 1) & (NCOM_RINGBUFFER_SIZE - 1);
+  return true;
 }
 
 /*
  *	NCOM_RX_RingBuffer_GetSize
  *	Gets the size of the ring buffer
  *
- *	Parameters: NCOM RX Parser Structure
+ *	Parameters: NCOM RX Structure
  *	Returns: Size of the ring buffer
  */
-uint16_t NCOM_RX_RingBuffer_GetSize(NCOM_RX_t* rx){
-	return (rx->ringBuffer.head - rx->ringBuffer.tail) & (NCOM_RINGBUFFER_SIZE - 1);
+uint16_t NCOM_RX_RingBuffer_GetSize(NCOM_RX_t *rx) {
+  return (rx->ringBuffer.head - rx->ringBuffer.tail) &
+         (NCOM_RINGBUFFER_SIZE - 1);
 }
-
-
 
 /* #############################################
  * #############################################
  * ############################################# */
- 

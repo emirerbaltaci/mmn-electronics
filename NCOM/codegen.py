@@ -31,10 +31,42 @@ TYPE_MAP = {
     "int16":  {"c": "int16_t",  "py": "h", "size": 2},
     "uint32": {"c": "uint32_t", "py": "I", "size": 4},
     "int32":  {"c": "int32_t",  "py": "i", "size": 4},
-    "float":  {"c": "float",    "py": "f", "size": 4},
-    "float32": {"c": "float",   "py": "f", "size": 4},
     "float64": {"c": "double",  "py": "d", "size": 8}
 }
+
+def write_license(f, comment_style="c"):
+    license_text = [
+        "MIT License\n",
+        "\n",
+        "Copyright (c) 2026 MM Nautronics\n",
+        "\n",
+        "Permission is hereby granted, free of charge, to any person obtaining a copy\n",
+        "of this software and associated documentation files (the \"Software\"), to deal\n",
+        "in the Software without restriction, including without limitation the rights\n",
+        "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n",
+        "copies of the Software, and to permit persons to whom the Software is\n",
+        "furnished to do so, subject to the following conditions:\n",
+        "\n",
+        "The above copyright notice and this permission notice shall be included in all\n",
+        "copies or substantial portions of the Software.\n",
+        "\n",
+        "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n",
+        "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n",
+        "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n",
+        "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n",
+        "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n",
+        "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n",
+        "SOFTWARE.\n"
+    ]
+    if comment_style == "c":
+        f.write("/*\n")
+        for line in license_text:
+            f.write(" * " + line)
+        f.write(" */\n\n")
+    else:
+        for line in license_text:
+            f.write("# " + line)
+        f.write("\n")
 
 def generate_c_header(data, output_file):
     protocol = data["protocol"].upper()
@@ -43,30 +75,9 @@ def generate_c_header(data, output_file):
     sync_byte_2 = f"0x{int(data['sync_byte_2']):02X}"
     timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
     with open(output_file, 'w') as f:
-        f.write("/*\n")
-        f.write(" * MIT License\n")
-        f.write(" *\n")
-        f.write(" * Copyright (c) 2026 MM Nautronics\n")
-        f.write(" *\n")
-        f.write(" * Permission is hereby granted, free of charge, to any person obtaining a copy\n")
-        f.write(" * of this software and associated documentation files (the \"Software\"), to deal\n")
-        f.write(" * in the Software without restriction, including without limitation the rights\n")
-        f.write(" * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n")
-        f.write(" * copies of the Software, and to permit persons to whom the Software is\n")
-        f.write(" * furnished to do so, subject to the following conditions:\n")
-        f.write(" *\n")
-        f.write(" * The above copyright notice and this permission notice shall be included in all\n")
-        f.write(" * copies or substantial portions of the Software.\n")
-        f.write(" *\n")
-        f.write(" * THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n")
-        f.write(" * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n")
-        f.write(" * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n")
-        f.write(" * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n")
-        f.write(" * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n")
-        f.write(" * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n")
-        f.write(" * SOFTWARE.\n")
-        f.write(" */\n\n")
+        write_license(f, comment_style="c")
         f.write(f"/*\n * {protocol} C Header File\n * Auto-generated on: {timestamp}\n * Protocol Version: {version}\n */\n\n")
         
         f.write(f"#ifndef INC_{protocol}_PROTOCOL_H_\n")
@@ -151,30 +162,9 @@ def generate_c_source(data, output_file):
     timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     version = data["version"]
     
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
     with open(output_file, 'w') as f:
-        f.write("/*\n")
-        f.write(" * MIT License\n")
-        f.write(" *\n")
-        f.write(" * Copyright (c) 2026 MM Nautronics\n")
-        f.write(" *\n")
-        f.write(" * Permission is hereby granted, free of charge, to any person obtaining a copy\n")
-        f.write(" * of this software and associated documentation files (the \"Software\"), to deal\n")
-        f.write(" * in the Software without restriction, including without limitation the rights\n")
-        f.write(" * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n")
-        f.write(" * copies of the Software, and to permit persons to whom the Software is\n")
-        f.write(" * furnished to do so, subject to the following conditions:\n")
-        f.write(" *\n")
-        f.write(" * The above copyright notice and this permission notice shall be included in all\n")
-        f.write(" * copies or substantial portions of the Software.\n")
-        f.write(" *\n")
-        f.write(" * THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n")
-        f.write(" * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n")
-        f.write(" * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n")
-        f.write(" * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n")
-        f.write(" * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n")
-        f.write(" * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n")
-        f.write(" * SOFTWARE.\n")
-        f.write(" */\n\n")
+        write_license(f, comment_style="c")
         
         f.write(f"/*\n * {protocol} C Source File\n * Auto-generated on: {timestamp}\n * Protocol Version: {version}\n */\n\n")
         
@@ -182,7 +172,6 @@ def generate_c_source(data, output_file):
         f.write("#include <string.h>\n\n")
         
         for msg in data['messages']:
-            msg_name_upper = msg['name'].upper()
             msg_name_lower = msg['name'].lower()
             struct_name = f"{protocol}_Payload_{msg['name']}_t"
             
@@ -196,7 +185,7 @@ def generate_c_source(data, output_file):
             f.write(f"size_t {protocol.lower()}_unpack_{msg_name_lower}(const uint8_t* buf, {struct_name}* msg) {{\n")
             f.write(f"    memcpy(msg, buf, sizeof({struct_name}));\n")
             f.write(f"    return sizeof({struct_name});\n")
-            f.write("}\n")
+            f.write("}\n\n")
             
     print(f"Generated C Source: {output_file}")
 
@@ -208,35 +197,15 @@ def generate_python_file(data, output_file):
     sync_byte_2 = f"0x{int(data['sync_byte_2']):02X}"
     timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
     with open(output_file, 'w') as f:
-        f.write("# MIT License\n")
-        f.write("#\n")
-        f.write("# Copyright (c) 2026 MM Nautronics\n")
-        f.write("#\n")
-        f.write("# Permission is hereby granted, free of charge, to any person obtaining a copy\n")
-        f.write("# of this software and associated documentation files (the \"Software\"), to deal\n")
-        f.write("# in the Software without restriction, including without limitation the rights\n")
-        f.write("# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n")
-        f.write("# copies of the Software, and to permit persons to whom the Software is\n")
-        f.write("# furnished to do so, subject to the following conditions:\n")
-        f.write("#\n")
-        f.write("# The above copyright notice and this permission notice shall be included in all\n")
-        f.write("# copies or substantial portions of the Software.\n")
-        f.write("#\n")
-        f.write("# THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n")
-        f.write("# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n")
-        f.write("# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n")
-        f.write("# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n")
-        f.write("# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n")
-        f.write("# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n")
-        f.write("# SOFTWARE.\n\n")
+        write_license(f, comment_style="py")
     
         f.write(f"'''\nNCOM Python Module\nAuto-generated on: {timestamp}\nVersion: {version}\n'''\n\n")
+        f.write("import struct\n\n")
         
         endian_char = ">" if data.get("endianness") == "big" else "<"
         f.write(f"ENDIAN_CHAR = '{endian_char}'\n\n")
-
-        f.write("import struct\n\n")
         
         f.write(f"SYNC_BYTE_1 = {sync_byte_1}\n")
         f.write(f"SYNC_BYTE_2 = {sync_byte_2}\n\n")
@@ -318,11 +287,13 @@ def generate_python_file(data, output_file):
     print(f"Generated Python File: {output_file}")
 
 def load_protocol_data():
-    if not os.path.exists('ncom_def.json'):
-        print("Error: ncom_def.json not found.")
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    def_file = os.path.join(base_dir, 'ncom_def.json')
+    if not os.path.exists(def_file):
+        print(f"Error: {def_file} not found.")
         return None
 
-    with open('ncom_def.json', 'r') as f:
+    with open(def_file, 'r') as f:
         config = json.load(f)
 
     merged_messages = []
@@ -331,7 +302,7 @@ def load_protocol_data():
     if "includes" in config:
         for section, info in config["includes"].items():
             if info.get("enabled", False):
-                path = info["path"]
+                path = os.path.join(base_dir, info["path"])
                 if os.path.exists(path):
                     try:
                         with open(path, 'r') as f:

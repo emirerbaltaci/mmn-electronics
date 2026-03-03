@@ -23,8 +23,11 @@
  */
 
 #include "auvconfig.h"
+#include "FreeRTOS.h"
+#include "semphr.h"
 
 AUV_Config_t auvConfig;
+static SemaphoreHandle_t xConfigMutex = NULL;
 
 void AUV_Config_Init(void) {
   // EKF Parameters
@@ -55,20 +58,30 @@ void AUV_Config_Init(void) {
   auvConfig.ekf.chi_square_th_dof3 = EKF_CHI_SQUARE_TH_DOF3;
   auvConfig.ekf.chi_square_th_dof6 = EKF_CHI_SQUARE_TH_DOF6;
 
-  // PID Parameters
-  auvConfig.pid.sp.p = AUV_DEFAULT_PID_SP_P;
-  auvConfig.pid.sp.i = AUV_DEFAULT_PID_SP_I;
-  auvConfig.pid.sp.d = AUV_DEFAULT_PID_SP_D;
-  auvConfig.pid.sp.maxout = AUV_DEFAULT_PID_SP_MAXOUT;
-  auvConfig.pid.sp.minout = AUV_DEFAULT_PID_SP_MINOUT;
-  auvConfig.pid.sp.wrapbound = AUV_DEFAULT_PID_SP_WRAPBOUND;
+  // Generic X/Y Position Default Init (using SP defaults)
+  auvConfig.pid.xy.p = AUV_DEFAULT_PID_SP_P;
+  auvConfig.pid.xy.i = AUV_DEFAULT_PID_SP_I;
+  auvConfig.pid.xy.d = AUV_DEFAULT_PID_SP_D;
+  auvConfig.pid.xy.maxout = AUV_DEFAULT_PID_SP_MAXOUT;
+  auvConfig.pid.xy.minout = AUV_DEFAULT_PID_SP_MINOUT;
+  auvConfig.pid.xy.wrapbound = AUV_DEFAULT_PID_SP_WRAPBOUND;
 
-  auvConfig.pid.ss.p = AUV_DEFAULT_PID_SS_P;
-  auvConfig.pid.ss.i = AUV_DEFAULT_PID_SS_I;
-  auvConfig.pid.ss.d = AUV_DEFAULT_PID_SS_D;
-  auvConfig.pid.ss.maxout = AUV_DEFAULT_PID_SS_MAXOUT;
-  auvConfig.pid.ss.minout = AUV_DEFAULT_PID_SS_MINOUT;
-  auvConfig.pid.ss.wrapbound = AUV_DEFAULT_PID_SS_WRAPBOUND;
+  // Depth Default Init (using SS defaults)
+  auvConfig.pid.depth.p = AUV_DEFAULT_PID_SS_P;
+  auvConfig.pid.depth.i = AUV_DEFAULT_PID_SS_I;
+  auvConfig.pid.depth.d = AUV_DEFAULT_PID_SS_D;
+  auvConfig.pid.depth.maxout = AUV_DEFAULT_PID_SS_MAXOUT;
+  auvConfig.pid.depth.minout = AUV_DEFAULT_PID_SS_MINOUT;
+  auvConfig.pid.depth.wrapbound = AUV_DEFAULT_PID_SS_WRAPBOUND;
+
+  // Roll Default Init
+  auvConfig.pid.roll = auvConfig.pid.xy;
+
+  // Pitch Default Init
+  auvConfig.pid.pitch = auvConfig.pid.xy;
+
+  // Yaw Default Init
+  auvConfig.pid.yaw = auvConfig.pid.xy;
 
   // Thruster Parameters
   float tam[8][6] = AUV_TAM_MATRIX;
@@ -191,4 +204,19 @@ void AUV_Config_Init(void) {
   auvConfig.mag.int_mode = MAG_SETUP_INT_MODE;
   auvConfig.mag.int_th = MAG_SETUP_INT_TH;
   auvConfig.mag.int_src = MAG_SETUP_INT_SRC;
+
+  /* Create the config mutex — must be called before scheduler starts */
+  xConfigMutex = xSemaphoreCreateMutex();
+  configASSERT(xConfigMutex);
+}
+
+bool AUV_Config_Lock(uint32_t timeout_ms) {
+  if (xConfigMutex == NULL)
+    return false;
+  return xSemaphoreTake(xConfigMutex, pdMS_TO_TICKS(timeout_ms)) == pdTRUE;
+}
+
+void AUV_Config_Unlock(void) {
+  if (xConfigMutex != NULL)
+    xSemaphoreGive(xConfigMutex);
 }

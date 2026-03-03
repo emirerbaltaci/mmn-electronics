@@ -23,29 +23,25 @@
  */
 
 /* #############################################
- * 				     ncom_tx.h
- * NCOM MCU-Side Transmission Module Header File
+ * 			    ncom_handlers.h
+ *   NCOM Handler Dispatch Module Header File
  * ############################################# */
-#ifndef INC_NCOM_TX_H_
-#define INC_NCOM_TX_H_
+#ifndef NCOM_INC_NCOM_HANDLERS_H_
+#define NCOM_INC_NCOM_HANDLERS_H_
 
 /* #############################################
- * 				      Includes
+ * 			         Includes
  * ############################################# */
-#include "ncom_protocol.h"
-#include <assert.h>
-#include <stdbool.h>
-#include <stdint.h>
+#include "auvconfig.h"
+#include "ncom_rx.h"
 
 /* #############################################
- * 				Function Prototypes
+ * 			    Function Prototypes
  * ############################################# */
-void NCOM_TX_Init(void);
-int16_t NCOM_TX_SendPacket(uint8_t msgId, const void *payload, uint8_t len);
-int16_t NCOM_TX_SendPacketUnsafe(uint8_t msgId, const void *payload,
-                                 uint8_t len);
+bool NCOM_Handlers_Config_Set_Startup(NCOM_RX_t *rx, AUV_Config_t *auvConfig);
+void NCOM_Handlers_Selector(NCOM_RX_t *rx);
 
 /* #############################################
  * #############################################
  * ############################################# */
-#endif /* INC_NCOM_TX_H_ */
+#endif /* NCOM_INC_NCOM_HANDLERS_H_ */
