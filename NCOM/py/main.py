@@ -32,6 +32,8 @@ import time
 from datetime import datetime
 import threading
 import sys
+import socket
+import json
 
 def find_stm32g4(): # Find the STM32G4 COM port by VID and PID
     for port in serial.tools.list_ports.comports():
@@ -42,54 +44,24 @@ def find_stm32g4(): # Find the STM32G4 COM port by VID and PID
 def parser_error_handler(error):
     print(f"[NCOMParser ERROR]: {error}")
 
-last_uptime = -1
-print_hb = False
+# Use a threading Event for thread-safe cross-thread UI toggle
+print_hb_event = threading.Event()
 
-def handle_packet(msg_id, data, ncom_parser):
-    global last_uptime, print_hb
-    is_hb = (msg_id == ncom.Messages.NAME_TO_ID["HEARTBEAT"])
-    is_ack = (msg_id == ncom.Messages.NAME_TO_ID["ACKNOWLEDGEMENT"])
+def handle_packet(msg_id, data, ncom_parser, heartbeat_state):
+    # Process known handlers directly
+    is_handled = nch.process_packet(msg_id, ncom_parser.seq, data, heartbeat_state, print_hb_event.is_set())
     
-    if is_hb and not print_hb: # Update last_uptime without printing anything
-        last_uptime = nch.heartbeat_handler(data, last_uptime, print_hb=False)
-        return
-    
-    timestamp = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-    print(f"\r[{timestamp}]\nSequence: {ncom_parser.seq}\nMessage: {ncom.Messages.ID_TO_NAME[msg_id]} (ID: {msg_id})")
-    
-    if is_hb:
-        last_uptime = nch.heartbeat_handler(data, last_uptime, print_hb=True)
-    elif is_ack:
-        nch.ack_handler(msg_id, data)
-    else:
-        parsed = data
+    # If the packet isn't handled implicitly, print the payload sequentially
+    if not is_handled:
+        timestamp = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        print(f"\r[{timestamp}]\nSequence: {ncom_parser.seq}\nMessage: {ncom.Messages.ID_TO_NAME[msg_id]} (ID: {msg_id})")
+        
         print("  Payload parameters (in order):")
-        for i, value in enumerate(parsed):
+        for i, value in enumerate(data):
             print(f"    [{i}]: {value}")
         print("")
 
-def rx_thread_func(ser, parser):
-    while ser.is_open:
-        try:
-            time.sleep(MAINLOOP_SLEEP)
-            if ser.in_waiting: # Check if there are any bytes in the RX buffer
-                chunk = ser.read(ser.in_waiting)   # Read all available bytes
-                for byte in chunk: # Parse each byte
-                    packet = parser.parse_byte(byte) # Get a packet if available
-                    if packet:  # If a packet is received
-                        msg_id, seq, data = packet # Unpack the packet
-                        handle_packet(msg_id, data, parser) # Handle the packet
-        except OSError:
-            print("\n[RX] Connection lost.")
-            break
-        except Exception as e:
-            if ser.is_open:
-                print(f"\n[RX] Error: {e}")
-            break
-
 def udp_listen_func(ser):
-    import socket
-    import json
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("127.0.0.1", 5005))
     sock.settimeout(1.0)
@@ -102,9 +74,12 @@ def udp_listen_func(ser):
             msg = json.loads(data.decode('utf-8'))
             
             if msg.get("command") == "TOGGLE_HB":
-                global print_hb
-                print_hb = not print_hb
-                status = "ON" if print_hb else "OFF"
+                if print_hb_event.is_set():
+                    print_hb_event.clear()
+                    status = "OFF"
+                else:
+                    print_hb_event.set()
+                    status = "ON"
                 print(f"\n[UDP] Heartbeat printing toggled {status}\n")
                 continue
                 
@@ -151,6 +126,9 @@ def main():
                 udp_thread = threading.Thread(target=udp_listen_func, args=(ser,), daemon=True)
                 udp_thread.start()
                 
+                # Wrapped mutable state for the packet handler loop
+                heartbeat_state = {'last_uptime': -1}
+                
                 # Run the RX loop blockingly in the main thread now
                 while ser.is_open:
                     time.sleep(MAINLOOP_SLEEP)
@@ -161,12 +139,10 @@ def main():
                                 packet = parser.parse_byte(byte) # Get a packet if available
                                 if packet:  # If a packet is received
                                     msg_id, seq, data = packet # Unpack the packet
-                                    handle_packet(msg_id, data, parser) # Handle the packet
+                                    handle_packet(msg_id, data, parser, heartbeat_state) # Handle the packet
                     except OSError:
                         raise serial.SerialException("Connection lost")
-                
-                udp_thread.join(timeout=1.0)
-                
+                        
         except (serial.SerialException, OSError):
             print("\nDevice disconnected. Trying to reconnect....")
             port = None

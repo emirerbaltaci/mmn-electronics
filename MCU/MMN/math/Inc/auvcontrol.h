@@ -28,6 +28,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define AUV_NUM_THRUSTERS 8
+#define AUV_DOF 6
+
 typedef struct {
   float x;
   float y;
@@ -62,7 +65,7 @@ typedef struct {
 } PID_Controller_t;
 
 typedef struct {
-  bool prev_use_speed[6];
+  bool prev_use_speed[AUV_DOF];
 } Controller_State;
 
 void PID_Init(PID_Controller_t *pid, float p, float i, float d, float max,
@@ -70,7 +73,9 @@ void PID_Init(PID_Controller_t *pid, float p, float i, float d, float max,
 void PID_Reset(PID_Controller_t *pid);
 float PID_Update(PID_Controller_t *pid, float setpoint, float measurement,
                  float dt);
-void PID_Calculate(Setpoint_t sp, float *state, float *tau,
+float PID_UpdateFromError(PID_Controller_t *pid, float error, float velocity,
+                          float dt);
+void PID_Calculate(Setpoint_t sp, float *state, float *state_vel, float *tau,
                    PID_Controller_t *pids, float dt);
 void PID_CalculateSpeed(Setspeed_t ss, float *state_vel, float *tau,
                         PID_Controller_t *pids_vel, float dt);
@@ -78,6 +83,10 @@ void PID_CalculateHybrid(Setpoint_t sp, Setspeed_t ss, const bool *use_speed,
                          float *state_pos, float *state_vel, float *tau,
                          PID_Controller_t *pids_pos, PID_Controller_t *pids_vel,
                          Controller_State *ctrl_state, float dt);
+
+void AUV_EarthToBody_Translate(float err_x, float err_y, float err_z,
+                               float roll, float pitch, float yaw,
+                               float *err_body);
 
 void Thrust_Allocate(float *tau, float *forces);
 uint16_t Thrust_to_PWM(float thrust_newtons);

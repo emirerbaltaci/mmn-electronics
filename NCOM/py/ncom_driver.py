@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import struct
+import threading
 import ncom_protocol as ncom
 
 class CRC16:
@@ -39,7 +40,7 @@ class CRC16:
     
     @classmethod
     def calc(cls, data):
-        if not cls._table: cls._init_table()
+        if len(cls._table) < 256: cls._init_table()
         crc = 0xFFFF
         for byte in data:
             i = (crc >> 8) ^ byte
@@ -48,22 +49,24 @@ class CRC16:
         return crc
 
 _tx_seq = 0
+_tx_seq_lock = threading.Lock()
 
 def create_frame(msg_id, *args):
     global _tx_seq
     payload = ncom.Messages.pack(msg_id, *args)
     if payload is None or len(payload) > ncom.MAX_PAYLOAD_LEN: return None
     
-    seq = _tx_seq
-    _tx_seq = (_tx_seq + 1) % 256
+    with _tx_seq_lock:
+        seq = _tx_seq
+        _tx_seq = (_tx_seq + 1) % 256
     
+    # Calculate CRC independently of the prepended Sync Bytes
+    # (Matches STM32 Hardware CRC which resets explicitly upon receiving SYNC_BYTE_2)
     data = struct.pack(ncom.ENDIAN_CHAR + "BBB", seq, msg_id, len(payload)) + payload
     crc = CRC16.calc(data)
     
-    # We still need to pack the sync bytes and header
     frame = bytearray()
-    frame.extend(struct.pack(ncom.ENDIAN_CHAR + "B", ncom.SYNC_BYTE_1))
-    frame.extend(struct.pack(ncom.ENDIAN_CHAR + "B", ncom.SYNC_BYTE_2))
+    frame.extend([ncom.SYNC_BYTE_1, ncom.SYNC_BYTE_2])
     frame.extend(data)
     frame.extend(struct.pack(ncom.ENDIAN_CHAR + "H", crc))
     
@@ -96,6 +99,9 @@ class NCOMParser:
         elif self.state == self.STATE_WAIT_SYNC_2:
             if byte == ncom.SYNC_BYTE_2:
                 self.state = self.STATE_WAIT_SEQ
+            elif byte == ncom.SYNC_BYTE_1:
+                # Stay in SYNC_2 state, treating this byte as a new potential SYNC_1
+                pass
             else:
                 self.state = self.STATE_WAIT_SYNC_1
                 
@@ -108,6 +114,12 @@ class NCOMParser:
             self.state = self.STATE_WAIT_LEN
             
         elif self.state == self.STATE_WAIT_LEN:
+            if byte > ncom.MAX_PAYLOAD_LEN:
+                self.state = self.STATE_WAIT_SYNC_1
+                if self.on_error:
+                    self.on_error(f"Length {byte} exceeds maximum allowed ({ncom.MAX_PAYLOAD_LEN}). Resetting parser.")
+                return None
+            
             self.payload_len = byte
             self.payload_buf = bytearray()
             if self.payload_len == 0:

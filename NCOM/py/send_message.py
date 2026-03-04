@@ -35,6 +35,7 @@ def load_payload_definitions():
 
 def main():
     payload_defs = load_payload_definitions()
+    enum_dicts = {k: getattr(ncom, k) for k in dir(ncom) if isinstance(getattr(ncom, k), dict)}
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     
     print("Type message name and arguments separated by spaces.")
@@ -50,7 +51,7 @@ def main():
                 continue
             if line.lower() in ('exit', 'quit'):
                 print("Exiting CLI...")
-                sys.exit(0)
+                break
                 
             parts = line.split()
             msg_name = parts[0].upper()
@@ -88,15 +89,21 @@ def main():
             for i, arg_str in enumerate(parts[1:]):
                 char = fmt_string[i]
                 try:
-                    # special case for Enums like COMMAND_CMD_ID
-                    if msg_name == 'COMMAND' and i == 0 and not arg_str.isdigit():
-                        if arg_str.upper() in ncom.COMMAND_CMD_ID:
-                            args.append(ncom.COMMAND_CMD_ID[arg_str.upper()])
-                        else:
-                            print(f"Unknown command: {arg_str}")
+                    # Generic lookup for ANY enum parameter across protocols (eg. `HEARTBEAT_VEHICLE_STATE`, `COMMAND_CMD_ID`)
+                    # Format: `{MESSAGE_NAME}_{FIELD_NAME}` inside ncom module holding dict mappings
+                    # Since we don't have field_name here, we grep the dicts blindly if it's a non-digit string
+                    if not arg_str.isdigit() and not (arg_str.startswith('-') and arg_str[1:].isdigit()) and '.' not in arg_str:
+                        resolved = False
+                        for attr_name, enum_dict in enum_dicts.items():
+                            if attr_name.startswith(f"{msg_name}_") and arg_str.upper() in enum_dict:
+                                args.append(enum_dict[arg_str.upper()])
+                                resolved = True
+                                break
+                        if not resolved:
+                            print(f"Unknown string literal/enum argument: {arg_str}")
                             valid = False
                             break
-                    elif char in 'fdf':
+                    elif char in 'fd':
                         args.append(float(arg_str))
                     else:
                         args.append(int(arg_str, 0)) # supports hex 0x and dec

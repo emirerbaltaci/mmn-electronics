@@ -138,6 +138,7 @@ volatile bool isDepthUpdated = false;
 volatile bool isMagUpdated = false;
 
 volatile uint32_t ulHighWordOverflows = 0;
+volatile uint32_t ulHighWordOverflowsTIM7 = 0;
 float cpuLoad = 0.0f;
 
 extern AUV_Config_t auvConfig;
@@ -1412,8 +1413,14 @@ void Task_StateEstimate(void *pvParameters) {
     imuBufDMATx[i] = 0;
   imuBufDMATx[0] = 0x80 | IMU_REG_TEMP_DATA1;
 
-  HAL_TIM_Base_Start(&htim7);
-  uint16_t last_time_us = __HAL_TIM_GET_COUNTER(&htim7);
+  HAL_TIM_Base_Start_IT(&htim7);
+  uint32_t initHighBits;
+  uint16_t initLowBits;
+  do {
+    initHighBits = ulHighWordOverflowsTIM7;
+    initLowBits = __HAL_TIM_GET_COUNTER(&htim7);
+  } while (initHighBits != ulHighWordOverflowsTIM7);
+  uint32_t last_time_us = (initHighBits << 16) | initLowBits;
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
   HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 
@@ -1423,12 +1430,15 @@ void Task_StateEstimate(void *pvParameters) {
 
       hbStateEstimateTask = AUV_TASK_ALIVE;
 
-      uint16_t curr_time_us = __HAL_TIM_GET_COUNTER(&htim7);
-      uint16_t delta_us;
-      if (curr_time_us >= last_time_us)
-        delta_us = curr_time_us - last_time_us;
-      else
-        delta_us = (0xFFFF - last_time_us) + curr_time_us + 1;
+      uint32_t currHighBits;
+      uint16_t currLowBits;
+      do {
+        currHighBits = ulHighWordOverflowsTIM7;
+        currLowBits = __HAL_TIM_GET_COUNTER(&htim7);
+      } while (currHighBits != ulHighWordOverflowsTIM7);
+
+      uint32_t curr_time_us = (currHighBits << 16) | currLowBits;
+      uint32_t delta_us = curr_time_us - last_time_us;
       last_time_us = curr_time_us;
       float dt = (float)delta_us * 0.000001f;
       if (dt > 0.02f || dt <= 0.0f)
@@ -1510,7 +1520,7 @@ void Task_StateEstimate(void *pvParameters) {
 
       if (isMagUpdated) {
 
-        if (xSemaphoreTake(xStateMutex, 0) == pdTRUE) {
+        if (xSemaphoreTake(xStateMutex, pdMS_TO_TICKS(1)) == pdTRUE) {
           float mag_meas[3];
 
           mag_meas[0] = lis.data.magX;
@@ -1560,13 +1570,17 @@ void Task_StateEstimate(void *pvParameters) {
       }
 
       if (isDepthUpdated) {
-        isDepthUpdated = false;
-        float dz_depth = bar.depth - nominal_x[2];
-        float H_depth[15] = {0};
-        H_depth[2] = 1.0f;
-        float R_depth = EKF_R_BARO;
-        if (eskf_update(error_x, P, &dz_depth, H_depth, &R_depth, 1))
-          eskf_inject(nominal_x, error_x, P);
+        if (xSemaphoreTake(xStateMutex, pdMS_TO_TICKS(1)) == pdTRUE) {
+          isDepthUpdated = false;
+          float dz_depth = bar.depth - nominal_x[2];
+          xSemaphoreGive(xStateMutex);
+
+          float H_depth[15] = {0};
+          H_depth[2] = 1.0f;
+          float R_depth = EKF_R_BARO;
+          if (eskf_update(error_x, P, &dz_depth, H_depth, &R_depth, 1))
+            eskf_inject(nominal_x, error_x, P);
+        }
       }
 
       bool isStationary = (armStatus == AUV_DISARMED);
@@ -1654,53 +1668,55 @@ void Task_Control(void *pvParameters) {
 
     if (armStatus == AUV_ARMED) {
 
+      static PID_ConfigParams_t cachedPidConfig = {0};
+
       // Update PID gains dynamically from auvConfig
       if (AUV_Config_Lock(2)) {
-        // Surge (X)
-        pidsSetpoint[0].kp = auvConfig.pid.xy.p;
-        pidsSetpoint[0].ki = auvConfig.pid.xy.i;
-        pidsSetpoint[0].kd = auvConfig.pid.xy.d;
-        // Sway (Y)
-        pidsSetpoint[1].kp = auvConfig.pid.xy.p;
-        pidsSetpoint[1].ki = auvConfig.pid.xy.i;
-        pidsSetpoint[1].kd = auvConfig.pid.xy.d;
-        // Heave (Depth / Z)
-        pidsSetpoint[2].kp = auvConfig.pid.depth.p;
-        pidsSetpoint[2].ki = auvConfig.pid.depth.i;
-        pidsSetpoint[2].kd = auvConfig.pid.depth.d;
-        // Roll
-        pidsSetpoint[3].kp = auvConfig.pid.roll.p;
-        pidsSetpoint[3].ki = auvConfig.pid.roll.i;
-        pidsSetpoint[3].kd = auvConfig.pid.roll.d;
-        // Pitch
-        pidsSetpoint[4].kp = auvConfig.pid.pitch.p;
-        pidsSetpoint[4].ki = auvConfig.pid.pitch.i;
-        pidsSetpoint[4].kd = auvConfig.pid.pitch.d;
-        // Yaw
-        pidsSetpoint[5].kp = auvConfig.pid.yaw.p;
-        pidsSetpoint[5].ki = auvConfig.pid.yaw.i;
-        pidsSetpoint[5].kd = auvConfig.pid.yaw.d;
+        if (memcmp(&cachedPidConfig, &auvConfig.pid,
+                   sizeof(PID_ConfigParams_t)) != 0) {
+          memcpy(&cachedPidConfig, &auvConfig.pid, sizeof(PID_ConfigParams_t));
 
-        // Note: If Setspeed requires separate tuning, you would map it here.
-        // Defaults could just mirror the positional tunings or fall back to xy
-        // if unspecified.
-        for (int i = 0; i < 6; i++) {
-          pidsSetspeed[i].kp = auvConfig.pid.xy.p;
-          pidsSetspeed[i].ki = auvConfig.pid.xy.i;
-          pidsSetspeed[i].kd = auvConfig.pid.xy.d;
+          // Surge (X)
+          pidsSetpoint[0].kp = auvConfig.pid.xy.p;
+          pidsSetpoint[0].ki = auvConfig.pid.xy.i;
+          pidsSetpoint[0].kd = auvConfig.pid.xy.d;
+          // Sway (Y)
+          pidsSetpoint[1].kp = auvConfig.pid.xy.p;
+          pidsSetpoint[1].ki = auvConfig.pid.xy.i;
+          pidsSetpoint[1].kd = auvConfig.pid.xy.d;
+          // Heave (Depth / Z)
+          pidsSetpoint[2].kp = auvConfig.pid.depth.p;
+          pidsSetpoint[2].ki = auvConfig.pid.depth.i;
+          pidsSetpoint[2].kd = auvConfig.pid.depth.d;
+          // Roll
+          pidsSetpoint[3].kp = auvConfig.pid.roll.p;
+          pidsSetpoint[3].ki = auvConfig.pid.roll.i;
+          pidsSetpoint[3].kd = auvConfig.pid.roll.d;
+          // Pitch
+          pidsSetpoint[4].kp = auvConfig.pid.pitch.p;
+          pidsSetpoint[4].ki = auvConfig.pid.pitch.i;
+          pidsSetpoint[4].kd = auvConfig.pid.pitch.d;
+          // Yaw
+          pidsSetpoint[5].kp = auvConfig.pid.yaw.p;
+          pidsSetpoint[5].ki = auvConfig.pid.yaw.i;
+          pidsSetpoint[5].kd = auvConfig.pid.yaw.d;
+
+          // Note: If Setspeed requires separate tuning, you would map it here.
+          // Defaults currently mirror the positional tuning structures
+          // directly. KNOWN LIMITATION (RTOS10): Mapping Horizontal Surge
+          // (xy.p) arrays identically to all axes including Heave/Yaw produces
+          // flawed dynamic tunings globally. This must be segregated.
+          for (int i = 0; i < 6; i++) {
+            pidsSetspeed[i].kp = auvConfig.pid.xy.p;
+            pidsSetspeed[i].ki = auvConfig.pid.xy.i;
+            pidsSetspeed[i].kd = auvConfig.pid.xy.d;
+          }
         }
         AUV_Config_Unlock();
       }
 
       for (int i = 0; i < 6; i++) {
-        if (currMode[i] != prevMode[i]) {
-          if (currMode[i] == true) {
-            PID_Reset(&pidsSetspeed[i]);
-          } else {
-            PID_Reset(&pidsSetpoint[i]);
-          }
-          prevMode[i] = currMode[i];
-        }
+        prevMode[i] = currMode[i];
       }
 
       PID_CalculateHybrid(currSetpoint, currSetspeed, currMode, currPosition,
@@ -1721,7 +1737,6 @@ void Task_Control(void *pvParameters) {
       memcpy(prevMode, currMode, sizeof(bool) * 6);
     }
 
-    taskENTER_CRITICAL();
     TIM1->CCR1 = pwmArr[0];
     TIM1->CCR2 = pwmArr[1];
     TIM1->CCR3 = pwmArr[2];
@@ -1730,7 +1745,6 @@ void Task_Control(void *pvParameters) {
     TIM2->CCR2 = pwmArr[5];
     TIM2->CCR3 = pwmArr[6];
     TIM2->CCR4 = pwmArr[7];
-    taskEXIT_CRITICAL();
 
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
@@ -1788,14 +1802,11 @@ void Task_NCOM(void *pvParameters) {
 }
 
 void Task_Sensor(void *pvParameters) {
-  const TickType_t xFrequency = pdMS_TO_TICKS(TASK_SENSOR_SLEEP_MS);
-  TickType_t xLastWakeTime = xTaskGetTickCount();
-
   float mag[4];
 
   for (;;) {
 
-    if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(20)) > 0) {
+    if (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) > 0) {
       taskENTER_CRITICAL();
       mag[0] = (float)((int16_t)((magBuf[2] << 8) | magBuf[1])) * lis.mult;
       mag[1] = (float)((int16_t)((magBuf[4] << 8) | magBuf[3])) * lis.mult;
@@ -1809,11 +1820,8 @@ void Task_Sensor(void *pvParameters) {
         lis.data.magZ = mag[2];
         lis.data.tempC = mag[3];
         isMagUpdated = true;
-        xSemaphoreGive(xStateMutex);
       }
     }
-
-    vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
 }
 
@@ -1864,6 +1872,9 @@ void Task_SysMonitor(void *pvParameters) {
       HAL_IWDG_Refresh(&hiwdg);
     } else {
 
+      // Refresh IWDG once inside unrecoverable branch to buy some time
+      // for the DYING_GASP packet to transmit. The while(1) at the end
+      // will eventually trigger the intended hardware watchdog reset.
       HAL_IWDG_Refresh(&hiwdg);
 
       uint8_t deadTaskBitmask = 0;
@@ -1957,6 +1968,9 @@ void ConfigureTimerForRunTimeStats(void) { HAL_TIM_Base_Start_IT(&htim16); }
 unsigned long GetTimerForRunTimeStats(void) {
   uint32_t highBits;
   uint32_t lowBits;
+  // This loop cleanly handles cross-thread TIM16 overflows.
+  // Note: Unsafe if called from an ISR context with a priority
+  // higher than the TIM16 interrupt, as an overflow would spin indefinitely.
   do {
     highBits = ulHighWordOverflows;
     lowBits = __HAL_TIM_GET_COUNTER(&htim16);
@@ -1986,6 +2000,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
   else if (htim->Instance == TIM16)
     ulHighWordOverflows++;
+  else if (htim->Instance == TIM7)
+    ulHighWordOverflowsTIM7++;
 
   /* USER CODE END Callback 1 */
 }
