@@ -25,6 +25,8 @@
 #include "auvconfig.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
+#include <math.h>
+
 
 AUV_Config_t auvConfig;
 static SemaphoreHandle_t xConfigMutex = NULL;
@@ -82,6 +84,7 @@ void AUV_Config_Init(void) {
 
   // Yaw Default Init
   auvConfig.pid.yaw = auvConfig.pid.xy;
+  auvConfig.pid.yaw.wrapbound = (float)M_PI;
 
   // Thruster Parameters
   float tam[8][6] = AUV_TAM_MATRIX;

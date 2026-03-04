@@ -53,6 +53,29 @@ void PID_Init(PID_Controller_t *pid, float p, float i, float d, float max,
   }
 }
 
+void PID_SetGains(PID_Controller_t *pid, float p, float i, float d, float max,
+                  float min, float wrap_bound) {
+  pid->kp = p;
+  pid->ki = i;
+  pid->kd = d;
+  pid->limit_max = max;
+  pid->limit_min = min;
+  pid->wrap_bound = wrap_bound;
+
+  if (i > 0.0f) {
+    pid->integral_max = max / i;
+    pid->integral_min = min / i;
+  } else {
+    pid->integral_max = max;
+    pid->integral_min = min;
+  }
+
+  if (pid->integral > pid->integral_max)
+    pid->integral = pid->integral_max;
+  else if (pid->integral < pid->integral_min)
+    pid->integral = pid->integral_min;
+}
+
 void PID_Reset(PID_Controller_t *pid) {
   pid->integral = 0.0f;
   pid->prev_error = 0.0f;
@@ -124,11 +147,6 @@ float PID_UpdateFromError(PID_Controller_t *pid, float error, float velocity,
                           float dt) {
   if (dt <= 1e-6f)
     return 0.0f;
-
-  if (pid->first_run) {
-    pid->prev_measurement = 0.0f;
-    pid->first_run = false;
-  }
 
   if (pid->wrap_bound > 0.0f) {
     float period = 2.0f * pid->wrap_bound;

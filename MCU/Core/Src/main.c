@@ -1645,8 +1645,6 @@ void Task_Control(void *pvParameters) {
     PID_Init(&pidsSetspeed[i], 0, 0, 0, 0, 0, 0);
   }
 
-  pidsSetpoint[5].wrap_bound = (float)M_PI;
-
   for (;;) {
 
     hbControlTask = AUV_TASK_ALIVE;
@@ -1656,6 +1654,7 @@ void Task_Control(void *pvParameters) {
     static Setpoint_t currSetpoint = {0};
     static Setspeed_t currSetspeed = {0};
     static bool currMode[6] = {false};
+    static PID_ConfigParams_t cachedPidConfig = {0};
 
     if (xSemaphoreTake(xStateMutex, pdMS_TO_TICKS(1)) == pdTRUE) {
       memcpy(currPosition, &ekfState[0], sizeof(float) * 6);
@@ -1672,8 +1671,6 @@ void Task_Control(void *pvParameters) {
 
     if (armStatus == AUV_ARMED) {
 
-      static PID_ConfigParams_t cachedPidConfig = {0};
-
       // Update PID gains dynamically from auvConfig
       if (AUV_Config_Lock(2)) {
         if (memcmp(&cachedPidConfig, &auvConfig.pid,
@@ -1681,29 +1678,33 @@ void Task_Control(void *pvParameters) {
           memcpy(&cachedPidConfig, &auvConfig.pid, sizeof(PID_ConfigParams_t));
 
           // Surge (X)
-          pidsSetpoint[0].kp = auvConfig.pid.xy.p;
-          pidsSetpoint[0].ki = auvConfig.pid.xy.i;
-          pidsSetpoint[0].kd = auvConfig.pid.xy.d;
+          PID_SetGains(&pidsSetpoint[0], auvConfig.pid.xy.p, auvConfig.pid.xy.i,
+                       auvConfig.pid.xy.d, auvConfig.pid.xy.maxout,
+                       auvConfig.pid.xy.minout, auvConfig.pid.xy.wrapbound);
           // Sway (Y)
-          pidsSetpoint[1].kp = auvConfig.pid.xy.p;
-          pidsSetpoint[1].ki = auvConfig.pid.xy.i;
-          pidsSetpoint[1].kd = auvConfig.pid.xy.d;
+          PID_SetGains(&pidsSetpoint[1], auvConfig.pid.xy.p, auvConfig.pid.xy.i,
+                       auvConfig.pid.xy.d, auvConfig.pid.xy.maxout,
+                       auvConfig.pid.xy.minout, auvConfig.pid.xy.wrapbound);
           // Heave (Depth / Z)
-          pidsSetpoint[2].kp = auvConfig.pid.depth.p;
-          pidsSetpoint[2].ki = auvConfig.pid.depth.i;
-          pidsSetpoint[2].kd = auvConfig.pid.depth.d;
+          PID_SetGains(&pidsSetpoint[2], auvConfig.pid.depth.p,
+                       auvConfig.pid.depth.i, auvConfig.pid.depth.d,
+                       auvConfig.pid.depth.maxout, auvConfig.pid.depth.minout,
+                       auvConfig.pid.depth.wrapbound);
           // Roll
-          pidsSetpoint[3].kp = auvConfig.pid.roll.p;
-          pidsSetpoint[3].ki = auvConfig.pid.roll.i;
-          pidsSetpoint[3].kd = auvConfig.pid.roll.d;
+          PID_SetGains(&pidsSetpoint[3], auvConfig.pid.roll.p,
+                       auvConfig.pid.roll.i, auvConfig.pid.roll.d,
+                       auvConfig.pid.roll.maxout, auvConfig.pid.roll.minout,
+                       auvConfig.pid.roll.wrapbound);
           // Pitch
-          pidsSetpoint[4].kp = auvConfig.pid.pitch.p;
-          pidsSetpoint[4].ki = auvConfig.pid.pitch.i;
-          pidsSetpoint[4].kd = auvConfig.pid.pitch.d;
+          PID_SetGains(&pidsSetpoint[4], auvConfig.pid.pitch.p,
+                       auvConfig.pid.pitch.i, auvConfig.pid.pitch.d,
+                       auvConfig.pid.pitch.maxout, auvConfig.pid.pitch.minout,
+                       auvConfig.pid.pitch.wrapbound);
           // Yaw
-          pidsSetpoint[5].kp = auvConfig.pid.yaw.p;
-          pidsSetpoint[5].ki = auvConfig.pid.yaw.i;
-          pidsSetpoint[5].kd = auvConfig.pid.yaw.d;
+          PID_SetGains(&pidsSetpoint[5], auvConfig.pid.yaw.p,
+                       auvConfig.pid.yaw.i, auvConfig.pid.yaw.d,
+                       auvConfig.pid.yaw.maxout, auvConfig.pid.yaw.minout,
+                       auvConfig.pid.yaw.wrapbound);
 
           // Note: If Setspeed requires separate tuning, you would map it here.
           // Defaults currently mirror the positional tuning structures
@@ -1711,9 +1712,10 @@ void Task_Control(void *pvParameters) {
           // (xy.p) arrays identically to all axes including Heave/Yaw produces
           // flawed dynamic tunings globally. This must be segregated.
           for (int i = 0; i < 6; i++) {
-            pidsSetspeed[i].kp = auvConfig.pid.xy.p;
-            pidsSetspeed[i].ki = auvConfig.pid.xy.i;
-            pidsSetspeed[i].kd = auvConfig.pid.xy.d;
+            PID_SetGains(&pidsSetspeed[i], auvConfig.pid.xy.p,
+                         auvConfig.pid.xy.i, auvConfig.pid.xy.d,
+                         auvConfig.pid.xy.maxout, auvConfig.pid.xy.minout,
+                         auvConfig.pid.xy.wrapbound);
           }
         }
         AUV_Config_Unlock();
@@ -1725,6 +1727,7 @@ void Task_Control(void *pvParameters) {
       Thrust_Allocate(torque, force);
       Process_All_Thrusters(force, pwmArr, 8);
     } else {
+      memset(&cachedPidConfig, 0, sizeof(PID_ConfigParams_t));
       for (int i = 0; i < 8; i++) {
         pwmArr[i] = 1500;
         force[i] = 0.0f;
