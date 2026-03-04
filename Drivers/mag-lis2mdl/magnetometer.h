@@ -140,14 +140,7 @@ typedef struct{
 	uint8_t int_ctrl_reg;
 	uint8_t int_source;
 	uint16_t int_ths;
-}Mag_Config_t;
-
-typedef struct{
-	SPI_HandleTypeDef* pSPIx;
-	GPIO_TypeDef* pGPIOx;
-	uint16_t GPIO_PIN_x;
-	Mag_Config_t config;
-}MAG_Handler_t;
+}MAG_Config_t;
 
 typedef struct{
 	float magX;
@@ -156,12 +149,22 @@ typedef struct{
 	float tempC;
 }MAG_Data_t;
 
+typedef struct{
+	SPI_HandleTypeDef* pSPIx;
+	GPIO_TypeDef* pGPIOx;
+	uint16_t GPIO_PIN_x;
+	uint16_t GPIO_PIN_x_INT;
+	MAG_Config_t config;
+	MAG_Data_t data;
+	float mult;
+}MAG_Handler_t;
+
 MAG_Status_t MAG_SPI_ReadReg(MAG_Handler_t* mag, uint8_t REG, uint8_t* rxBuffer);
 MAG_Status_t MAG_SPI_WriteReg(MAG_Handler_t* mag, uint8_t REG, uint8_t txData);
 MAG_Status_t MAG_SPI_ReadBurst(MAG_Handler_t* mag, uint8_t REG, uint8_t* rxBuffer, uint8_t size);
 MAG_Status_t MAG_SPI_WriteBurst(MAG_Handler_t* mag, uint8_t REG, uint8_t* txBuffer, uint8_t size);
 MAG_Status_t MAG_SPI_Init(MAG_Handler_t* mag);
-MAG_Status_t MAG_SPI_GetData(MAG_Handler_t* mag, MAG_Data_t* data);
+MAG_Status_t MAG_SPI_GetData(MAG_Handler_t* mag);
 
 
 

@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 import re
 import os
 
-CONFIG_FILE = "imu_config.h"
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), "imu_config.h")
 
 class ConfigItem:
     def __init__(self, name, description, line_number, options=None, is_bitmask=False):

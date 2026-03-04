@@ -911,11 +911,6 @@ typedef enum{
 #define IMU_PED_STEP_DET_TH_SEL_0		(0 << 5)
 #define IMU_PED_STEP_DET_TH_SEL_7		(7 << 5)
 
-// APEX_CONFIG4 (0x43) - Bank 4
-#define IMU_TILT_WAIT_TIME_SEL_0S		0
-#define IMU_TILT_WAIT_TIME_SEL_2S		1
-#define IMU_TILT_WAIT_TIME_SEL_4S		2
-
 // APEX_CONFIG9 (0x48) - Bank 4
 #define IMU_SENSITIVITY_MODE_NORMAL		0
 #define IMU_SENSITIVITY_MODE_SLOW_WALK	1
@@ -927,22 +922,6 @@ static inline uint8_t IMU_ACCEL_WOM_AXIS_THR(float mgVal){
 	if(v >= 255.0f) return 255;
 	return (uint8_t)v;
 }
-
-// INT_SOURCE6 (0x4D)
-#define IMU_TAP_DET_INT1_EN					1
-#define IMU_SLEEP_DET_INT1_EN				(1 << 1)
-#define IMU_WAKE_DET_INT1_EN				(1 << 2)
-#define IMU_TILT_DET_INT1_EN				(1 << 3)
-#define IMU_STEP_CNT_OFL_INT1_EN			(1 << 4)
-#define IMU_STEP_DET_INT1_EN				(1 << 5)
-
-// INT_SOURCE7 (0x4E)
-#define IMU_TAP_DET_INT2_EN					1
-#define IMU_SLEEP_DET_INT2_EN				(1 << 1)
-#define IMU_WAKE_DET_INT2_EN				(1 << 2)
-#define IMU_TILT_DET_INT2_EN				(1 << 3)
-#define IMU_STEP_CNT_OFL_INT2_EN			(1 << 4)
-#define IMU_STEP_DET_INT2_EN				(1 << 5)
 
 // INT_SOURCE8 (0x4F)
 #define IMU_AGC_RDY_IBI_EN					1
@@ -1075,6 +1054,7 @@ typedef struct{
 	uint8_t gyro_config_static10;// IMU_REG_GYRO_CONFIG_STATIC10
 	uint8_t intf_config4;		// IMU_REG_INTF_CONFIG4
 	uint8_t intf_config5;		// IMU_REG_INTF_CONFIG5
+	uint8_t intf_config6;		// IMU_REG_INTF_CONFIG6
 
 	// Bank 2
 	uint8_t accel_config_static2;// IMU_REG_ACCEL_CONFIG_STATIC2
@@ -1113,19 +1093,6 @@ typedef struct{
 
 }IMU_Config_t;
 
-// #################################### IMU Handler Structure
-typedef struct{
-	// Variables needed to be assigned by the user before IMU_Init function call
-	IMU_Config_t config;
-	SPI_HandleTypeDef* pSPIx;
-	GPIO_TypeDef* pGPIOx;
-	uint16_t GPIO_PIN_x;
-
-	// Variables assigned by the IMU_Init function
-	float accelMult;
-	float gyroMult;
-}IMU_Handler_t;
-
 // #################################### IMU Data Structure
 typedef struct{
 	float accelX;
@@ -1136,6 +1103,22 @@ typedef struct{
 	float gyroZ;
 	float tempC;
 }IMU_Data_t;
+
+// #################################### IMU Handler Structure
+typedef struct{
+	// Variables needed to be assigned by the user before IMU_Init function call
+	IMU_Config_t config;
+	SPI_HandleTypeDef* pSPIx;
+	GPIO_TypeDef* pGPIOx;
+	uint16_t GPIO_PIN_x;
+	uint16_t GPIO_PIN_x_INT;
+
+	// Variables assigned by the IMU_Init function
+	float accelMult;
+	float gyroMult;
+
+	IMU_Data_t data;
+}IMU_Handler_t;
 
 /*#############################################################################
  *#############################################################################
@@ -1157,7 +1140,7 @@ IMU_Status_t IMU_SPI_Init(IMU_Handler_t* imu);
 IMU_Status_t IMU_SPI_ReadAccel(IMU_Handler_t* imu, IMU_Data_t* data);
 IMU_Status_t IMU_SPI_ReadGyro(IMU_Handler_t* imu, IMU_Data_t* data);
 IMU_Status_t IMU_SPI_ReadTemp(IMU_Handler_t* imu, IMU_Data_t* data);
-IMU_Status_t IMU_SPI_GetData(IMU_Handler_t* imu, IMU_Data_t* data);
+IMU_Status_t IMU_SPI_GetData(IMU_Handler_t* imu);
 IMU_Status_t IMU_SPI_ReadFIFO(IMU_Handler_t* imu, IMU_Data_t* data);
 
 void IMU_CalculateNotchFilter(IMU_Config_t* config, float freqX, float freqY, float freqZ);

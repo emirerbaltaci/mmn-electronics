@@ -10,7 +10,7 @@ The microcontroller firmware will be built on **FreeRTOS** to ensure real-time p
 
 The `Drivers/` directory contains sensor drivers implemented using the **STM32 HAL (Hardware Abstraction Layer)**. These drivers provide high-level interfaces for communicating with the onboard sensors:
 
-- **`bar30`**: Driver for the Blue Robotics Bar30 High-Resolution Pressure Sensor, to be implemented.
+- **`bar30`**: Driver for the Blue Robotics Bar30 High-Resolution Pressure Sensor.
 - **`imu-icm42688p`**: Driver for the TDK InvenSense ICM-42688-P 6-axis MotionTracking device.
 - **`mag-lis2mdl`**: Driver for the STMicroelectronics LIS2MDL ultra-low-power digital 3-axis magnetometer.
 
@@ -40,7 +40,7 @@ Note that this shows the current structure to inform the reader, the frame will 
 
 To add new messages or modify existing ones:
 
-1.  **Edit Definition**: Open `NCOM/ncom_def.json` (or the relevant file in `NCOM/msg/`) and add your message definition.
+1.  **Edit Definition**: Open relevant file in `NCOM/msg/` and add your message definition.
     ```json
     {
       "id": 10,

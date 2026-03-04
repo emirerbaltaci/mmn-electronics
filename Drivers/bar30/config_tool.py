@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 import re
 import os
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), "magnetometer_config.h")
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), "bar30_config.h")
 
 class ConfigItem:
     def __init__(self, name, description, line_number, options=None, is_bitmask=False):
@@ -55,8 +55,8 @@ class BitmaskSelector(ttk.Frame):
 class ConfigTool:
     def __init__(self, root):
         self.root = root
-        self.root.title("Magnetometer Configuration Tool")
-        self.root.geometry("600x800")
+        self.root.title("BAR30 Configuration Tool")
+        self.root.geometry("600x600")
 
         self.configs = []
         self.file_lines = []
@@ -106,9 +106,9 @@ class ConfigTool:
         in_comment_block = False
         
         # Regex patterns
-        re_config_header = re.compile(r"^\s*\*\s+(MAG_SETUP_[A-Za-z0-9_]+)\s+(.+)$")
+        re_config_header = re.compile(r"^\s*\*\s+(BAR30_SETUP_[A-Za-z0-9_]+)\s+(.+)$")
         re_option = re.compile(r"^\s*\*\s+(.+?)\s{2,}(.+)$") 
-        re_define = re.compile(r"^#define\s+(MAG_SETUP_\w+)\s+(.+)$")
+        re_define = re.compile(r"^#define\s+(BAR30_SETUP_\w+)\s+(.+)$")
         
         # Context building
         ctx_desc = ""
@@ -139,18 +139,18 @@ class ConfigTool:
                     content = line
                 
                 # Check formatting
-                # Header: * MAG_SETUP_...   Description
+                # Header: * BAR30_SETUP_...   Description
                 parts = re.split(r'\s{2,}', content)
                 
-                if len(parts) >= 2 and parts[0].startswith("MAG_SETUP_"):
+                if len(parts) >= 2 and parts[0].startswith("BAR30_SETUP_"):
                     ctx_desc = parts[1]
                 elif len(parts) >= 2 and ctx_desc:
                     # Option
-                    label = " ".join(parts[:-1])
-                    val = parts[-1]
+                    val = parts[0]
+                    label = " ".join(parts[1:])
                      # Heuristic: Value usually looks like a macro, number, or hex. 
                      # Ignore "See datasheet..." or similar instructions
-                    if re.match(r'^(MAG_|0x|\d|-)', val):
+                    if re.match(r'^(BAR30_|0x|\d|-|\d+\.\d+f|\d+f)', val):
                          ctx_options.append((label, val))
                 
                 if "bitwise OR" in content:
@@ -164,13 +164,10 @@ class ConfigTool:
                     val = match_def.group(2).strip()
                     
                     if current_context:
-                        # Link this define to the last parsed context
-                        # BUT we need new instances of options lists to avoid sharing if we modify them in memory (though we replace list in ConfigItem anyway)
-                        
                         cfg = ConfigItem(name, current_context[0], idx, list(current_context[1]), current_context[2])
                         cfg.current_value = val
                         cfg.define_line_idx = idx
-                        cfg.var = tk.StringVar(value=val) # Prepare var here or in load_config
+                        cfg.var = tk.StringVar(value=val)
                         
                         self.configs.append(cfg)
                     else:
@@ -188,7 +185,7 @@ class ConfigTool:
             f = ttk.LabelFrame(self.scrollable_frame, text=f"{cfg.name} - {cfg.description}", padding="5")
             f.grid(row=row, column=0, sticky="ew", padx=5, pady=5)
             
-            # Ensure var is set if not already (though parse_file sets it now)
+            # Ensure var is set if not already
             if not hasattr(cfg, 'var'):
                 cfg.var = tk.StringVar(value=cfg.current_value)
 
@@ -218,7 +215,6 @@ class ConfigTool:
                 e = ttk.Entry(f, textvariable=cfg.var, width=60)
                 e.pack(fill=tk.X)
                 if cfg.options:
-                     # (Shouldn't happen with above if/elif, but keeping fallback logic)
                     options_text = "Options:\n" + "\n".join([f"{opt[1]}: {opt[0]}" for opt in cfg.options])
                     lbl = ttk.Label(f, text=options_text, font=("Consolas", 8), justify=tk.LEFT)
                     lbl.pack(anchor="w")
@@ -240,14 +236,8 @@ class ConfigTool:
             
             orig_line = self.file_lines[cfg.define_line_idx]
             
-            # Robust replacement:
-            # 1. Match the "#define NAME" part, capturing leading whitespace and spacing after NAME
-            # 2. Capture the value part (and potential comments?)
-            # Regex: ^(\s*#define\s+NAME\s+)(.+?)(\s*)$
-            # But simpler: Match prefix, replace rest with new value + newline
-            
             pattern = re.compile(fr"^(\s*#define\s+{re.escape(cfg.name)}\s+)(.*)$")
-            match = pattern.match(orig_line.rstrip('\r\n')) # match against stripped EOL line
+            match = pattern.match(orig_line.rstrip('\r\n')) 
             
             if match:
                 prefix = match.group(1)
@@ -271,3 +261,4 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = ConfigTool(root)
     root.mainloop()
+

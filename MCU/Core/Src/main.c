@@ -259,6 +259,11 @@ int main(void) {
   IMU_SPI_Init(&icm);
   MAG_SPI_Init(&lis);
 
+  bar.config.osr = BAR30_SETUP_OSR;
+  bar.config.density = BAR30_SETUP_FLUID_DENSITY;
+  bar.pI2Cx = &hi2c2;
+  BAR30_Init(&bar);
+
   xStateMutex = xSemaphoreCreateMutex();
   xCommandMutex = xSemaphoreCreateMutex();
 
@@ -1651,7 +1656,6 @@ void Task_Control(void *pvParameters) {
     static Setpoint_t currSetpoint = {0};
     static Setspeed_t currSetspeed = {0};
     static bool currMode[6] = {false};
-    static bool prevMode[6] = {false};
 
     if (xSemaphoreTake(xStateMutex, pdMS_TO_TICKS(1)) == pdTRUE) {
       memcpy(currPosition, &ekfState[0], sizeof(float) * 6);
@@ -1715,10 +1719,6 @@ void Task_Control(void *pvParameters) {
         AUV_Config_Unlock();
       }
 
-      for (int i = 0; i < 6; i++) {
-        prevMode[i] = currMode[i];
-      }
-
       PID_CalculateHybrid(currSetpoint, currSetspeed, currMode, currPosition,
                           currSpeed, torque, pidsSetpoint, pidsSetspeed, &ctrl,
                           TASK_CONTROL_PID_DT);
@@ -1734,9 +1734,9 @@ void Task_Control(void *pvParameters) {
         PID_Reset(&pidsSetpoint[i]);
         PID_Reset(&pidsSetspeed[i]);
       }
-      memcpy(prevMode, currMode, sizeof(bool) * 6);
     }
 
+    taskENTER_CRITICAL();
     TIM1->CCR1 = pwmArr[0];
     TIM1->CCR2 = pwmArr[1];
     TIM1->CCR3 = pwmArr[2];
@@ -1745,6 +1745,7 @@ void Task_Control(void *pvParameters) {
     TIM2->CCR2 = pwmArr[5];
     TIM2->CCR3 = pwmArr[6];
     TIM2->CCR4 = pwmArr[7];
+    taskEXIT_CRITICAL();
 
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
@@ -1805,8 +1806,16 @@ void Task_Sensor(void *pvParameters) {
   float mag[4];
 
   for (;;) {
+    // Process Bar30 (non-blocking state machine)
+    if (BAR30_Update(&bar) == BAR30_OK) {
+      if (xSemaphoreTake(xStateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
+        isDepthUpdated = true;
+        xSemaphoreGive(xStateMutex);
+      }
+    }
 
-    if (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) > 0) {
+    // Wait for magnetometer notification or briefly timeout for Bar30 polling
+    if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(2)) > 0) {
       taskENTER_CRITICAL();
       mag[0] = (float)((int16_t)((magBuf[2] << 8) | magBuf[1])) * lis.mult;
       mag[1] = (float)((int16_t)((magBuf[4] << 8) | magBuf[3])) * lis.mult;
@@ -1820,6 +1829,7 @@ void Task_Sensor(void *pvParameters) {
         lis.data.magZ = mag[2];
         lis.data.tempC = mag[3];
         isMagUpdated = true;
+        xSemaphoreGive(xStateMutex); // Fix missing mutex release
       }
     }
   }
