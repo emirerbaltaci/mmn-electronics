@@ -35,6 +35,12 @@ typedef enum {
   BAR30_INVALID_CONFIG
 } BAR30_Status_t;
 
+typedef enum {
+  BAR30_STATE_IDLE = 0,
+  BAR30_STATE_WAIT_D1,
+  BAR30_STATE_WAIT_D2
+} BAR30_State_t;
+
 #define BAR30_I2C_ADDR (0x76 << 1)
 
 #define BAR30_CMD_RESET 0x1E
@@ -69,7 +75,7 @@ typedef struct {
   BAR30_Data_t data;
   uint16_t calCoeff[7];
   float depth;
-  uint8_t state;
+  BAR30_State_t state;
   uint32_t waitStartTime;
   uint32_t D1;
   uint32_t D2;

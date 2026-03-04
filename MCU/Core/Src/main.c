@@ -1832,7 +1832,7 @@ void Task_Sensor(void *pvParameters) {
         lis.data.magZ = mag[2];
         lis.data.tempC = mag[3];
         isMagUpdated = true;
-        xSemaphoreGive(xStateMutex); // Fix missing mutex release
+        xSemaphoreGive(xStateMutex);
       }
     }
   }
