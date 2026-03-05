@@ -72,7 +72,8 @@ typedef struct {
   PID_Tuning_t pitch;
   PID_Tuning_t yaw;
   PID_Tuning_t depth;
-  PID_Tuning_t xy; // Generic X/Y if needed later
+  PID_Tuning_t xy;       // Generic X/Y if needed later
+  PID_Tuning_t setspeed; // Setspeed PID configuration
 } PID_ConfigParams_t;
 
 typedef struct {

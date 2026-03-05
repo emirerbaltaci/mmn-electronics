@@ -28,7 +28,6 @@
 #include "semphr.h"
 #include <math.h>
 
-
 AUV_Config_t auvConfig;
 static SemaphoreHandle_t xConfigMutex = NULL;
 
@@ -69,13 +68,21 @@ void AUV_Config_Init(void) {
   auvConfig.pid.xy.minout = AUV_DEFAULT_PID_SP_MINOUT;
   auvConfig.pid.xy.wrapbound = AUV_DEFAULT_PID_SP_WRAPBOUND;
 
-  // Depth Default Init (using SS defaults)
-  auvConfig.pid.depth.p = AUV_DEFAULT_PID_SS_P;
-  auvConfig.pid.depth.i = AUV_DEFAULT_PID_SS_I;
-  auvConfig.pid.depth.d = AUV_DEFAULT_PID_SS_D;
-  auvConfig.pid.depth.maxout = AUV_DEFAULT_PID_SS_MAXOUT;
-  auvConfig.pid.depth.minout = AUV_DEFAULT_PID_SS_MINOUT;
-  auvConfig.pid.depth.wrapbound = AUV_DEFAULT_PID_SS_WRAPBOUND;
+  // Depth Default Init (using SP defaults)
+  auvConfig.pid.depth.p = AUV_DEFAULT_PID_SP_P;
+  auvConfig.pid.depth.i = AUV_DEFAULT_PID_SP_I;
+  auvConfig.pid.depth.d = AUV_DEFAULT_PID_SP_D;
+  auvConfig.pid.depth.maxout = AUV_DEFAULT_PID_SP_MAXOUT;
+  auvConfig.pid.depth.minout = AUV_DEFAULT_PID_SP_MINOUT;
+  auvConfig.pid.depth.wrapbound = AUV_DEFAULT_PID_SP_WRAPBOUND;
+
+  // Setspeed Default Init (using SS defaults)
+  auvConfig.pid.setspeed.p = AUV_DEFAULT_PID_SS_P;
+  auvConfig.pid.setspeed.i = AUV_DEFAULT_PID_SS_I;
+  auvConfig.pid.setspeed.d = AUV_DEFAULT_PID_SS_D;
+  auvConfig.pid.setspeed.maxout = AUV_DEFAULT_PID_SS_MAXOUT;
+  auvConfig.pid.setspeed.minout = AUV_DEFAULT_PID_SS_MINOUT;
+  auvConfig.pid.setspeed.wrapbound = AUV_DEFAULT_PID_SS_WRAPBOUND;
 
   // Roll Default Init
   auvConfig.pid.roll = auvConfig.pid.xy;

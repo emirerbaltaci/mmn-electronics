@@ -17,9 +17,10 @@
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include "auv_setup.h"
 #include "main.h"
+#include "auv_setup.h"
 #include "usb_device.h"
+
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -1710,10 +1711,11 @@ void Task_Control(void *pvParameters) {
           // (xy.p) arrays identically to all axes including Heave/Yaw produces
           // flawed dynamic tunings globally. This must be segregated.
           for (int i = 0; i < 6; i++) {
-            PID_SetGains(&pidsSetspeed[i], auvConfig.pid.xy.p,
-                         auvConfig.pid.xy.i, auvConfig.pid.xy.d,
-                         auvConfig.pid.xy.maxout, auvConfig.pid.xy.minout,
-                         auvConfig.pid.xy.wrapbound);
+            PID_SetGains(&pidsSetspeed[i], auvConfig.pid.setspeed.p,
+                         auvConfig.pid.setspeed.i, auvConfig.pid.setspeed.d,
+                         auvConfig.pid.setspeed.maxout,
+                         auvConfig.pid.setspeed.minout,
+                         auvConfig.pid.setspeed.wrapbound);
           }
         }
         AUV_Config_Unlock();
