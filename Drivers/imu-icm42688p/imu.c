@@ -22,8 +22,9 @@
  * SOFTWARE.
  */
 
+#include "auv_setup.h"
 #include "imu.h"
-#include "imu_config.h"
+#include "auvconfig.h"
 #include <math.h>
 #include <string.h>
 
@@ -799,80 +800,80 @@ void IMU_Config_LoadConfigHeader(IMU_Config_t *config) {
   memset(config, 0, sizeof(IMU_Config_t));
 
   // Link Bank 0
-  config->pwr_mgmt0 = IMU_SETUP_TEMP_MODE | IMU_SETUP_IDLEMODE |
-                      IMU_SETUP_GYRO_MODE | IMU_SETUP_ACCEL_MODE;
-  config->gyro_config0 = IMU_SETUP_GYRO_FS | IMU_SETUP_GYRO_ODR;
-  config->accel_config0 = IMU_SETUP_ACCEL_FS | IMU_SETUP_ACCEL_ODR;
-  config->gyro_config1 = IMU_SETUP_GYRO_UI_FILT_ORD | IMU_SETUP_TEMP_FILT_BW;
+  config->pwr_mgmt0 = auvConfig.imu.temp_mode | auvConfig.imu.idlemode |
+                      auvConfig.imu.gyro_mode | auvConfig.imu.accel_mode;
+  config->gyro_config0 = auvConfig.imu.gyro_fs | auvConfig.imu.gyro_odr;
+  config->accel_config0 = auvConfig.imu.accel_fs | auvConfig.imu.accel_odr;
+  config->gyro_config1 = auvConfig.imu.gyro_ui_filt_ord | auvConfig.imu.temp_filt_bw;
   config->accel_config1 =
-      IMU_SETUP_ACCEL_UI_FILT_ORD; // Bit 3 used. Bits 4 (ASC) is 0.
+      auvConfig.imu.accel_ui_filt_ord; // Bit 3 used. Bits 4 (ASC) is 0.
   config->gyro_accel_config0 =
-      IMU_SETUP_GYRO_UI_FILT_BW | IMU_SETUP_ACCEL_UI_FILT_BW;
+      auvConfig.imu.gyro_ui_filt_bw | auvConfig.imu.accel_ui_filt_bw;
 
   // DEVICE_CONFIG (0x11)
   // DEVICE_CONFIG (0x11)
-  config->device_config = IMU_SETUP_SPI_MODE;
+  config->device_config = auvConfig.imu.spi_mode;
 
   // DRIVE_CONFIG (0x13)
-  config->drive_config = IMU_SETUP_SPI_SLEW | IMU_SETUP_I2C_SLEW;
+  config->drive_config = auvConfig.imu.spi_slew | auvConfig.imu.i2c_slew;
 
   // INT_CONFIG (0x14)
-  config->int_config = IMU_SETUP_INT1_MODE | IMU_SETUP_INT1_DRIVE_CIRCUIT |
-                       IMU_SETUP_INT1_POLARITY | IMU_SETUP_INT2_MODE |
-                       IMU_SETUP_INT2_DRIVE_CIRCUIT | IMU_SETUP_INT2_POLARITY;
+  config->int_config = auvConfig.imu.int1_mode | auvConfig.imu.int1_drive_circuit |
+                       auvConfig.imu.int1_polarity | auvConfig.imu.int2_mode |
+                       auvConfig.imu.int2_drive_circuit | auvConfig.imu.int2_polarity;
 
   // FIFO_CONFIG (0x16)
-  config->fifo_config = IMU_SETUP_FIFO_MODE;
+  config->fifo_config = auvConfig.imu.fifo_mode;
 
   // INTF_CONFIG0 (0x4C)
   // UI_SIFS_CFG (1:0)
   uint8_t sifs = 0;
-  if (IMU_SETUP_INTERFACE == 0)
+  if (auvConfig.imu.interface == 0)
     sifs = IMU_UI_SIFS_CFG_DI_SPI;
-  else if (IMU_SETUP_INTERFACE == 1)
+  else if (auvConfig.imu.interface == 1)
     sifs = IMU_UI_SIFS_CFG_DI_I2C;
   else
     sifs = 0;
 
-  config->intf_config0 = IMU_SETUP_SENSOR_ENDIAN | IMU_SETUP_FIFO_COUNT_ENDIAN |
-                         IMU_SETUP_FIFO_COUNT_REC |
-                         IMU_SETUP_FIFO_HOLD_LAST_DATA | sifs;
+  config->intf_config0 = auvConfig.imu.sensor_endian | auvConfig.imu.fifo_count_endian |
+                         auvConfig.imu.fifo_count_rec |
+                         auvConfig.imu.fifo_hold_last_data | sifs;
 
   // INTF_CONFIG1 (0x4D)
   config->intf_config1 =
-      IMU_SETUP_CLKSEL | IMU_SETUP_RTC_MODE | IMU_SETUP_ACCEL_LPCLK;
+      auvConfig.imu.clksel | auvConfig.imu.rtc_mode | auvConfig.imu.accel_lpclk;
 
   // TMST_CONFIG (0x54)
-  config->tmst_config = IMU_SETUP_TMST_EN | IMU_SETUP_TMST_FSYNC_EN |
-                        IMU_SETUP_TMST_DELTA_EN | IMU_SETUP_TMST_RES |
-                        IMU_SETUP_TMST_TO_REGS_EN;
+  config->tmst_config = auvConfig.imu.tmst_en | auvConfig.imu.tmst_fsync_en |
+                        auvConfig.imu.tmst_delta_en | auvConfig.imu.tmst_res |
+                        auvConfig.imu.tmst_to_regs_en;
 
   // FIFO_CONFIG1 (0x5F)
-  config->fifo_config1 = IMU_SETUP_FIFO_PACKET | IMU_SETUP_FIFO_WM_GT_TH |
-                         IMU_SETUP_FIFO_PARTIAL_RD;
+  config->fifo_config1 = auvConfig.imu.fifo_packet | auvConfig.imu.fifo_wm_gt_th |
+                         auvConfig.imu.fifo_partial_rd;
 
   // FIFO_CONFIG2, 3 (Watermark)
   // WM is in config->fifo_config2 (Low 8) and fifo_config3 (High 4 bits)
-  uint16_t wm = IMU_SETUP_FIFO_WM;
+  uint16_t wm = auvConfig.imu.fifo_wm;
   config->fifo_config2 = (uint8_t)(wm & 0xFF);
   config->fifo_config3 = (uint8_t)((wm >> 8) & 0x0F);
 
   // FSYNC_CONFIG (0x62)
-  config->fsync_config = IMU_SETUP_FSYNC_POLARITY |
-                         IMU_SETUP_FSYNC_UI_FLAG_CLEAR_SEL |
-                         IMU_SETUP_FSYNC_UI_SEL;
+  config->fsync_config = auvConfig.imu.fsync_polarity |
+                         auvConfig.imu.fsync_ui_flag_clear_sel |
+                         auvConfig.imu.fsync_ui_sel;
 
   // INT_CONFIG0 (0x63)
-  config->int_config0 = IMU_SETUP_INT_CONFIG0;
+  config->int_config0 = auvConfig.imu.int_config0;
 
   // INT_CONFIG1 (0x64)
-  config->int_config1 = IMU_SETUP_INT_CONFIG1;
+  config->int_config1 = auvConfig.imu.int_config1;
 
   // INT_SOURCE0 (0x65)
-  config->int_source0 = IMU_SETUP_INT1_SRC & 0x7F;
+  config->int_source0 = auvConfig.imu.int1_src & 0x7F;
 
   // INT_SOURCE3 (0x68) - INT2 equivalent of SOURCE0
-  config->int_source3 = IMU_SETUP_INT2_SRC;
+  config->int_source3 = auvConfig.imu.int2_src;
 
   // INT_SOURCE1, INT_SOURCE4 (WOM/SMD) are not in default config header.
   config->int_source1 = 0;
@@ -884,52 +885,52 @@ void IMU_Config_LoadConfigHeader(IMU_Config_t *config) {
 
   // USER BANK 1
   // SENSOR_CONFIG0 (0x03) - Axis Disable.
-  config->sensor_config0 = IMU_SETUP_SENSOR_CONFIG0;
+  config->sensor_config0 = auvConfig.imu.sensor_config0;
 
   // GYRO_CONFIG_STATIC2 (0x0B) - NF & AAF
-  config->gyro_config_static2 = IMU_SETUP_GYRO_NF_EN | IMU_SETUP_GYRO_AAF_EN;
+  config->gyro_config_static2 = auvConfig.imu.gyro_nf_en | auvConfig.imu.gyro_aaf_en;
 
   // GYRO_CONFIG_STATIC3 (0x0C) - AAF DELT
-  config->gyro_config_static3 = IMU_SETUP_GYRO_AAF_DELT;
+  config->gyro_config_static3 = auvConfig.imu.gyro_aaf_delt;
 
   // GYRO_CONFIG_STATIC4-8 (NF)
-  if (IMU_SETUP_GYRO_NF_EN == IMU_GYRO_NF_EN) {
+  if (auvConfig.imu.gyro_nf_en == IMU_GYRO_NF_EN) {
     // CLKDIV (0x2A) Bank 3
-    config->clkdiv = IMU_SETUP_GYRO_NF_CLKDIV;
-    config->gyro_config_static10 = IMU_SETUP_GYRO_NF_BW;
+    config->clkdiv = auvConfig.imu.gyro_nf_clkdiv;
+    config->gyro_config_static10 = auvConfig.imu.gyro_nf_bw;
   }
 
   // USER BANK 2
   // ACCEL_CONFIG_STATIC2 (0x03) - AAF
   config->accel_config_static2 =
-      IMU_SETUP_ACCEL_AAF_EN | IMU_SETUP_ACCEL_AAF_DELT;
+      auvConfig.imu.accel_aaf_en | auvConfig.imu.accel_aaf_delt;
   // ACCEL_CONFIG_STATIC3/4 (0x04/0x05) - AAF DELT SQR / BITSHIFT
   config->accel_config_static3 =
-      (uint8_t)IMU_ACCEL_AAF_DELTSQR(IMU_SETUP_ACCEL_AAF_DELT);
+      (uint8_t)IMU_ACCEL_AAF_DELTSQR(auvConfig.imu.accel_aaf_delt);
   config->accel_config_static4 =
-      (uint8_t)IMU_ACCEL_AAF_BITSHIFT(IMU_SETUP_ACCEL_AAF_DELT);
+      (uint8_t)IMU_ACCEL_AAF_BITSHIFT(auvConfig.imu.accel_aaf_delt);
 
   // GYRO AAF DELT SQR (STATIC4/5)
   config->gyro_config_static4 =
-      (uint8_t)IMU_GYRO_AAF_DELTSQR(IMU_SETUP_GYRO_AAF_DELT);
+      (uint8_t)IMU_GYRO_AAF_DELTSQR(auvConfig.imu.gyro_aaf_delt);
   config->gyro_config_static5 =
-      (uint8_t)IMU_GYRO_AAF_BITSHIFT(IMU_SETUP_GYRO_AAF_DELT);
+      (uint8_t)IMU_GYRO_AAF_BITSHIFT(auvConfig.imu.gyro_aaf_delt);
 
   // Bank 4 Options
   // INTF_CONFIG4 (0x7A) - SPI 4/3 wire.
-  // `IMU_SETUP_SPI_WIRE` is either 0 (`IMU_SPI_AP_3WIRE`) or 2
+  // `auvConfig.imu.spi_wire` is either 0 (`IMU_SPI_AP_3WIRE`) or 2
   // (`IMU_SPI_AP_4WIRE` is `1<<1`=2). Note: `IMU_SPI_AP_4WIRE` defined as `(1
   // << 1)`.
-  config->intf_config4 = IMU_SETUP_SPI_WIRE; // Also I3C bus mode?
-                                             // `IMU_SETUP_I3C_BUS_MODE` -> bit
+  config->intf_config4 = auvConfig.imu.spi_wire; // Also I3C bus mode?
+                                             // `auvConfig.imu.i3c_bus_mode` -> bit
                                              // 6
-  config->intf_config4 |= IMU_SETUP_I3C_BUS_MODE;
+  config->intf_config4 |= auvConfig.imu.i3c_bus_mode;
 
   // INTF_CONFIG5 (0x7B) - Pin 9 function
-  config->intf_config5 = IMU_SETUP_PIN9_FUNCTION;
+  config->intf_config5 = auvConfig.imu.pin9_function;
 
   // INTF_CONFIG6 (0x7C) - I3C Mode
-  config->intf_config6 = IMU_SETUP_I3C_MODE;
+  config->intf_config6 = auvConfig.imu.i3c_mode;
 
   // APEX / OFFSETS - Not in standard config, zeroed by memset.
 }

@@ -52,7 +52,7 @@ BAR30_Status_t BAR30_Init(BAR30_Handler_t *bar) {
   if (bar == NULL || bar->pI2Cx == NULL)
     return BAR30_ERROR;
 
-  bar->state = 0;
+  bar->state = BAR30_STATE_IDLE;
   bar->waitStartTime = 0;
   bar->D1 = 0;
   bar->D2 = 0;
@@ -96,28 +96,28 @@ BAR30_Status_t BAR30_Update(BAR30_Handler_t *bar) {
   uint32_t now = HAL_GetTick();
 
   switch (bar->state) {
-  case 0:
+  case BAR30_STATE_IDLE:
     cmd = BAR30_CMD_CONV_D1_BASE + bar->config.osr;
     if (HAL_I2C_Master_Transmit(bar->pI2Cx, BAR30_I2C_ADDR, &cmd, 1, 100) !=
         HAL_OK) {
-      bar->state = 0;
+      bar->state = BAR30_STATE_IDLE;
       return BAR30_ERROR;
     }
     bar->waitStartTime = now;
-    bar->state = 1;
+    bar->state = BAR30_STATE_WAIT_D1;
     return BAR30_BUSY;
 
-  case 1:
+  case BAR30_STATE_WAIT_D1:
     if ((now - bar->waitStartTime) >= waitTime) {
       cmd = BAR30_CMD_ADC_READ;
       if (HAL_I2C_Master_Transmit(bar->pI2Cx, BAR30_I2C_ADDR, &cmd, 1, 100) !=
           HAL_OK) {
-        bar->state = 0;
+        bar->state = BAR30_STATE_IDLE;
         return BAR30_ERROR;
       }
       if (HAL_I2C_Master_Receive(bar->pI2Cx, BAR30_I2C_ADDR, buf, 3, 100) !=
           HAL_OK) {
-        bar->state = 0;
+        bar->state = BAR30_STATE_IDLE;
         return BAR30_ERROR;
       }
 
@@ -126,26 +126,26 @@ BAR30_Status_t BAR30_Update(BAR30_Handler_t *bar) {
       cmd = BAR30_CMD_CONV_D2_BASE + bar->config.osr;
       if (HAL_I2C_Master_Transmit(bar->pI2Cx, BAR30_I2C_ADDR, &cmd, 1, 100) !=
           HAL_OK) {
-        bar->state = 0;
+        bar->state = BAR30_STATE_IDLE;
         return BAR30_ERROR;
       }
 
       bar->waitStartTime = HAL_GetTick();
-      bar->state = 2;
+      bar->state = BAR30_STATE_WAIT_D2;
     }
     return BAR30_BUSY;
 
-  case 2:
+  case BAR30_STATE_WAIT_D2:
     if ((now - bar->waitStartTime) >= waitTime) {
       cmd = BAR30_CMD_ADC_READ;
       if (HAL_I2C_Master_Transmit(bar->pI2Cx, BAR30_I2C_ADDR, &cmd, 1, 100) !=
           HAL_OK) {
-        bar->state = 0;
+        bar->state = BAR30_STATE_IDLE;
         return BAR30_ERROR;
       }
       if (HAL_I2C_Master_Receive(bar->pI2Cx, BAR30_I2C_ADDR, buf, 3, 100) !=
           HAL_OK) {
-        bar->state = 0;
+        bar->state = BAR30_STATE_IDLE;
         return BAR30_ERROR;
       }
 
@@ -198,7 +198,7 @@ BAR30_Status_t BAR30_Update(BAR30_Handler_t *bar) {
       bar->depth =
           (bar->data.pressure - 1013.25f) * 100.0f / (safe_density * 9.80665f);
 
-      bar->state = 0;
+      bar->state = BAR30_STATE_IDLE;
       return BAR30_OK;
     }
     return BAR30_BUSY;

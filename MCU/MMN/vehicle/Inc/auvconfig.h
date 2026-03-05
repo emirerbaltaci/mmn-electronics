@@ -25,12 +25,7 @@
 #ifndef VEHICLE_INC_AUVCONFIG_H_
 #define VEHICLE_INC_AUVCONFIG_H_
 
-#include "ekf_config.h"
-#include "imu_config.h"
-#include "magnetometer_config.h"
-#include "pid_config.h"
-#include "task_config.h"
-#include "thruster_config.h"
+#include "auv_setup.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -101,6 +96,9 @@ typedef struct {
   uint32_t sensor_sleep_ms;
   uint32_t sysmonitor_sleep_ms;
   float control_pid_dt;
+  uint8_t stateestimate_miss_tol;
+  uint8_t control_miss_tol;
+  uint8_t ncom_miss_tol;
 } Task_ConfigParams_t;
 
 typedef struct {
@@ -202,12 +200,18 @@ typedef struct {
 } MAG_ConfigParams_t;
 
 typedef struct {
+  uint8_t osr;
+  float density;
+} BAR30_ConfigParams_t;
+
+typedef struct {
   EKF_ConfigParams_t ekf;
   PID_ConfigParams_t pid;
   Thruster_ConfigParams_t thruster;
   Task_ConfigParams_t task;
   IMU_ConfigParams_t imu;
   MAG_ConfigParams_t mag;
+  BAR30_ConfigParams_t bar30;
 } AUV_Config_t;
 
 extern AUV_Config_t auvConfig;

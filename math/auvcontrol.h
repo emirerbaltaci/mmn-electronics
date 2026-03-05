@@ -70,6 +70,8 @@ typedef struct {
 
 void PID_Init(PID_Controller_t *pid, float p, float i, float d, float max,
               float min, float wrap_bound);
+void PID_SetGains(PID_Controller_t *pid, float p, float i, float d, float max,
+                  float min, float wrap_bound);
 void PID_Reset(PID_Controller_t *pid);
 float PID_Update(PID_Controller_t *pid, float setpoint, float measurement,
                  float dt);

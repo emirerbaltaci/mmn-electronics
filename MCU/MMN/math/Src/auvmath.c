@@ -23,7 +23,7 @@
  */
 
 #include "auvmath.h"
-#include "ekf_config.h"
+#include "auvconfig.h"
 #include <assert.h>
 #include <math.h>
 #include <stdbool.h>
@@ -480,13 +480,13 @@ bool eskf_update(float *error_x, float *P, const float *dz, const float *H,
 
   float chi_square_threshold = 999.0f;
   if (n == 1)
-    chi_square_threshold = EKF_CHI_SQUARE_TH_DOF1;
+    chi_square_threshold = auvConfig.ekf.chi_square_th_dof1;
   else if (n == 2)
-    chi_square_threshold = EKF_CHI_SQUARE_TH_DOF2;
+    chi_square_threshold = auvConfig.ekf.chi_square_th_dof2;
   else if (n == 3)
-    chi_square_threshold = EKF_CHI_SQUARE_TH_DOF3;
+    chi_square_threshold = auvConfig.ekf.chi_square_th_dof3;
   else if (n == 6)
-    chi_square_threshold = EKF_CHI_SQUARE_TH_DOF6;
+    chi_square_threshold = auvConfig.ekf.chi_square_th_dof6;
   if (mahalanobis_sq > chi_square_threshold) {
     return false;
   }

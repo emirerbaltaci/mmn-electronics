@@ -22,7 +22,8 @@
  * SOFTWARE.
  */
 
-#include "magnetometer_config.h"
+#include "auv_setup.h"
+#include "auvconfig.h"
 
 static inline void MAG_SPI_Enable(MAG_Handler_t *mag) {
   HAL_GPIO_WritePin(mag->pGPIOx, mag->GPIO_PIN_x, GPIO_PIN_RESET);
@@ -119,18 +120,20 @@ MAG_Status_t MAG_SPI_Init(MAG_Handler_t *mag) {
     return MAG_ERROR;
 
   /* Populate Config Struct from Macros */
-  mag->config.cfg_reg_a =
-      MAG_SETUP_COMP_TEMP | MAG_SETUP_LP | MAG_SETUP_ODR | MAG_SETUP_MODE;
-  mag->config.cfg_reg_b = MAG_SETUP_OFF_CANC_ONE_SHOT |
-                          MAG_SETUP_INT_ON_DATAOFF | MAG_SETUP_SET_FREQ |
-                          MAG_SETUP_OFF_CANC | MAG_SETUP_LPF;
-  mag->config.cfg_reg_c = MAG_SETUP_PINFUNC | MAG_SETUP_BDU | MAG_SETUP_BLE;
-  if (MAG_SETUP_INTERFACE == 0)
+  mag->config.cfg_reg_a = auvConfig.mag.comp_temp | auvConfig.mag.lp |
+                          auvConfig.mag.odr | auvConfig.mag.mode;
+  mag->config.cfg_reg_b =
+      auvConfig.mag.off_canc_one_shot | auvConfig.mag.int_on_dataoff |
+      auvConfig.mag.set_freq | auvConfig.mag.off_canc | auvConfig.mag.lpf;
+  mag->config.cfg_reg_c =
+      auvConfig.mag.pinfunc | auvConfig.mag.bdu | auvConfig.mag.ble;
+  if (auvConfig.mag.interface == 0)
     mag->config.cfg_reg_c |= MAG_I2C_DIS; // Disable I2C if SPI selected
 
-  mag->config.int_ctrl_reg = MAG_SETUP_INT_SRC | MAG_SETUP_INT |
-                             MAG_SETUP_INT_POLARITY | MAG_SETUP_INT_MODE;
-  mag->config.int_ths = MAG_SETUP_INT_TH;
+  mag->config.int_ctrl_reg = auvConfig.mag.int_src | auvConfig.mag.int_en |
+                             auvConfig.mag.int_polarity |
+                             auvConfig.mag.int_mode;
+  mag->config.int_ths = auvConfig.mag.int_th;
 
   /* Write Configuration to Registers */
   if (MAG_SPI_WriteReg(mag, MAG_REG_CFG_REG_A, mag->config.cfg_reg_a) != MAG_OK)
@@ -159,7 +162,7 @@ MAG_Status_t MAG_SPI_Init(MAG_Handler_t *mag) {
 
 static inline int16_t MAG_CombineLH_Signed(uint8_t higherBits,
                                            uint8_t lowerBits) {
-  if (MAG_SETUP_BLE == 0)
+  if (auvConfig.mag.ble == 0)
     return (int16_t)((((uint16_t)higherBits) << 8) | lowerBits);
   else
     return (int16_t)((((uint16_t)lowerBits) << 8) | higherBits);
@@ -167,7 +170,7 @@ static inline int16_t MAG_CombineLH_Signed(uint8_t higherBits,
 
 static inline uint16_t MAG_CombineLH_Unsigned(uint8_t higherBits,
                                               uint8_t lowerBits) {
-  if (MAG_SETUP_BLE == 0)
+  if (auvConfig.mag.ble == 0)
     return (uint16_t)((((uint16_t)higherBits) << 8) | lowerBits);
   else
     return (uint16_t)((((uint16_t)lowerBits) << 8) | higherBits);

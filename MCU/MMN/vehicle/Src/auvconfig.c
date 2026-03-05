@@ -24,6 +24,7 @@
 
 #include "auvconfig.h"
 #include "FreeRTOS.h"
+#include "bar30.h"
 #include "semphr.h"
 #include <math.h>
 
@@ -111,6 +112,9 @@ void AUV_Config_Init(void) {
   auvConfig.task.sensor_sleep_ms = TASK_SENSOR_SLEEP_MS;
   auvConfig.task.sysmonitor_sleep_ms = TASK_SYSMONITOR_SLEEP_MS;
   auvConfig.task.control_pid_dt = TASK_CONTROL_PID_DT;
+  auvConfig.task.stateestimate_miss_tol = TASK_STATEESTIMATE_MISS_TOL;
+  auvConfig.task.control_miss_tol = TASK_CONTROL_MISS_TOL;
+  auvConfig.task.ncom_miss_tol = TASK_NCOM_MISS_TOL;
 
   // IMU Parameters
   auvConfig.imu.interface = IMU_SETUP_INTERFACE;
@@ -207,6 +211,9 @@ void AUV_Config_Init(void) {
   auvConfig.mag.int_mode = MAG_SETUP_INT_MODE;
   auvConfig.mag.int_th = MAG_SETUP_INT_TH;
   auvConfig.mag.int_src = MAG_SETUP_INT_SRC;
+
+  auvConfig.bar30.osr = BAR30_SETUP_OSR;
+  auvConfig.bar30.density = BAR30_SETUP_FLUID_DENSITY;
 
   /* Create the config mutex — must be called before scheduler starts */
   xConfigMutex = xSemaphoreCreateMutex();

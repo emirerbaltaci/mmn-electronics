@@ -17,6 +17,7 @@
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include "auv_setup.h"
 #include "main.h"
 #include "usb_device.h"
 
@@ -42,12 +43,6 @@
 #include "ncom_tx.h"
 
 #include "auvconfig.h"
-#include "bar30_config.h"
-#include "ekf_config.h"
-#include "imu_config.h"
-#include "magnetometer_config.h"
-#include "pid_config.h"
-#include "task_config.h"
 
 /* USER CODE END Includes */
 
@@ -259,8 +254,8 @@ int main(void) {
   IMU_SPI_Init(&icm);
   MAG_SPI_Init(&lis);
 
-  bar.config.osr = BAR30_SETUP_OSR;
-  bar.config.density = BAR30_SETUP_FLUID_DENSITY;
+  bar.config.osr = auvConfig.bar30.osr;
+  bar.config.density = auvConfig.bar30.density;
   bar.pI2Cx = &hi2c2;
   BAR30_Init(&bar);
 
@@ -1400,16 +1395,16 @@ void Task_StateEstimate(void *pvParameters) {
     Q[i] = 0.0f; // Process noise
   }
 
-  P[0] = P[16] = P[32] = EKF_P_INIT_POS;
-  P[48] = P[64] = P[80] = EKF_P_INIT_VEL;
-  P[96] = P[112] = P[128] = EKF_P_INIT_ATT;
-  P[144] = P[160] = P[176] = EKF_P_INIT_BG;
-  P[192] = P[208] = P[224] = EKF_P_INIT_BA;
+  P[0] = P[16] = P[32] = auvConfig.ekf.p_init_pos;
+  P[48] = P[64] = P[80] = auvConfig.ekf.p_init_vel;
+  P[96] = P[112] = P[128] = auvConfig.ekf.p_init_att;
+  P[144] = P[160] = P[176] = auvConfig.ekf.p_init_bg;
+  P[192] = P[208] = P[224] = auvConfig.ekf.p_init_ba;
 
-  Q[48] = Q[64] = Q[80] = EKF_Q_VEL_NOISE;
-  Q[96] = Q[112] = Q[128] = EKF_Q_ATT_NOISE;
-  Q[144] = Q[160] = Q[176] = EKF_Q_BG_NOISE;
-  Q[192] = Q[208] = Q[224] = EKF_Q_BA_NOISE;
+  Q[48] = Q[64] = Q[80] = auvConfig.ekf.q_vel_noise;
+  Q[96] = Q[112] = Q[128] = auvConfig.ekf.q_att_noise;
+  Q[144] = Q[160] = Q[176] = auvConfig.ekf.q_bg_noise;
+  Q[192] = Q[208] = Q[224] = auvConfig.ekf.q_ba_noise;
 
   float accel[3] = {0};
   float gyro[3] = {0};
@@ -1464,8 +1459,9 @@ void Task_StateEstimate(void *pvParameters) {
           (float)((int16_t)((imuBuf[13] << 8) | imuBuf[14])) * icm.gyroMult;
       taskEXIT_CRITICAL();
 
-      const float r_imu_cg[3] = {EKF_IMU_LEVER_ARM_X, EKF_IMU_LEVER_ARM_Y,
-                                 EKF_IMU_LEVER_ARM_Z};
+      const float r_imu_cg[3] = {auvConfig.ekf.imu_lever_arm_x,
+                                 auvConfig.ekf.imu_lever_arm_y,
+                                 auvConfig.ekf.imu_lever_arm_z};
       float w_x = gyro[0] - nominal_x[10];
       float w_y = gyro[1] - nominal_x[11];
       float w_z = gyro[2] - nominal_x[12];
@@ -1490,7 +1486,8 @@ void Task_StateEstimate(void *pvParameters) {
       float acc_norm = sqrtf(a_comp[0] * a_comp[0] + a_comp[1] * a_comp[1] +
                              a_comp[2] * a_comp[2]);
 
-      if (acc_norm > EKF_GRAVITY_NORM_MIN && acc_norm < EKF_GRAVITY_NORM_MAX) {
+      if (acc_norm > auvConfig.ekf.gravity_norm_min &&
+          acc_norm < auvConfig.ekf.gravity_norm_max) {
         float g_earth[3] = {0.0f, 0.0f, -1.0f};
 
         float z_hat_acc[3];
@@ -1511,9 +1508,9 @@ void Task_StateEstimate(void *pvParameters) {
         H_acc[2 * 15 + 7] = z_hat_acc[0];
 
         float R_acc[9] = {0};
-        R_acc[0] = EKF_R_ACCEL;
-        R_acc[4] = EKF_R_ACCEL;
-        R_acc[8] = EKF_R_ACCEL;
+        R_acc[0] = auvConfig.ekf.r_accel;
+        R_acc[4] = auvConfig.ekf.r_accel;
+        R_acc[8] = auvConfig.ekf.r_accel;
 
         if (eskf_update(error_x, P, dz_acc, H_acc, R_acc, 3)) {
           eskf_inject(nominal_x, error_x, P);
@@ -1537,8 +1534,9 @@ void Task_StateEstimate(void *pvParameters) {
           quat_to_rot_matrix(&nominal_x[3], R);
           matrix_transpose(R, RT, 3, 3);
 
-          float m_earth[3] = {EKF_EARTH_MAG_X, EKF_EARTH_MAG_Y,
-                              EKF_EARTH_MAG_Z};
+          float m_earth[3] = {auvConfig.ekf.earth_mag_x,
+                              auvConfig.ekf.earth_mag_y,
+                              auvConfig.ekf.earth_mag_z};
 
           float z_hat_mag[3];
           matrix_mult(RT, m_earth, z_hat_mag, 3, 3, 1);
@@ -1563,9 +1561,9 @@ void Task_StateEstimate(void *pvParameters) {
             H_mag[2 * 15 + 7] = z_hat_mag[0];
 
             float R_mag[9] = {0};
-            R_mag[0] = EKF_R_MAG;
-            R_mag[4] = EKF_R_MAG;
-            R_mag[8] = EKF_R_MAG;
+            R_mag[0] = auvConfig.ekf.r_mag;
+            R_mag[4] = auvConfig.ekf.r_mag;
+            R_mag[8] = auvConfig.ekf.r_mag;
 
             if (eskf_update(error_x, P, dz_mag, H_mag, R_mag, 3)) {
               eskf_inject(nominal_x, error_x, P);
@@ -1582,7 +1580,7 @@ void Task_StateEstimate(void *pvParameters) {
 
           float H_depth[15] = {0};
           H_depth[2] = 1.0f;
-          float R_depth = EKF_R_BARO;
+          float R_depth = auvConfig.ekf.r_baro;
           if (eskf_update(error_x, P, &dz_depth, H_depth, &R_depth, 1))
             eskf_inject(nominal_x, error_x, P);
         }
@@ -1598,9 +1596,9 @@ void Task_StateEstimate(void *pvParameters) {
         H_zupt[19] = 1.0f;
         H_zupt[35] = 1.0f;
         float R_zupt[9] = {0};
-        R_zupt[0] = EKF_R_ZUPT;
-        R_zupt[4] = EKF_R_ZUPT;
-        R_zupt[8] = EKF_R_ZUPT;
+        R_zupt[0] = auvConfig.ekf.r_zupt;
+        R_zupt[4] = auvConfig.ekf.r_zupt;
+        R_zupt[8] = auvConfig.ekf.r_zupt;
         if (eskf_update(error_x, P, dz_zupt, H_zupt, R_zupt, 3))
           eskf_inject(nominal_x, error_x, P);
       }
@@ -1628,7 +1626,7 @@ void Task_StateEstimate(void *pvParameters) {
 }
 
 void Task_Control(void *pvParameters) {
-  const TickType_t xFrequency = pdMS_TO_TICKS(TASK_CONTROL_SLEEP_MS);
+  const TickType_t xFrequency = pdMS_TO_TICKS(auvConfig.task.control_sleep_ms);
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
   PID_Controller_t pidsSetpoint[6];
@@ -1723,7 +1721,7 @@ void Task_Control(void *pvParameters) {
 
       PID_CalculateHybrid(currSetpoint, currSetspeed, currMode, currPosition,
                           currSpeed, torque, pidsSetpoint, pidsSetspeed, &ctrl,
-                          TASK_CONTROL_PID_DT);
+                          auvConfig.task.control_pid_dt);
       Thrust_Allocate(torque, force);
       Process_All_Thrusters(force, pwmArr, 8);
     } else {
@@ -1839,7 +1837,8 @@ void Task_Sensor(void *pvParameters) {
 }
 
 void Task_SysMonitor(void *pvParameters) {
-  const TickType_t xFrequency = pdMS_TO_TICKS(TASK_SYSMONITOR_SLEEP_MS);
+  const TickType_t xFrequency =
+      pdMS_TO_TICKS(auvConfig.task.sysmonitor_sleep_ms);
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
   uint32_t oneSecondTimer = 0;
@@ -1848,9 +1847,9 @@ void Task_SysMonitor(void *pvParameters) {
   uint8_t missedHbControlTask = 0;
   uint8_t missedHbNCOMTask = 0;
 
-  uint8_t missedHbTolStateEstimateTask = 2;
-  uint8_t missedHbTolControlTask = 2;
-  uint8_t missedHbTolNCOMTask = 10;
+  uint8_t missedHbTolStateEstimateTask = auvConfig.task.stateestimate_miss_tol;
+  uint8_t missedHbTolControlTask = auvConfig.task.control_miss_tol;
+  uint8_t missedHbTolNCOMTask = auvConfig.task.ncom_miss_tol;
 
   static TaskStatus_t pxTaskStatusArray[16];
   volatile UBaseType_t uxAllocatedArraySize = 16, x;
@@ -1907,7 +1906,7 @@ void Task_SysMonitor(void *pvParameters) {
       }
     }
 
-    oneSecondTimer += TASK_SYSMONITOR_SLEEP_MS;
+    oneSecondTimer += auvConfig.task.sysmonitor_sleep_ms;
     if (oneSecondTimer >= 1000) {
       oneSecondTimer = 0;
 

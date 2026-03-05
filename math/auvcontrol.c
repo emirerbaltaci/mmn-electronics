@@ -23,10 +23,8 @@
  */
 
 #include "auvcontrol.h"
-#include "thruster_config.h"
+#include "auvconfig.h"
 #include <math.h>
-
-const float T_pinv[8][6] = AUV_TAM_MATRIX;
 
 void PID_Init(PID_Controller_t *pid, float p, float i, float d, float max,
               float min, float wrap_bound) {
@@ -51,6 +49,29 @@ void PID_Init(PID_Controller_t *pid, float p, float i, float d, float max,
     pid->integral_max = max;
     pid->integral_min = min;
   }
+}
+
+void PID_SetGains(PID_Controller_t *pid, float p, float i, float d, float max,
+                  float min, float wrap_bound) {
+  pid->kp = p;
+  pid->ki = i;
+  pid->kd = d;
+  pid->limit_max = max;
+  pid->limit_min = min;
+  pid->wrap_bound = wrap_bound;
+
+  if (i > 0.0f) {
+    pid->integral_max = max / i;
+    pid->integral_min = min / i;
+  } else {
+    pid->integral_max = max;
+    pid->integral_min = min;
+  }
+
+  if (pid->integral > pid->integral_max)
+    pid->integral = pid->integral_max;
+  else if (pid->integral < pid->integral_min)
+    pid->integral = pid->integral_min;
 }
 
 void PID_Reset(PID_Controller_t *pid) {
@@ -124,11 +145,6 @@ float PID_UpdateFromError(PID_Controller_t *pid, float error, float velocity,
                           float dt) {
   if (dt <= 1e-6f)
     return 0.0f;
-
-  if (pid->first_run) {
-    pid->prev_measurement = 0.0f;
-    pid->first_run = false;
-  }
 
   if (pid->wrap_bound > 0.0f) {
     float period = 2.0f * pid->wrap_bound;
@@ -276,15 +292,15 @@ void Thrust_Allocate(float *tau, float *forces) {
   for (int i = 0; i < AUV_NUM_THRUSTERS; i++) {
     forces[i] = 0.0f;
     for (int j = 0; j < AUV_DOF; j++) {
-      forces[i] += T_pinv[i][j] * tau[j];
+      forces[i] += auvConfig.thruster.tam_matrix[i][j] * tau[j];
     }
   }
 }
 
 uint16_t Thrust_to_PWM(float thrust_newtons) {
-  float max_thrust = AUV_THRUST_MAX;
-  float min_thrust = AUV_THRUST_MIN;
-  float deadband = AUV_THRUST_DEADBAND;
+  float max_thrust = auvConfig.thruster.max_thrust;
+  float min_thrust = auvConfig.thruster.min_thrust;
+  float deadband = auvConfig.thruster.deadband;
 
   if (thrust_newtons > max_thrust)
     thrust_newtons = max_thrust;
@@ -294,24 +310,26 @@ uint16_t Thrust_to_PWM(float thrust_newtons) {
   uint16_t pwm;
   int32_t pwm_signed;
   if (thrust_newtons > deadband) {
-    pwm_signed = (int32_t)(AUV_PWM_CENTER +
-                           AUV_THRUST_TO_PWM_COEF_SQRT * sqrtf(thrust_newtons) +
-                           AUV_THRUST_TO_PWM_COEF_LIN * thrust_newtons);
+    pwm_signed =
+        (int32_t)(auvConfig.thruster.pwm_center +
+                  auvConfig.thruster.pwm_coef_sqrt * sqrtf(thrust_newtons) +
+                  auvConfig.thruster.pwm_coef_lin * thrust_newtons);
   } else if (thrust_newtons < -deadband) {
     pwm_signed =
-        (int32_t)(AUV_PWM_CENTER -
-                  AUV_THRUST_TO_PWM_COEF_SQRT * sqrtf(fabsf(thrust_newtons)) -
-                  AUV_THRUST_TO_PWM_COEF_LIN * fabsf(thrust_newtons));
+        (int32_t)(auvConfig.thruster.pwm_center -
+                  auvConfig.thruster.pwm_coef_sqrt *
+                      sqrtf(fabsf(thrust_newtons)) -
+                  auvConfig.thruster.pwm_coef_lin * fabsf(thrust_newtons));
   } else {
-    pwm_signed = AUV_PWM_CENTER;
+    pwm_signed = auvConfig.thruster.pwm_center;
   }
 
   pwm = (uint16_t)(pwm_signed < 0 ? 0 : pwm_signed);
 
-  if (pwm > AUV_PWM_MAX)
-    pwm = AUV_PWM_MAX;
-  if (pwm < AUV_PWM_MIN)
-    pwm = AUV_PWM_MIN;
+  if (pwm > auvConfig.thruster.pwm_max)
+    pwm = auvConfig.thruster.pwm_max;
+  if (pwm < auvConfig.thruster.pwm_min)
+    pwm = auvConfig.thruster.pwm_min;
 
   return pwm;
 }
