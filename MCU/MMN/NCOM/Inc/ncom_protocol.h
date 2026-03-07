@@ -24,7 +24,7 @@
 
 /*
  * NCOM C Header File
- * Auto-generated on: 04.03.2026 02:26:18
+ * Auto-generated on: 07.03.2026 17:53:46
  * Protocol Version: 0.1
  */
 
@@ -54,6 +54,14 @@ typedef enum {
     NCOM_MSG_MODE_STATUS = 7,
     NCOM_MSG_TARGETS = 8,
     NCOM_MSG_ACKNOWLEDGEMENT = 9,
+    NCOM_MSG_SET_POINT = 10,
+    NCOM_MSG_SET_SPEED = 11,
+    NCOM_MSG_SET_X_OR_SURGE = 12,
+    NCOM_MSG_SET_Y_OR_SWAY = 13,
+    NCOM_MSG_SET_Z_OR_HEAVE = 14,
+    NCOM_MSG_SET_ROLL_OR_P = 15,
+    NCOM_MSG_SET_PITCH_OR_Q = 16,
+    NCOM_MSG_SET_YAW_OR_R = 17,
     NCOM_MSG_CONFIG_REQ = 40,
     NCOM_MSG_CONFIG_RESP = 41,
     NCOM_MSG_CONFIG_SET_MCU = 42,
@@ -64,7 +72,11 @@ typedef enum {
     NCOM_MSG_CONFIG_SET_EKF = 47,
     NCOM_MSG_CONFIG_REQ_STARTUP = 48,
     NCOM_MSG_CONFIG_SET_STARTUP = 49,
-    NCOM_MSG_INIT_ERROR = 200,
+    NCOM_MSG_SEND_FLAG = 50,
+    NCOM_MSG_ASSIGN_FLAG_BIT = 51,
+    NCOM_MSG_CLEAR_FLAG = 52,
+    NCOM_MSG_INIT_ERROR = 240,
+    NCOM_MSG_HARDFAULT_ERROR = 241,
     NCOM_MSG_DYING_GASP = 255,
 } NCOM_MsgID_t;
 
@@ -100,15 +112,8 @@ typedef enum {
 #define NCOM_COMMAND_CMD_ID_ABORT_MISSION 4
 #define NCOM_COMMAND_CMD_ID_CLEAR_FLAGS 5
 #define NCOM_COMMAND_CMD_ID_SET_MODE 10
-#define NCOM_COMMAND_CMD_ID_SET_TARGET_DEPTH_MM 20
-#define NCOM_COMMAND_CMD_ID_SET_TARGET_ROLL_DEG 21
-#define NCOM_COMMAND_CMD_ID_SET_TARGET_PITCH_DEG 22
-#define NCOM_COMMAND_CMD_ID_SET_TARGET_YAW_DEG 23
-#define NCOM_COMMAND_CMD_ID_SET_TARGET_SURGE_MM_S 24
-#define NCOM_COMMAND_CMD_ID_SET_TARGET_SWAY_MM_S 25
-#define NCOM_COMMAND_CMD_ID_SET_TARGET_HEAVE_MM_S 26
-#define NCOM_COMMAND_CMD_ID_SET_LIGHTS 30
-#define NCOM_COMMAND_CMD_ID_REBOOT_MCU 40
+#define NCOM_COMMAND_CMD_ID_SET_LIGHTS 40
+#define NCOM_COMMAND_CMD_ID_REBOOT_MCU 50
 #define NCOM_COMMAND_CMD_ID_CALIBRATE_DEPTH_0 100
 #define NCOM_COMMAND_CMD_ID_CALIBRATE_AXES_0 101
 #define NCOM_COMMAND_CMD_ID_SET_HEARTBEAT_RATE 200
@@ -130,13 +135,51 @@ typedef enum {
 #define NCOM_FLAG_TARGETS_TARGET_YAW_IS_ACTIVE (1 << 3)
 
 #define NCOM_ACKNOWLEDGEMENT_RESPONSE_NACK 0
-#define NCOM_ACKNOWLEDGEMENT_RESPONSE_ACK 1
-#define NCOM_ACKNOWLEDGEMENT_RESPONSE_INVALID_PARAMETER 254
+#define NCOM_ACKNOWLEDGEMENT_RESPONSE_ACK 15
+#define NCOM_ACKNOWLEDGEMENT_RESPONSE_INVALID_PARAMETER 240
 #define NCOM_ACKNOWLEDGEMENT_RESPONSE_UNKNOWN_ERROR 255
+
+#define NCOM_SET_POINT_UNITS_M 0
+#define NCOM_SET_POINT_UNITS_MM 255
+
+#define NCOM_SET_SPEED_UNITS_M_S 0
+#define NCOM_SET_SPEED_UNITS_MM_S 255
+
+#define NCOM_SET_X_OR_SURGE_X_OR_SURGE_X_M 0
+#define NCOM_SET_X_OR_SURGE_X_OR_SURGE_X_MM 15
+#define NCOM_SET_X_OR_SURGE_X_OR_SURGE_SURGE_M_S 240
+#define NCOM_SET_X_OR_SURGE_X_OR_SURGE_SURGE_MM_S 255
+
+#define NCOM_SET_Y_OR_SWAY_Y_OR_SWAY_Y_M 0
+#define NCOM_SET_Y_OR_SWAY_Y_OR_SWAY_Y_MM 15
+#define NCOM_SET_Y_OR_SWAY_Y_OR_SWAY_SWAY_M_S 240
+#define NCOM_SET_Y_OR_SWAY_Y_OR_SWAY_SWAY_MM_S 255
+
+#define NCOM_SET_Z_OR_HEAVE_Z_OR_HEAVE_Z_M 0
+#define NCOM_SET_Z_OR_HEAVE_Z_OR_HEAVE_Z_MM 15
+#define NCOM_SET_Z_OR_HEAVE_Z_OR_HEAVE_HEAVE_M_S 240
+#define NCOM_SET_Z_OR_HEAVE_Z_OR_HEAVE_HEAVE_MM_S 255
+
+#define NCOM_SET_ROLL_OR_P_ROLL_OR_P_ROLL_DEG 0
+#define NCOM_SET_ROLL_OR_P_ROLL_OR_P_ROLL_RAD 15
+#define NCOM_SET_ROLL_OR_P_ROLL_OR_P_P_DEG_S 240
+#define NCOM_SET_ROLL_OR_P_ROLL_OR_P_P_RAD_S 255
+
+#define NCOM_SET_PITCH_OR_Q_PITCH_OR_Q_PITCH_DEG 0
+#define NCOM_SET_PITCH_OR_Q_PITCH_OR_Q_PITCH_RAD 15
+#define NCOM_SET_PITCH_OR_Q_PITCH_OR_Q_Q_DEG_S 240
+#define NCOM_SET_PITCH_OR_Q_PITCH_OR_Q_Q_RAD_S 255
+
+#define NCOM_SET_YAW_OR_R_YAW_OR_R_YAW_DEG 0
+#define NCOM_SET_YAW_OR_R_YAW_OR_R_YAW_RAD 15
+#define NCOM_SET_YAW_OR_R_YAW_OR_R_R_DEG_S 240
+#define NCOM_SET_YAW_OR_R_YAW_OR_R_R_RAD_S 255
 
 #define NCOM_CONFIG_REQ_CONFIG_ID_SYS_ID 0
 #define NCOM_CONFIG_REQ_CONFIG_ID_COMP_ID 1
 #define NCOM_CONFIG_REQ_CONFIG_ID_TELEM_RATE_HZ 2
+#define NCOM_CONFIG_REQ_CONFIG_ID_ADC_SAMPLING_TIME 3
+#define NCOM_CONFIG_REQ_CONFIG_ID_TIM_PRESCALER 4
 #define NCOM_CONFIG_REQ_CONFIG_ID_TASK_RATE_TELEM 10
 #define NCOM_CONFIG_REQ_CONFIG_ID_TASK_RATE_CTRL 11
 #define NCOM_CONFIG_REQ_CONFIG_ID_IMU_RATE_HZ 20
@@ -163,6 +206,8 @@ typedef enum {
 #define NCOM_CONFIG_RESP_CONFIG_ID_SYS_ID 0
 #define NCOM_CONFIG_RESP_CONFIG_ID_COMP_ID 1
 #define NCOM_CONFIG_RESP_CONFIG_ID_TELEM_RATE_HZ 2
+#define NCOM_CONFIG_RESP_CONFIG_ID_ADC_SAMPLING_TIME 3
+#define NCOM_CONFIG_RESP_CONFIG_ID_TIM_PRESCALER 4
 #define NCOM_CONFIG_RESP_CONFIG_ID_TASK_RATE_TELEM 10
 #define NCOM_CONFIG_RESP_CONFIG_ID_TASK_RATE_CTRL 11
 #define NCOM_CONFIG_RESP_CONFIG_ID_IMU_RATE_HZ 20
@@ -193,10 +238,13 @@ typedef enum {
 #define NCOM_CONFIG_RESP_DATA_TYPE_INT32 4
 #define NCOM_CONFIG_RESP_DATA_TYPE_UINT32 5
 #define NCOM_CONFIG_RESP_DATA_TYPE_FLOAT32 6
+#define NCOM_CONFIG_RESP_DATA_TYPE_FLOAT64 7
 
 #define NCOM_CONFIG_SET_MCU_CONFIG_ID_SYS_ID 0
 #define NCOM_CONFIG_SET_MCU_CONFIG_ID_COMP_ID 1
 #define NCOM_CONFIG_SET_MCU_CONFIG_ID_TELEM_RATE_HZ 2
+#define NCOM_CONFIG_SET_MCU_CONFIG_ID_ADC_SAMPLING_TIME 3
+#define NCOM_CONFIG_SET_MCU_CONFIG_ID_TIM_PRESCALER 4
 
 #define NCOM_CONFIG_SET_MCU_DATA_TYPE_INT8 0
 #define NCOM_CONFIG_SET_MCU_DATA_TYPE_UINT8 1
@@ -273,9 +321,32 @@ typedef enum {
 #define NCOM_CONFIG_SET_EKF_DATA_TYPE_UINT32 5
 #define NCOM_CONFIG_SET_EKF_DATA_TYPE_FLOAT32 6
 
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_CLEAR 0
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_TASK_HB_STATEESTIMATE 1
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_TASK_HB_CONTROL 2
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_TASK_HB_NCOM 3
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_IS_ARMED 4
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_IS_PREARMED 5
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_DEPTH_HOLD_ACTIVE 6
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_HEADING_HOLD_ACTIVE 7
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_IMU_VALID 8
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_MAG_VALID 9
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_BAR30_VALID 10
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_IMU_TEMP_WARNING 11
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_BATTERY_LOW 12
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_LEAK_DETECTED 13
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_MISSION_RUNNING 14
+#define NCOM_ASSIGN_FLAG_BIT_BIT_MEANING_COMM_TIMEOUT_WARNING 15
+
+#define NCOM_ASSIGN_FLAG_BIT_BIT_INTERRUPT_DISABLED 0
+#define NCOM_ASSIGN_FLAG_BIT_BIT_INTERRUPT_ENABLED 255
+
 #define NCOM_INIT_ERROR_ERROR_CODE_IMU_INIT_ERR 0
 #define NCOM_INIT_ERROR_ERROR_CODE_MAG_INIT_ERR 1
 #define NCOM_INIT_ERROR_ERROR_CODE_BAR30_INIT_ERR 2
+
+#define NCOM_HARDFAULT_ERROR_ERROR_CODE_STACK_OVERFLOW 0
+#define NCOM_HARDFAULT_ERROR_ERROR_CODE_SEGMENTATION_FAULT 1
 
 #define NCOM_FLAG_DYING_GASP_EKF_TASK_DEAD (1 << 0)
 #define NCOM_FLAG_DYING_GASP_CONTROL_TASK_DEAD (1 << 1)
@@ -301,14 +372,9 @@ typedef struct __attribute__((packed)) {
 // ID 2: Core commands to the MCU from RPi
 typedef struct __attribute__((packed)) {
     uint8_t cmd_id;
-    int32_t cmd_param0;
-    int32_t cmd_param1;
-    int32_t cmd_param2;
-    int32_t cmd_param3;
-    int32_t cmd_param4;
-    int32_t cmd_param5;
+    int32_t cmd_param;
 } NCOM_Payload_COMMAND_t;
-#define NCOM_LEN_COMMAND 25
+#define NCOM_LEN_COMMAND 5
 
 // ID 3: Vehicle orientation in 3-D space
 typedef struct __attribute__((packed)) {
@@ -367,64 +433,125 @@ typedef struct __attribute__((packed)) {
 } NCOM_Payload_ACKNOWLEDGEMENT_t;
 #define NCOM_LEN_ACKNOWLEDGEMENT 3
 
+// ID 10: Define setpoint for all axes
+typedef struct __attribute__((packed)) {
+    uint8_t units;
+    int32_t setpoint_x;
+    int32_t setpoint_y;
+    int32_t setpoint_z;
+    int32_t setpoint_roll;
+    int32_t setpoint_pitch;
+    int32_t setpoint_yaw;
+} NCOM_Payload_SET_POINT_t;
+#define NCOM_LEN_SET_POINT 25
+
+// ID 11: Define setspeed for all axes
+typedef struct __attribute__((packed)) {
+    uint8_t units;
+    int32_t setspeed_surge;
+    int32_t setspeed_sway;
+    int32_t setspeed_heave;
+    int32_t setspeed_p;
+    int32_t setspeed_q;
+    int32_t setspeed_r;
+} NCOM_Payload_SET_SPEED_t;
+#define NCOM_LEN_SET_SPEED 25
+
+// ID 12: Send set X or surge.
+typedef struct __attribute__((packed)) {
+    uint8_t x_or_surge;
+    int32_t value;
+} NCOM_Payload_SET_X_OR_SURGE_t;
+#define NCOM_LEN_SET_X_OR_SURGE 5
+
+// ID 13: Send set Y or sway.
+typedef struct __attribute__((packed)) {
+    uint8_t y_or_sway;
+    int32_t value;
+} NCOM_Payload_SET_Y_OR_SWAY_t;
+#define NCOM_LEN_SET_Y_OR_SWAY 5
+
+// ID 14: Send set Z or heave.
+typedef struct __attribute__((packed)) {
+    uint8_t z_or_heave;
+    int32_t value;
+} NCOM_Payload_SET_Z_OR_HEAVE_t;
+#define NCOM_LEN_SET_Z_OR_HEAVE 5
+
+// ID 15: Send set roll or P.
+typedef struct __attribute__((packed)) {
+    uint8_t roll_or_p;
+    int32_t value;
+} NCOM_Payload_SET_ROLL_OR_P_t;
+#define NCOM_LEN_SET_ROLL_OR_P 5
+
+// ID 16: Send set pitch or Q.
+typedef struct __attribute__((packed)) {
+    uint8_t pitch_or_q;
+    int32_t value;
+} NCOM_Payload_SET_PITCH_OR_Q_t;
+#define NCOM_LEN_SET_PITCH_OR_Q 5
+
+// ID 17: Send set yaw or R.
+typedef struct __attribute__((packed)) {
+    uint8_t yaw_or_r;
+    int32_t value;
+} NCOM_Payload_SET_YAW_OR_R_t;
+#define NCOM_LEN_SET_YAW_OR_R 5
+
 // ID 40: Request to send configuration value
 typedef struct __attribute__((packed)) {
-    uint16_t config_id;
+    uint8_t config_id;
 } NCOM_Payload_CONFIG_REQ_t;
-#define NCOM_LEN_CONFIG_REQ 2
+#define NCOM_LEN_CONFIG_REQ 1
 
 // ID 41: Response with configuration value
 typedef struct __attribute__((packed)) {
-    uint16_t config_id;
+    uint8_t config_id;
     uint8_t data_type;
     int32_t config_value;
 } NCOM_Payload_CONFIG_RESP_t;
-#define NCOM_LEN_CONFIG_RESP 7
+#define NCOM_LEN_CONFIG_RESP 6
 
 // ID 42: Request to set an MCU layout configuration value
 typedef struct __attribute__((packed)) {
-    uint16_t config_id;
+    uint8_t config_id;
     uint8_t data_type;
     int32_t config_value;
-    uint8_t save_to_flash;
 } NCOM_Payload_CONFIG_SET_MCU_t;
-#define NCOM_LEN_CONFIG_SET_MCU 8
+#define NCOM_LEN_CONFIG_SET_MCU 6
 
 // ID 43: Request to set a FreeRTOS configuration value
 typedef struct __attribute__((packed)) {
     uint16_t config_id;
     uint8_t data_type;
     int32_t config_value;
-    uint8_t save_to_flash;
 } NCOM_Payload_CONFIG_SET_FREERTOS_t;
-#define NCOM_LEN_CONFIG_SET_FREERTOS 8
+#define NCOM_LEN_CONFIG_SET_FREERTOS 7
 
 // ID 44: Request to set a Sensor configuration value
 typedef struct __attribute__((packed)) {
     uint16_t config_id;
     uint8_t data_type;
     int32_t config_value;
-    uint8_t save_to_flash;
 } NCOM_Payload_CONFIG_SET_SENSOR_t;
-#define NCOM_LEN_CONFIG_SET_SENSOR 8
+#define NCOM_LEN_CONFIG_SET_SENSOR 7
 
 // ID 45: Request to set an Actuator configuration value
 typedef struct __attribute__((packed)) {
     uint16_t config_id;
     uint8_t data_type;
     int32_t config_value;
-    uint8_t save_to_flash;
 } NCOM_Payload_CONFIG_SET_ACTUATOR_t;
-#define NCOM_LEN_CONFIG_SET_ACTUATOR 8
+#define NCOM_LEN_CONFIG_SET_ACTUATOR 7
 
 // ID 46: Request to set a PID loop configuration value
 typedef struct __attribute__((packed)) {
     uint16_t config_id;
     uint8_t data_type;
     int32_t config_value;
-    uint8_t save_to_flash;
 } NCOM_Payload_CONFIG_SET_PID_t;
-#define NCOM_LEN_CONFIG_SET_PID 8
+#define NCOM_LEN_CONFIG_SET_PID 7
 
 // ID 47: Request to set an EKF configuration value
 typedef struct __attribute__((packed)) {
@@ -444,11 +571,37 @@ typedef struct __attribute__((packed)) {
 } NCOM_Payload_CONFIG_SET_STARTUP_t;
 #define NCOM_LEN_CONFIG_SET_STARTUP 0
 
-// ID 200: Sent when an error occurs during initialization
+// ID 50: Send flags to the host.
+typedef struct __attribute__((packed)) {
+    uint32_t flag_uint;
+} NCOM_Payload_SEND_FLAG_t;
+#define NCOM_LEN_SEND_FLAG 4
+
+// ID 51: Assign the meaning of the bit
+typedef struct __attribute__((packed)) {
+    uint8_t bit_position;
+    uint8_t bit_meaning;
+    uint8_t bit_interrupt;
+} NCOM_Payload_ASSIGN_FLAG_BIT_t;
+#define NCOM_LEN_ASSIGN_FLAG_BIT 3
+
+// ID 52: Clear the selected flag
+typedef struct __attribute__((packed)) {
+    uint8_t bit_position;
+} NCOM_Payload_CLEAR_FLAG_t;
+#define NCOM_LEN_CLEAR_FLAG 1
+
+// ID 240: Sent when an error occurs during initialization
 typedef struct __attribute__((packed)) {
     uint8_t error_code;
 } NCOM_Payload_INIT_ERROR_t;
 #define NCOM_LEN_INIT_ERROR 1
+
+// ID 241: Sent in case of a hard fault
+typedef struct __attribute__((packed)) {
+    uint8_t error_code;
+} NCOM_Payload_HARDFAULT_ERROR_t;
+#define NCOM_LEN_HARDFAULT_ERROR 1
 
 // ID 255: Sent when a critical task does not respond. The MCU then undergoes IWDG reset
 typedef struct __attribute__((packed)) {
@@ -478,6 +631,22 @@ size_t ncom_pack_targets(uint8_t *buf, const NCOM_Payload_TARGETS_t *msg);
 size_t ncom_unpack_targets(const uint8_t *buf, NCOM_Payload_TARGETS_t *msg);
 size_t ncom_pack_acknowledgement(uint8_t *buf, const NCOM_Payload_ACKNOWLEDGEMENT_t *msg);
 size_t ncom_unpack_acknowledgement(const uint8_t *buf, NCOM_Payload_ACKNOWLEDGEMENT_t *msg);
+size_t ncom_pack_set_point(uint8_t *buf, const NCOM_Payload_SET_POINT_t *msg);
+size_t ncom_unpack_set_point(const uint8_t *buf, NCOM_Payload_SET_POINT_t *msg);
+size_t ncom_pack_set_speed(uint8_t *buf, const NCOM_Payload_SET_SPEED_t *msg);
+size_t ncom_unpack_set_speed(const uint8_t *buf, NCOM_Payload_SET_SPEED_t *msg);
+size_t ncom_pack_set_x_or_surge(uint8_t *buf, const NCOM_Payload_SET_X_OR_SURGE_t *msg);
+size_t ncom_unpack_set_x_or_surge(const uint8_t *buf, NCOM_Payload_SET_X_OR_SURGE_t *msg);
+size_t ncom_pack_set_y_or_sway(uint8_t *buf, const NCOM_Payload_SET_Y_OR_SWAY_t *msg);
+size_t ncom_unpack_set_y_or_sway(const uint8_t *buf, NCOM_Payload_SET_Y_OR_SWAY_t *msg);
+size_t ncom_pack_set_z_or_heave(uint8_t *buf, const NCOM_Payload_SET_Z_OR_HEAVE_t *msg);
+size_t ncom_unpack_set_z_or_heave(const uint8_t *buf, NCOM_Payload_SET_Z_OR_HEAVE_t *msg);
+size_t ncom_pack_set_roll_or_p(uint8_t *buf, const NCOM_Payload_SET_ROLL_OR_P_t *msg);
+size_t ncom_unpack_set_roll_or_p(const uint8_t *buf, NCOM_Payload_SET_ROLL_OR_P_t *msg);
+size_t ncom_pack_set_pitch_or_q(uint8_t *buf, const NCOM_Payload_SET_PITCH_OR_Q_t *msg);
+size_t ncom_unpack_set_pitch_or_q(const uint8_t *buf, NCOM_Payload_SET_PITCH_OR_Q_t *msg);
+size_t ncom_pack_set_yaw_or_r(uint8_t *buf, const NCOM_Payload_SET_YAW_OR_R_t *msg);
+size_t ncom_unpack_set_yaw_or_r(const uint8_t *buf, NCOM_Payload_SET_YAW_OR_R_t *msg);
 size_t ncom_pack_config_req(uint8_t *buf, const NCOM_Payload_CONFIG_REQ_t *msg);
 size_t ncom_unpack_config_req(const uint8_t *buf, NCOM_Payload_CONFIG_REQ_t *msg);
 size_t ncom_pack_config_resp(uint8_t *buf, const NCOM_Payload_CONFIG_RESP_t *msg);
@@ -498,8 +667,16 @@ size_t ncom_pack_config_req_startup(uint8_t *buf, const NCOM_Payload_CONFIG_REQ_
 size_t ncom_unpack_config_req_startup(const uint8_t *buf, NCOM_Payload_CONFIG_REQ_STARTUP_t *msg);
 size_t ncom_pack_config_set_startup(uint8_t *buf, const NCOM_Payload_CONFIG_SET_STARTUP_t *msg);
 size_t ncom_unpack_config_set_startup(const uint8_t *buf, NCOM_Payload_CONFIG_SET_STARTUP_t *msg);
+size_t ncom_pack_send_flag(uint8_t *buf, const NCOM_Payload_SEND_FLAG_t *msg);
+size_t ncom_unpack_send_flag(const uint8_t *buf, NCOM_Payload_SEND_FLAG_t *msg);
+size_t ncom_pack_assign_flag_bit(uint8_t *buf, const NCOM_Payload_ASSIGN_FLAG_BIT_t *msg);
+size_t ncom_unpack_assign_flag_bit(const uint8_t *buf, NCOM_Payload_ASSIGN_FLAG_BIT_t *msg);
+size_t ncom_pack_clear_flag(uint8_t *buf, const NCOM_Payload_CLEAR_FLAG_t *msg);
+size_t ncom_unpack_clear_flag(const uint8_t *buf, NCOM_Payload_CLEAR_FLAG_t *msg);
 size_t ncom_pack_init_error(uint8_t *buf, const NCOM_Payload_INIT_ERROR_t *msg);
 size_t ncom_unpack_init_error(const uint8_t *buf, NCOM_Payload_INIT_ERROR_t *msg);
+size_t ncom_pack_hardfault_error(uint8_t *buf, const NCOM_Payload_HARDFAULT_ERROR_t *msg);
+size_t ncom_unpack_hardfault_error(const uint8_t *buf, NCOM_Payload_HARDFAULT_ERROR_t *msg);
 size_t ncom_pack_dying_gasp(uint8_t *buf, const NCOM_Payload_DYING_GASP_t *msg);
 size_t ncom_unpack_dying_gasp(const uint8_t *buf, NCOM_Payload_DYING_GASP_t *msg);
 

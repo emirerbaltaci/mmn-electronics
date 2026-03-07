@@ -1,9 +1,7 @@
 {
     "section": "core",
-    "id_range": [
-        0,
-        9
-    ],
+    "id_range": [0, 9],
+	
     "messages": [
         {
             "id": 0,
@@ -14,7 +12,7 @@
                 {
                     "name": "device_id",
                     "type": "uint8",
-                    "desc": "RPi = 0, MCU = 1; Auto-ID may be implemented later."
+                    "desc": "Host = 0, MCU = 1; Auto-ID may be implemented later."
                 },
                 {
                     "name": "vehicle_state",
@@ -57,7 +55,7 @@
                 {
                     "name": "uptime_ms",
                     "type": "uint32",
-                    "desc": "MCU uptime in milliseconds"
+                    "desc": "Communication uptime in milliseconds"
                 }
             ]
         },
@@ -103,15 +101,8 @@
                         "ABORT_MISSION": 4,
                         "CLEAR_FLAGS": 5,
                         "SET_MODE": 10,
-                        "SET_TARGET_DEPTH_MM": 20,
-                        "SET_TARGET_ROLL_DEG": 21,
-                        "SET_TARGET_PITCH_DEG": 22,
-                        "SET_TARGET_YAW_DEG": 23,
-                        "SET_TARGET_SURGE_MM_S": 24,
-                        "SET_TARGET_SWAY_MM_S": 25,
-                        "SET_TARGET_HEAVE_MM_S": 26,
-                        "SET_LIGHTS": 30,
-                        "REBOOT_MCU": 40,
+                        "SET_LIGHTS": 40,
+                        "REBOOT_MCU": 50,
                         "CALIBRATE_DEPTH_0": 100,
                         "CALIBRATE_AXES_0": 101,
                         "SET_HEARTBEAT_RATE": 200,
@@ -119,32 +110,7 @@
                     }
                 },
                 {
-                    "name": "cmd_param0",
-                    "type": "int32",
-                    "desc": "Command parameters. Transmitted as int32, encoding defined by cmd_id. Check documentation for details and valid arguments."
-                },
-                {
-                    "name": "cmd_param1",
-                    "type": "int32",
-                    "desc": "Command parameters. Transmitted as int32, encoding defined by cmd_id. Check documentation for details and valid arguments."
-                },
-                {
-                    "name": "cmd_param2",
-                    "type": "int32",
-                    "desc": "Command parameters. Transmitted as int32, encoding defined by cmd_id. Check documentation for details and valid arguments."
-                },
-                {
-                    "name": "cmd_param3",
-                    "type": "int32",
-                    "desc": "Command parameters. Transmitted as int32, encoding defined by cmd_id. Check documentation for details and valid arguments."
-                },
-                {
-                    "name": "cmd_param4",
-                    "type": "int32",
-                    "desc": "Command parameters. Transmitted as int32, encoding defined by cmd_id. Check documentation for details and valid arguments."
-                },
-                {
-                    "name": "cmd_param5",
+                    "name": "cmd_param",
                     "type": "int32",
                     "desc": "Command parameters. Transmitted as int32, encoding defined by cmd_id. Check documentation for details and valid arguments."
                 }
@@ -346,8 +312,8 @@
                     "desc": "Response to the command",
                     "enum": {
                         "NACK": 0,
-                        "ACK": 1,
-                        "INVALID_PARAMETER": 254,
+                        "ACK": 15,
+                        "INVALID_PARAMETER": 240,
                         "UNKNOWN_ERROR": 255
                     }
                 }

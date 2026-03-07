@@ -4,13 +4,14 @@ Main code repository for MM Nautronics - Electronics subteam. Includes firmware 
 
 ## MCU Firmware
 
-The microcontroller firmware will be built on **FreeRTOS** to ensure real-time performance and efficient task management. The system will leverage FreeRTOS tasks for sensor data acquisition, NCOM protocol handling, and system monitoring.
+The microcontroller firmware (under `MCU/` directory) is built on **FreeRTOS** to ensure real-time performance and efficient task management. The system will leverage FreeRTOS tasks for sensor data acquisition, PID control, NCOM protocol handling, and system monitoring.
+The microcontroller firmware (under `c0pdb/` directory) is the firmware for the microcontroller present on power distribution board.
 
 ## Drivers
 
 The `Drivers/` directory contains sensor drivers implemented using the **STM32 HAL (Hardware Abstraction Layer)**. These drivers provide high-level interfaces for communicating with the onboard sensors:
 
-- **`bar30`**: Driver for the Blue Robotics Bar30 High-Resolution Pressure Sensor.
+- **`bar30**: Driver for the Blue Robotics Bar30 High-Resolution Pressure Sensor.
 - **`imu-icm42688p`**: Driver for the TDK InvenSense ICM-42688-P 6-axis MotionTracking device.
 - **`mag-lis2mdl`**: Driver for the STMicroelectronics LIS2MDL ultra-low-power digital 3-axis magnetometer.
 

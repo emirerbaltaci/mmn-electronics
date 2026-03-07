@@ -1,8 +1,6 @@
 {
     "section": "sensor",
-    "id_range": [
-        20,
-        29
-    ],
+    "id_range": [20, 29],
+	
     "messages": []
 }

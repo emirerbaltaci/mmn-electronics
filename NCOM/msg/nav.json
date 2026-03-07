@@ -1,8 +1,227 @@
 {
     "section": "nav",
-    "id_range": [
-        10,
-        19
-    ],
-    "messages": []
+    "id_range": [10, 19],
+	
+    "messages": [
+		{
+			"id": 10,
+			"name": "SET_POINT",
+			"direction": "HOST_TO_MCU",
+			"desc": "Define setpoint for all axes",
+			"payload": [
+				{
+					"name": "units",
+					"type": "uint8",
+					"desc": "If mm, reciver should multiply with 1e-7. If m, receiver should cast to float.",
+					"enum": {
+						"M": 0,
+						"MM": 255
+					}
+				},
+				{
+					"name": "setpoint_x",
+					"type": "int32"
+				},
+				{
+					"name": "setpoint_y",
+					"type": "int32"
+				},
+				{
+					"name": "setpoint_z",
+					"type": "int32"
+				},
+				{
+					"name": "setpoint_roll",
+					"type": "int32"
+				},
+				{
+					"name": "setpoint_pitch",
+					"type": "int32"
+				},
+				{
+					"name": "setpoint_yaw",
+					"type": "int32"
+				}
+			]
+		},
+		{
+			"id": 11,
+			"name": "SET_SPEED",
+			"direction": "HOST_TO_MCU",
+			"desc": "Define setspeed for all axes",
+			"payload": [
+				{
+					"name": "units",
+					"type": "uint8",
+					"desc": "If mm/s, receiver should multiply with 1e-7. If m/s, receiver should cast to float.",
+					"enum": {
+						"M_S": 0,
+						"MM_S": 255
+					}
+				},
+				{
+					"name": "setspeed_surge",
+					"type": "int32"
+				},
+				{
+					"name": "setspeed_sway",
+					"type": "int32"
+				},
+				{
+					"name": "setspeed_heave",
+					"type": "int32"
+				},
+				{
+					"name": "setspeed_p",
+					"type": "int32"
+				},
+				{
+					"name": "setspeed_q",
+					"type": "int32"
+				},
+				{
+					"name": "setspeed_r",
+					"type": "int32"
+				}
+			]
+		},
+		{
+			"id": 12,
+			"name": "SET_X_OR_SURGE",
+			"direction": "HOST_TO_MCU",
+			"desc": "Send set X or surge.",
+			"payload": [
+				{
+					"name": "x_or_surge",
+					"type": "uint8",
+					"enum": {
+						"X_M": 0,
+						"X_MM": 15,
+						"SURGE_M_S": 240,
+						"SURGE_MM_S": 255
+					}
+				},
+				{
+					"name": "value",
+					"type": "int32",
+					"desc": "If mm or mm/s, receiver should multiply with 1e-7. If m or m/s, receiver should cast to float."
+				}
+			]
+		},
+		{
+			"id": 13,
+			"name": "SET_Y_OR_SWAY",
+			"direction": "HOST_TO_MCU",
+			"desc": "Send set Y or sway.",
+			"payload": [
+				{
+					"name": "y_or_sway",
+					"type": "uint8",
+					"enum": {
+						"Y_M": 0,
+						"Y_MM": 15,
+						"SWAY_M_S": 240,
+						"SWAY_MM_S": 255
+					}
+				},
+				{
+					"name": "value",
+					"type": "int32",
+					"desc": "If mm or mm/s, receiver should multiply with 1e-7. If m or m/s, receiver should cast to float."
+				}
+			]
+		},
+		{
+			"id": 14,
+			"name": "SET_Z_OR_HEAVE",
+			"direction": "HOST_TO_MCU",
+			"desc": "Send set Z or heave.",
+			"payload": [
+				{
+					"name": "z_or_heave",
+					"type": "uint8",
+					"enum": {
+						"Z_M": 0,
+						"Z_MM": 15,
+						"HEAVE_M_S": 240,
+						"HEAVE_MM_S": 255
+					}
+				},
+				{
+					"name": "value",
+					"type": "int32",
+					"desc": "If mm or mm/s, receiver should multiply with 1e-7. If m or m/s, receiver should cast to float."
+				}
+			]
+		},
+		{
+			"id": 15,
+			"name": "SET_ROLL_OR_P",
+			"direction": "HOST_TO_MCU",
+			"desc": "Send set roll or P.",
+			"payload": [
+				{
+					"name": "roll_or_p",
+					"type": "uint8",
+					"enum": {
+						"ROLL_DEG": 0,
+						"ROLL_RAD": 15,
+						"P_DEG_S": 240,
+						"P_RAD_S": 255
+					}
+				},
+				{
+					"name": "value",
+					"type": "int32",
+					"desc": "If mm or mm/s, receiver should multiply with 1e-7. If m or m/s, receiver should cast to float."
+				}
+			]
+		},
+		{
+			"id": 16,
+			"name": "SET_PITCH_OR_Q",
+			"direction": "HOST_TO_MCU",
+			"desc": "Send set pitch or Q.",
+			"payload": [
+				{
+					"name": "pitch_or_q",
+					"type": "uint8",
+					"enum": {
+						"PITCH_DEG": 0,
+						"PITCH_RAD": 15,
+						"Q_DEG_S": 240,
+						"Q_RAD_S": 255
+					}
+				},
+				{
+					"name": "value",
+					"type": "int32",
+					"desc": "If mm or mm/s, receiver should multiply with 1e-7. If m or m/s, receiver should cast to float."
+				}
+			]
+		},
+		{
+			"id": 17,
+			"name": "SET_YAW_OR_R",
+			"direction": "HOST_TO_MCU",
+			"desc": "Send set yaw or R.",
+			"payload": [
+				{
+					"name": "yaw_or_r",
+					"type": "uint8",
+					"enum": {
+						"YAW_DEG": 0,
+						"YAW_RAD": 15,
+						"R_DEG_S": 240,
+						"R_RAD_S": 255
+					}
+				},
+				{
+					"name": "value",
+					"type": "int32",
+					"desc": "If mm or mm/s, receiver should multiply with 1e-7. If m or m/s, receiver should cast to float."
+				}
+			]
+		}
+	]
 }

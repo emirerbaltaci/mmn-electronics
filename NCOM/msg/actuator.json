@@ -1,8 +1,6 @@
 {
     "section": "actuator",
-    "id_range": [
-        30,
-        39
-    ],
+    "id_range": [30, 39],
+	
     "messages": []
 }

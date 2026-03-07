@@ -22,7 +22,7 @@
 
 '''
 NCOM Python Module
-Auto-generated on: 04.03.2026 02:26:18
+Auto-generated on: 07.03.2026 17:53:46
 Version: 0.1
 '''
 
@@ -74,15 +74,8 @@ COMMAND_CMD_ID = {
     'ABORT_MISSION': 4,
     'CLEAR_FLAGS': 5,
     'SET_MODE': 10,
-    'SET_TARGET_DEPTH_MM': 20,
-    'SET_TARGET_ROLL_DEG': 21,
-    'SET_TARGET_PITCH_DEG': 22,
-    'SET_TARGET_YAW_DEG': 23,
-    'SET_TARGET_SURGE_MM_S': 24,
-    'SET_TARGET_SWAY_MM_S': 25,
-    'SET_TARGET_HEAVE_MM_S': 26,
-    'SET_LIGHTS': 30,
-    'REBOOT_MCU': 40,
+    'SET_LIGHTS': 40,
+    'REBOOT_MCU': 50,
     'CALIBRATE_DEPTH_0': 100,
     'CALIBRATE_AXES_0': 101,
     'SET_HEARTBEAT_RATE': 200,
@@ -107,14 +100,60 @@ TARGETS_FLAGS = {
 }
 ACKNOWLEDGEMENT_RESPONSE = {
     'NACK': 0,
-    'ACK': 1,
-    'INVALID_PARAMETER': 254,
+    'ACK': 15,
+    'INVALID_PARAMETER': 240,
     'UNKNOWN_ERROR': 255,
+}
+SET_POINT_UNITS = {
+    'M': 0,
+    'MM': 255,
+}
+SET_SPEED_UNITS = {
+    'M_S': 0,
+    'MM_S': 255,
+}
+SET_X_OR_SURGE_X_OR_SURGE = {
+    'X_M': 0,
+    'X_MM': 15,
+    'SURGE_M_S': 240,
+    'SURGE_MM_S': 255,
+}
+SET_Y_OR_SWAY_Y_OR_SWAY = {
+    'Y_M': 0,
+    'Y_MM': 15,
+    'SWAY_M_S': 240,
+    'SWAY_MM_S': 255,
+}
+SET_Z_OR_HEAVE_Z_OR_HEAVE = {
+    'Z_M': 0,
+    'Z_MM': 15,
+    'HEAVE_M_S': 240,
+    'HEAVE_MM_S': 255,
+}
+SET_ROLL_OR_P_ROLL_OR_P = {
+    'ROLL_DEG': 0,
+    'ROLL_RAD': 15,
+    'P_DEG_S': 240,
+    'P_RAD_S': 255,
+}
+SET_PITCH_OR_Q_PITCH_OR_Q = {
+    'PITCH_DEG': 0,
+    'PITCH_RAD': 15,
+    'Q_DEG_S': 240,
+    'Q_RAD_S': 255,
+}
+SET_YAW_OR_R_YAW_OR_R = {
+    'YAW_DEG': 0,
+    'YAW_RAD': 15,
+    'R_DEG_S': 240,
+    'R_RAD_S': 255,
 }
 CONFIG_REQ_CONFIG_ID = {
     'SYS_ID': 0,
     'COMP_ID': 1,
     'TELEM_RATE_HZ': 2,
+    'ADC_SAMPLING_TIME': 3,
+    'TIM_PRESCALER': 4,
     'TASK_RATE_TELEM': 10,
     'TASK_RATE_CTRL': 11,
     'IMU_RATE_HZ': 20,
@@ -142,6 +181,8 @@ CONFIG_RESP_CONFIG_ID = {
     'SYS_ID': 0,
     'COMP_ID': 1,
     'TELEM_RATE_HZ': 2,
+    'ADC_SAMPLING_TIME': 3,
+    'TIM_PRESCALER': 4,
     'TASK_RATE_TELEM': 10,
     'TASK_RATE_CTRL': 11,
     'IMU_RATE_HZ': 20,
@@ -173,11 +214,14 @@ CONFIG_RESP_DATA_TYPE = {
     'INT32': 4,
     'UINT32': 5,
     'FLOAT32': 6,
+    'FLOAT64': 7,
 }
 CONFIG_SET_MCU_CONFIG_ID = {
     'SYS_ID': 0,
     'COMP_ID': 1,
     'TELEM_RATE_HZ': 2,
+    'ADC_SAMPLING_TIME': 3,
+    'TIM_PRESCALER': 4,
 }
 CONFIG_SET_MCU_DATA_TYPE = {
     'INT8': 0,
@@ -265,10 +309,36 @@ CONFIG_SET_EKF_DATA_TYPE = {
     'UINT32': 5,
     'FLOAT32': 6,
 }
+ASSIGN_FLAG_BIT_BIT_MEANING = {
+    'CLEAR': 0,
+    'TASK_HB_STATEESTIMATE': 1,
+    'TASK_HB_CONTROL': 2,
+    'TASK_HB_NCOM': 3,
+    'IS_ARMED': 4,
+    'IS_PREARMED': 5,
+    'DEPTH_HOLD_ACTIVE': 6,
+    'HEADING_HOLD_ACTIVE': 7,
+    'IMU_VALID': 8,
+    'MAG_VALID': 9,
+    'BAR30_VALID': 10,
+    'IMU_TEMP_WARNING': 11,
+    'BATTERY_LOW': 12,
+    'LEAK_DETECTED': 13,
+    'MISSION_RUNNING': 14,
+    'COMM_TIMEOUT_WARNING': 15,
+}
+ASSIGN_FLAG_BIT_BIT_INTERRUPT = {
+    'DISABLED': 0,
+    'ENABLED': 255,
+}
 INIT_ERROR_ERROR_CODE = {
     'IMU_INIT_ERR': 0,
     'MAG_INIT_ERR': 1,
     'BAR30_INIT_ERR': 2,
+}
+HARDFAULT_ERROR_ERROR_CODE = {
+    'STACK_OVERFLOW': 0,
+    'SEGMENTATION_FAULT': 1,
 }
 DYING_GASP_FLAGS = {
     'EKF_TASK_DEAD': (1 << 0),
@@ -288,6 +358,14 @@ class Messages:
         7: 'MODE_STATUS',
         8: 'TARGETS',
         9: 'ACKNOWLEDGEMENT',
+        10: 'SET_POINT',
+        11: 'SET_SPEED',
+        12: 'SET_X_OR_SURGE',
+        13: 'SET_Y_OR_SWAY',
+        14: 'SET_Z_OR_HEAVE',
+        15: 'SET_ROLL_OR_P',
+        16: 'SET_PITCH_OR_Q',
+        17: 'SET_YAW_OR_R',
         40: 'CONFIG_REQ',
         41: 'CONFIG_RESP',
         42: 'CONFIG_SET_MCU',
@@ -298,7 +376,11 @@ class Messages:
         47: 'CONFIG_SET_EKF',
         48: 'CONFIG_REQ_STARTUP',
         49: 'CONFIG_SET_STARTUP',
-        200: 'INIT_ERROR',
+        50: 'SEND_FLAG',
+        51: 'ASSIGN_FLAG_BIT',
+        52: 'CLEAR_FLAG',
+        240: 'INIT_ERROR',
+        241: 'HARDFAULT_ERROR',
         255: 'DYING_GASP',
     }
 
@@ -313,6 +395,14 @@ class Messages:
         'MODE_STATUS': 7,
         'TARGETS': 8,
         'ACKNOWLEDGEMENT': 9,
+        'SET_POINT': 10,
+        'SET_SPEED': 11,
+        'SET_X_OR_SURGE': 12,
+        'SET_Y_OR_SWAY': 13,
+        'SET_Z_OR_HEAVE': 14,
+        'SET_ROLL_OR_P': 15,
+        'SET_PITCH_OR_Q': 16,
+        'SET_YAW_OR_R': 17,
         'CONFIG_REQ': 40,
         'CONFIG_RESP': 41,
         'CONFIG_SET_MCU': 42,
@@ -323,14 +413,18 @@ class Messages:
         'CONFIG_SET_EKF': 47,
         'CONFIG_REQ_STARTUP': 48,
         'CONFIG_SET_STARTUP': 49,
-        'INIT_ERROR': 200,
+        'SEND_FLAG': 50,
+        'ASSIGN_FLAG_BIT': 51,
+        'CLEAR_FLAG': 52,
+        'INIT_ERROR': 240,
+        'HARDFAULT_ERROR': 241,
         'DYING_GASP': 255,
     }
 
     FORMATS = {
         0: '<BBBI', # HEARTBEAT
         1: '<BHf', # SYS_STATUS
-        2: '<Biiiiii', # COMMAND
+        2: '<Bi', # COMMAND
         3: '<fffB', # ATTITUDE
         4: '<fff', # ROTATION_RATES
         5: '<fff', # LINEAR_VELOCITY
@@ -338,17 +432,29 @@ class Messages:
         7: '<H', # MODE_STATUS
         8: '<Bifff', # TARGETS
         9: '<BBB', # ACKNOWLEDGEMENT
-        40: '<H', # CONFIG_REQ
-        41: '<HBi', # CONFIG_RESP
-        42: '<HBiB', # CONFIG_SET_MCU
-        43: '<HBiB', # CONFIG_SET_FREERTOS
-        44: '<HBiB', # CONFIG_SET_SENSOR
-        45: '<HBiB', # CONFIG_SET_ACTUATOR
-        46: '<HBiB', # CONFIG_SET_PID
+        10: '<Biiiiii', # SET_POINT
+        11: '<Biiiiii', # SET_SPEED
+        12: '<Bi', # SET_X_OR_SURGE
+        13: '<Bi', # SET_Y_OR_SWAY
+        14: '<Bi', # SET_Z_OR_HEAVE
+        15: '<Bi', # SET_ROLL_OR_P
+        16: '<Bi', # SET_PITCH_OR_Q
+        17: '<Bi', # SET_YAW_OR_R
+        40: '<B', # CONFIG_REQ
+        41: '<BBi', # CONFIG_RESP
+        42: '<BBi', # CONFIG_SET_MCU
+        43: '<HBi', # CONFIG_SET_FREERTOS
+        44: '<HBi', # CONFIG_SET_SENSOR
+        45: '<HBi', # CONFIG_SET_ACTUATOR
+        46: '<HBi', # CONFIG_SET_PID
         47: '<HB9i', # CONFIG_SET_EKF
         48: '<', # CONFIG_REQ_STARTUP
         49: '<', # CONFIG_SET_STARTUP
-        200: '<B', # INIT_ERROR
+        50: '<I', # SEND_FLAG
+        51: '<BBB', # ASSIGN_FLAG_BIT
+        52: '<B', # CLEAR_FLAG
+        240: '<B', # INIT_ERROR
+        241: '<B', # HARDFAULT_ERROR
         255: '<B', # DYING_GASP
     }
 

@@ -1,9 +1,7 @@
 {
     "section": "config",
-    "id_range": [
-        40,
-        49
-    ],
+    "id_range": [40, 49],
+	
     "messages": [
         {
             "id": 40,
@@ -13,12 +11,14 @@
             "payload": [
                 {
                     "name": "config_id",
-                    "type": "uint16",
+                    "type": "uint8",
                     "desc": "Configuration ID",
                     "enum": {
                         "SYS_ID": 0,
                         "COMP_ID": 1,
                         "TELEM_RATE_HZ": 2,
+                        "ADC_SAMPLING_TIME": 3,
+                        "TIM_PRESCALER": 4,
                         "TASK_RATE_TELEM": 10,
                         "TASK_RATE_CTRL": 11,
                         "IMU_RATE_HZ": 20,
@@ -53,12 +53,14 @@
             "payload": [
                 {
                     "name": "config_id",
-                    "type": "uint16",
+                    "type": "uint8",
                     "desc": "Configuration ID",
                     "enum": {
                         "SYS_ID": 0,
                         "COMP_ID": 1,
                         "TELEM_RATE_HZ": 2,
+                        "ADC_SAMPLING_TIME": 3,
+                        "TIM_PRESCALER": 4,
                         "TASK_RATE_TELEM": 10,
                         "TASK_RATE_CTRL": 11,
                         "IMU_RATE_HZ": 20,
@@ -94,7 +96,8 @@
                         "UINT16": 3,
                         "INT32": 4,
                         "UINT32": 5,
-                        "FLOAT32": 6
+                        "FLOAT32": 6,
+						"FLOAT64": 7
                     }
                 },
                 {
@@ -112,12 +115,14 @@
             "payload": [
                 {
                     "name": "config_id",
-                    "type": "uint16",
+                    "type": "uint8",
                     "desc": "Configuration ID",
                     "enum": {
                         "SYS_ID": 0,
                         "COMP_ID": 1,
-                        "TELEM_RATE_HZ": 2
+                        "TELEM_RATE_HZ": 2,
+                        "ADC_SAMPLING_TIME": 3,
+                        "TIM_PRESCALER": 4
                     }
                 },
                 {
@@ -138,11 +143,6 @@
                     "name": "config_value",
                     "type": "int32",
                     "desc": "Configuration data (scaled/encoded into int32)"
-                },
-                {
-                    "name": "save_to_flash",
-                    "type": "uint8",
-                    "desc": "1 to permanently save, 0 to set temporarily"
                 }
             ]
         },
@@ -179,11 +179,6 @@
                     "name": "config_value",
                     "type": "int32",
                     "desc": "Configuration data (scaled/encoded into int32)"
-                },
-                {
-                    "name": "save_to_flash",
-                    "type": "uint8",
-                    "desc": "1 to permanently save, 0 to set temporarily"
                 }
             ]
         },
@@ -221,11 +216,6 @@
                     "name": "config_value",
                     "type": "int32",
                     "desc": "Configuration data (scaled/encoded into int32)"
-                },
-                {
-                    "name": "save_to_flash",
-                    "type": "uint8",
-                    "desc": "1 to permanently save, 0 to set temporarily"
                 }
             ]
         },
@@ -263,11 +253,6 @@
                     "name": "config_value",
                     "type": "int32",
                     "desc": "Configuration data (scaled/encoded into int32)"
-                },
-                {
-                    "name": "save_to_flash",
-                    "type": "uint8",
-                    "desc": "1 to permanently save, 0 to set temporarily"
                 }
             ]
         },
@@ -314,11 +299,6 @@
                     "name": "config_value",
                     "type": "int32",
                     "desc": "Configuration data (scaled/encoded into int32)"
-                },
-                {
-                    "name": "save_to_flash",
-                    "type": "uint8",
-                    "desc": "1 to permanently save, 0 to set temporarily"
                 }
             ]
         },
@@ -359,19 +339,19 @@
                 }
             ]
         },
-		{
-			"id": 48,
-			"name": "CONFIG_REQ_STARTUP",
-			"direction": "MCU_TO_HOST",
-			"desc": "Request saved config file after system reset",
-			"payload": []
-		},
-		{
-			"id": 49,
-			"name": "CONFIG_SET_STARTUP",
-			"direction": "HOST_TO_MCU",
-			"desc": "Send config file data to MCU",
-			"payload": []
-		}
+        {
+            "id": 48,
+            "name": "CONFIG_REQ_STARTUP",
+            "direction": "MCU_TO_HOST",
+            "desc": "Request saved config file after system reset",
+            "payload": []
+        },
+        {
+            "id": 49,
+            "name": "CONFIG_SET_STARTUP",
+            "direction": "HOST_TO_MCU",
+            "desc": "Send config file data to MCU",
+            "payload": []
+        }
     ]
 }

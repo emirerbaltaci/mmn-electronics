@@ -5,8 +5,7 @@
 #include "bar30.h"
 #include "imu.h"
 #include "magnetometer.h"
-
-
+#include "stm32g4xx_hal.h"
 
 /* --- From ekf_config.h --- */
 
@@ -46,7 +45,7 @@
 #define EKF_R_ACCEL 					0.05f
 
 /*
- * 		EKF_R_MAG						Magnetometer Measurement Noise Variance
+ * 		EKF_R_MAG 						Magnetometer Measurement Noise Variance
  */
 #define EKF_R_MAG 						0.1f
 
@@ -78,12 +77,12 @@
 /*
  * 		EKF_P_INIT_BG					Initial Gyro Bias Covariance
  */
-#define EKF_P_INIT_BG 					0.001f
+#define EKF_P_INIT_BG 					1.0e-4f
 
 /*
  * 		EKF_P_INIT_BA					Initial Accel Bias Covariance
  */
-#define EKF_P_INIT_BA 					0.001f
+#define EKF_P_INIT_BA 					4.0e-2f
 
 /*
  * 		EKF_Q_VEL_NOISE					Process Noise: Velocity
@@ -106,19 +105,41 @@
 #define EKF_Q_BA_NOISE 					1.0e-7f
 
 /*
+ * 		EKF_Q_POS_NOISE					Process Noise: Position
+ */
+#define EKF_Q_POS_NOISE 				1.0e-7f
+
+/*
+ * 		EKF_R_ACCEL_ADAPTIVE_K			Adaptive Accel R Gain (scales R with |a-g|^2)
+ */
+#define EKF_R_ACCEL_ADAPTIVE_K 			10.0f
+
+/*
+ * 		EKF_MAG_HARD_IRON_X/Y/Z			Hard-Iron Offset (Gauss)
+ */
+#define EKF_MAG_HARD_IRON_X 			0.0f
+#define EKF_MAG_HARD_IRON_Y 			0.0f
+#define EKF_MAG_HARD_IRON_Z 			0.0f
+
+/*
+ * 		EKF_MAG_SOFT_IRON				Soft-Iron 3x3 Matrix (row-major, identity = no correction)
+ */
+#define EKF_MAG_SOFT_IRON 				{1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f}
+
+/*
  * 		EKF_EARTH_MAG_X					Earth Magnetic Field X (Normalized)
  */
-#define EKF_EARTH_MAG_X 				0.549f
+#define EKF_EARTH_MAG_X 				0.5241f
 
 /*
  * 		EKF_EARTH_MAG_Y					Earth Magnetic Field Y (Normalized)
  */
-#define EKF_EARTH_MAG_Y 				0.054f
+#define EKF_EARTH_MAG_Y 				0.0564f
 
 /*
  * 		EKF_EARTH_MAG_Z					Earth Magnetic Field Z (Normalized)
  */
-#define EKF_EARTH_MAG_Z 				0.834f
+#define EKF_EARTH_MAG_Z 				0.8497f
 
 /*
  * 		EKF_CHI_SQUARE_TH_DOF1			Chi-Square Threshold (1 DOF)
@@ -139,8 +160,6 @@
  * 		EKF_CHI_SQUARE_TH_DOF6			Chi-Square Threshold (6 DOF)
  */
 #define EKF_CHI_SQUARE_TH_DOF6 			16.812f
-
-
 
 /* --- From imu_config.h --- */
 
@@ -1210,5 +1229,11 @@
  * 		AUV_THRUST_TO_PWM_COEF_LIN		Thrust Formula Linear Coefficient
  */
 #define AUV_THRUST_TO_PWM_COEF_LIN		3.2f
+
+/* Lights */
+#define AUV_LIGHT1_GPIO_PORT			GPIOD
+#define AUV_LIGHT2_GPIO_PORT			GPIOD
+#define AUV_LIGHT1_GPIO_PIN				GPIO_PIN_0
+#define AUV_LIGHT2_GPIO_PIN				GPIO_PIN_0
 
 #endif /* INC_AUV_SETUP_H_ */

@@ -22,6 +22,7 @@
 
 from datetime import datetime
 import ncom_protocol as ncom
+import ncom_driver as ncd
 
 def heartbeat_handler(msg_id, seq, data, heartbeat_state, print_hb):
     device_id, vehicle_state, flags, uptime_ms = data
@@ -62,6 +63,8 @@ def ack_handler(msg_id, seq, data, _heartbeat_state, _print_hb):
     print(f"  Req Msg: {req_msg_name}")
     print(f"  Req Seq: {requested_seq}")
     print(f"  Response: {response_str}\n")
+    
+    ncd.process_ack(requested_seq, response)
 
     return True
 

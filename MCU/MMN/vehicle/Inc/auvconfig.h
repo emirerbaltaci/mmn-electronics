@@ -26,8 +26,10 @@
 #define VEHICLE_INC_AUVCONFIG_H_
 
 #include "auv_setup.h"
+#include "stm32g4xx_hal.h"
 #include <stdbool.h>
 #include <stdint.h>
+
 
 typedef struct {
   float imu_lever_arm_x;
@@ -56,6 +58,10 @@ typedef struct {
   float chi_square_th_dof2;
   float chi_square_th_dof3;
   float chi_square_th_dof6;
+  float q_pos_noise;
+  float r_accel_adaptive_k;
+  float mag_hard_iron[3];
+  float mag_soft_iron[9];
 } EKF_ConfigParams_t;
 
 typedef struct {
@@ -206,6 +212,13 @@ typedef struct {
 } BAR30_ConfigParams_t;
 
 typedef struct {
+  GPIO_TypeDef *light1_pGPIOx;
+  GPIO_TypeDef *light2_pGPIOx;
+  uint16_t light1_GPIO_PIN_x;
+  uint16_t light2_GPIO_PIN_x;
+} Lights_ConfigParams_t;
+
+typedef struct {
   EKF_ConfigParams_t ekf;
   PID_ConfigParams_t pid;
   Thruster_ConfigParams_t thruster;
@@ -213,6 +226,7 @@ typedef struct {
   IMU_ConfigParams_t imu;
   MAG_ConfigParams_t mag;
   BAR30_ConfigParams_t bar30;
+  Lights_ConfigParams_t lights;
 } AUV_Config_t;
 
 extern AUV_Config_t auvConfig;

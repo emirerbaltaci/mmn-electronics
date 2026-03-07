@@ -24,7 +24,7 @@
 
 /*
  * NCOM C Source File
- * Auto-generated on: 04.03.2026 02:26:18
+ * Auto-generated on: 07.03.2026 17:53:46
  * Protocol Version: 0.1
  */
 
@@ -131,6 +131,86 @@ size_t ncom_unpack_acknowledgement(const uint8_t* buf, NCOM_Payload_ACKNOWLEDGEM
     return sizeof(NCOM_Payload_ACKNOWLEDGEMENT_t);
 }
 
+size_t ncom_pack_set_point(uint8_t* buf, const NCOM_Payload_SET_POINT_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_SET_POINT_t));
+    return sizeof(NCOM_Payload_SET_POINT_t);
+}
+
+size_t ncom_unpack_set_point(const uint8_t* buf, NCOM_Payload_SET_POINT_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_SET_POINT_t));
+    return sizeof(NCOM_Payload_SET_POINT_t);
+}
+
+size_t ncom_pack_set_speed(uint8_t* buf, const NCOM_Payload_SET_SPEED_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_SET_SPEED_t));
+    return sizeof(NCOM_Payload_SET_SPEED_t);
+}
+
+size_t ncom_unpack_set_speed(const uint8_t* buf, NCOM_Payload_SET_SPEED_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_SET_SPEED_t));
+    return sizeof(NCOM_Payload_SET_SPEED_t);
+}
+
+size_t ncom_pack_set_x_or_surge(uint8_t* buf, const NCOM_Payload_SET_X_OR_SURGE_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_SET_X_OR_SURGE_t));
+    return sizeof(NCOM_Payload_SET_X_OR_SURGE_t);
+}
+
+size_t ncom_unpack_set_x_or_surge(const uint8_t* buf, NCOM_Payload_SET_X_OR_SURGE_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_SET_X_OR_SURGE_t));
+    return sizeof(NCOM_Payload_SET_X_OR_SURGE_t);
+}
+
+size_t ncom_pack_set_y_or_sway(uint8_t* buf, const NCOM_Payload_SET_Y_OR_SWAY_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_SET_Y_OR_SWAY_t));
+    return sizeof(NCOM_Payload_SET_Y_OR_SWAY_t);
+}
+
+size_t ncom_unpack_set_y_or_sway(const uint8_t* buf, NCOM_Payload_SET_Y_OR_SWAY_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_SET_Y_OR_SWAY_t));
+    return sizeof(NCOM_Payload_SET_Y_OR_SWAY_t);
+}
+
+size_t ncom_pack_set_z_or_heave(uint8_t* buf, const NCOM_Payload_SET_Z_OR_HEAVE_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_SET_Z_OR_HEAVE_t));
+    return sizeof(NCOM_Payload_SET_Z_OR_HEAVE_t);
+}
+
+size_t ncom_unpack_set_z_or_heave(const uint8_t* buf, NCOM_Payload_SET_Z_OR_HEAVE_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_SET_Z_OR_HEAVE_t));
+    return sizeof(NCOM_Payload_SET_Z_OR_HEAVE_t);
+}
+
+size_t ncom_pack_set_roll_or_p(uint8_t* buf, const NCOM_Payload_SET_ROLL_OR_P_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_SET_ROLL_OR_P_t));
+    return sizeof(NCOM_Payload_SET_ROLL_OR_P_t);
+}
+
+size_t ncom_unpack_set_roll_or_p(const uint8_t* buf, NCOM_Payload_SET_ROLL_OR_P_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_SET_ROLL_OR_P_t));
+    return sizeof(NCOM_Payload_SET_ROLL_OR_P_t);
+}
+
+size_t ncom_pack_set_pitch_or_q(uint8_t* buf, const NCOM_Payload_SET_PITCH_OR_Q_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_SET_PITCH_OR_Q_t));
+    return sizeof(NCOM_Payload_SET_PITCH_OR_Q_t);
+}
+
+size_t ncom_unpack_set_pitch_or_q(const uint8_t* buf, NCOM_Payload_SET_PITCH_OR_Q_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_SET_PITCH_OR_Q_t));
+    return sizeof(NCOM_Payload_SET_PITCH_OR_Q_t);
+}
+
+size_t ncom_pack_set_yaw_or_r(uint8_t* buf, const NCOM_Payload_SET_YAW_OR_R_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_SET_YAW_OR_R_t));
+    return sizeof(NCOM_Payload_SET_YAW_OR_R_t);
+}
+
+size_t ncom_unpack_set_yaw_or_r(const uint8_t* buf, NCOM_Payload_SET_YAW_OR_R_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_SET_YAW_OR_R_t));
+    return sizeof(NCOM_Payload_SET_YAW_OR_R_t);
+}
+
 size_t ncom_pack_config_req(uint8_t* buf, const NCOM_Payload_CONFIG_REQ_t* msg) {
     memcpy(buf, msg, sizeof(NCOM_Payload_CONFIG_REQ_t));
     return sizeof(NCOM_Payload_CONFIG_REQ_t);
@@ -231,6 +311,36 @@ size_t ncom_unpack_config_set_startup(const uint8_t* buf, NCOM_Payload_CONFIG_SE
     return sizeof(NCOM_Payload_CONFIG_SET_STARTUP_t);
 }
 
+size_t ncom_pack_send_flag(uint8_t* buf, const NCOM_Payload_SEND_FLAG_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_SEND_FLAG_t));
+    return sizeof(NCOM_Payload_SEND_FLAG_t);
+}
+
+size_t ncom_unpack_send_flag(const uint8_t* buf, NCOM_Payload_SEND_FLAG_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_SEND_FLAG_t));
+    return sizeof(NCOM_Payload_SEND_FLAG_t);
+}
+
+size_t ncom_pack_assign_flag_bit(uint8_t* buf, const NCOM_Payload_ASSIGN_FLAG_BIT_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_ASSIGN_FLAG_BIT_t));
+    return sizeof(NCOM_Payload_ASSIGN_FLAG_BIT_t);
+}
+
+size_t ncom_unpack_assign_flag_bit(const uint8_t* buf, NCOM_Payload_ASSIGN_FLAG_BIT_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_ASSIGN_FLAG_BIT_t));
+    return sizeof(NCOM_Payload_ASSIGN_FLAG_BIT_t);
+}
+
+size_t ncom_pack_clear_flag(uint8_t* buf, const NCOM_Payload_CLEAR_FLAG_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_CLEAR_FLAG_t));
+    return sizeof(NCOM_Payload_CLEAR_FLAG_t);
+}
+
+size_t ncom_unpack_clear_flag(const uint8_t* buf, NCOM_Payload_CLEAR_FLAG_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_CLEAR_FLAG_t));
+    return sizeof(NCOM_Payload_CLEAR_FLAG_t);
+}
+
 size_t ncom_pack_init_error(uint8_t* buf, const NCOM_Payload_INIT_ERROR_t* msg) {
     memcpy(buf, msg, sizeof(NCOM_Payload_INIT_ERROR_t));
     return sizeof(NCOM_Payload_INIT_ERROR_t);
@@ -239,6 +349,16 @@ size_t ncom_pack_init_error(uint8_t* buf, const NCOM_Payload_INIT_ERROR_t* msg) 
 size_t ncom_unpack_init_error(const uint8_t* buf, NCOM_Payload_INIT_ERROR_t* msg) {
     memcpy(msg, buf, sizeof(NCOM_Payload_INIT_ERROR_t));
     return sizeof(NCOM_Payload_INIT_ERROR_t);
+}
+
+size_t ncom_pack_hardfault_error(uint8_t* buf, const NCOM_Payload_HARDFAULT_ERROR_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_HARDFAULT_ERROR_t));
+    return sizeof(NCOM_Payload_HARDFAULT_ERROR_t);
+}
+
+size_t ncom_unpack_hardfault_error(const uint8_t* buf, NCOM_Payload_HARDFAULT_ERROR_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_HARDFAULT_ERROR_t));
+    return sizeof(NCOM_Payload_HARDFAULT_ERROR_t);
 }
 
 size_t ncom_pack_dying_gasp(uint8_t* buf, const NCOM_Payload_DYING_GASP_t* msg) {

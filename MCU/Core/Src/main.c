@@ -21,7 +21,6 @@
 #include "auv_setup.h"
 #include "usb_device.h"
 
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -117,7 +116,7 @@ bool axisSpeedMode[6] __attribute__((section(".ccmram")));
 volatile uint8_t hbStateEstimateTask = AUV_TASK_DEAD;
 volatile uint8_t hbControlTask = AUV_TASK_DEAD;
 volatile uint8_t hbNCOMTask = AUV_TASK_DEAD;
-volatile uint8_t armStatus = AUV_DISARMED;
+volatile AUV_VehicleState_t vehicleStatus = AUV_DISARMED;
 
 IMU_Handler_t icm __attribute__((section(".sram2_data")));
 MAG_Handler_t lis __attribute__((section(".sram2_data")));
@@ -138,6 +137,9 @@ volatile uint32_t ulHighWordOverflowsTIM7 = 0;
 float cpuLoad = 0.0f;
 
 extern AUV_Config_t auvConfig;
+
+volatile uint32_t configurableFlags = 0;
+uint16_t mvBatVoltage;
 
 /* USER CODE END PV */
 
@@ -1402,6 +1404,7 @@ void Task_StateEstimate(void *pvParameters) {
   P[144] = P[160] = P[176] = auvConfig.ekf.p_init_bg;
   P[192] = P[208] = P[224] = auvConfig.ekf.p_init_ba;
 
+  Q[0] = Q[16] = Q[32] = auvConfig.ekf.q_pos_noise;
   Q[48] = Q[64] = Q[80] = auvConfig.ekf.q_vel_noise;
   Q[96] = Q[112] = Q[128] = auvConfig.ekf.q_att_noise;
   Q[144] = Q[160] = Q[176] = auvConfig.ekf.q_bg_noise;
@@ -1508,10 +1511,13 @@ void Task_StateEstimate(void *pvParameters) {
         H_acc[2 * 15 + 6] = -z_hat_acc[1];
         H_acc[2 * 15 + 7] = z_hat_acc[0];
 
+        float g_dev = acc_norm - 9.80665f;
+        float r_adaptive = auvConfig.ekf.r_accel +
+                           auvConfig.ekf.r_accel_adaptive_k * g_dev * g_dev;
         float R_acc[9] = {0};
-        R_acc[0] = auvConfig.ekf.r_accel;
-        R_acc[4] = auvConfig.ekf.r_accel;
-        R_acc[8] = auvConfig.ekf.r_accel;
+        R_acc[0] = r_adaptive;
+        R_acc[4] = r_adaptive;
+        R_acc[8] = r_adaptive;
 
         if (eskf_update(error_x, P, dz_acc, H_acc, R_acc, 3)) {
           eskf_inject(nominal_x, error_x, P);
@@ -1524,13 +1530,20 @@ void Task_StateEstimate(void *pvParameters) {
       if (isMagUpdated) {
 
         if (xSemaphoreTake(xStateMutex, pdMS_TO_TICKS(1)) == pdTRUE) {
-          float mag_meas[3];
+          float mag_raw[3];
 
-          mag_meas[0] = lis.data.magX;
-          mag_meas[1] = lis.data.magY;
-          mag_meas[2] = lis.data.magZ;
+          mag_raw[0] = lis.data.magX - auvConfig.ekf.mag_hard_iron[0];
+          mag_raw[1] = lis.data.magY - auvConfig.ekf.mag_hard_iron[1];
+          mag_raw[2] = lis.data.magZ - auvConfig.ekf.mag_hard_iron[2];
           isMagUpdated = false;
           xSemaphoreGive(xStateMutex);
+
+          float mag_meas[3];
+          for (int i = 0; i < 3; i++) {
+            mag_meas[i] = auvConfig.ekf.mag_soft_iron[i * 3 + 0] * mag_raw[0] +
+                          auvConfig.ekf.mag_soft_iron[i * 3 + 1] * mag_raw[1] +
+                          auvConfig.ekf.mag_soft_iron[i * 3 + 2] * mag_raw[2];
+          }
 
           quat_to_rot_matrix(&nominal_x[3], R);
           matrix_transpose(R, RT, 3, 3);
@@ -1587,7 +1600,7 @@ void Task_StateEstimate(void *pvParameters) {
         }
       }
 
-      bool isStationary = (armStatus == AUV_DISARMED);
+      bool isStationary = (vehicleStatus == AUV_DISARMED);
 
       if (isStationary) {
         float dz_zupt[3] = {0.0f - nominal_x[7], 0.0f - nominal_x[8],
@@ -1668,7 +1681,7 @@ void Task_Control(void *pvParameters) {
       xSemaphoreGive(xCommandMutex);
     }
 
-    if (armStatus == AUV_ARMED) {
+    if (vehicleStatus == AUV_ARMED) {
 
       // Update PID gains dynamically from auvConfig
       if (AUV_Config_Lock(2)) {
@@ -1787,22 +1800,38 @@ void Task_NCOM(void *pvParameters) {
       seq = NCOM_TX_SendPacket(NCOM_MSG_CONFIG_REQ_STARTUP, NULL, 0);
   }
 
+  TickType_t xLastHeartbeatTime = xTaskGetTickCount();
+
   for (;;) {
 
     hbNCOMTask = AUV_TASK_ALIVE;
 
     if (ulTaskNotifyTake(pdTRUE, xPacketTimeout) > 0) {
       while (NCOM_RX_RingBuffer_Read(&ncomRx, &byteBuf)) {
-        if (NCOM_RX_ParseByte(&ncomRx, byteBuf))
-          NCOM_Handlers_Selector(&ncomRx);
-      }
-    } else {
-      if (ncomRx.parser.state != NCOM_RX_STATE_SYNC_1) {
-        ncomRx.stats.timeoutErrors++;
-        ncomRx.parser.state = NCOM_RX_STATE_SYNC_1;
+    	  if(NCOM_RX_ParseByte(&ncomRx, byteBuf)) NCOM_Handlers_Selector(&ncomRx);
       }
     }
+    else if (ncomRx.parser.state != NCOM_RX_STATE_SYNC_1){
+        ncomRx.stats.timeoutErrors++;
+        ncomRx.parser.state = NCOM_RX_STATE_SYNC_1;
+    }
+
+    TickType_t xCurrentTime = xTaskGetTickCount();
+    if ((xCurrentTime - xLastHeartbeatTime) >= pdMS_TO_TICKS(1000)) {
+        xLastHeartbeatTime = xCurrentTime;
+
+        NCOM_Payload_HEARTBEAT_t hb;
+        hb.device_id = 1; // MCU = 1
+        hb.vehicle_state = vehicleStatus;
+        hb.flags = 0; // Populate actual flags if defined
+        hb.uptime_ms = xCurrentTime * portTICK_PERIOD_MS;
+
+        uint8_t txBuf[NCOM_LEN_HEARTBEAT];
+        ncom_pack_heartbeat(txBuf, &hb);
+        NCOM_TX_SendPacket(NCOM_MSG_HEARTBEAT, txBuf, NCOM_LEN_HEARTBEAT);
+    }
   }
+
 }
 
 void Task_Sensor(void *pvParameters) {
@@ -1861,6 +1890,7 @@ void Task_SysMonitor(void *pvParameters) {
   static uint32_t prevTotalRunTime = 0;
 
   for (;;) {
+    AUV_Flags_Update();
 
     if (hbStateEstimateTask == AUV_TASK_ALIVE) {
       missedHbStateEstimateTask = 0;

@@ -1,0 +1,78 @@
+{
+	"section": "flag",
+	"id_range": [50,69 ],
+	
+	"messages": [
+		{
+			"id": 50,
+			"name": "SEND_FLAG",
+			"direction": "MCU_TO_HOST",
+			"desc": "Send flags to the host.",
+			"payload": [
+				{
+					"name": "flag_uint",
+					"type": "uint32",
+					"desc": "Configurable flags."
+				}
+			]
+		},
+		{
+			"id": 51,
+			"name": "ASSIGN_FLAG_BIT",
+			"direction": "HOST_TO_MCU",
+			"desc": "Assign the meaning of the bit",
+			"payload": [
+				{
+					"name": "bit_position",
+					"type": "uint8",
+					"desc": "0 to 31"
+				},
+				{
+					"name": "bit_meaning",
+					"type": "uint8",
+					"desc": "Which flag should the bit represent. CLEAR to disable the flag.",
+					"enum": {
+						"CLEAR": 0,
+						"TASK_HB_STATEESTIMATE": 1,
+						"TASK_HB_CONTROL": 2,
+						"TASK_HB_NCOM": 3,
+						"IS_ARMED": 4,
+						"IS_PREARMED": 5,
+						"DEPTH_HOLD_ACTIVE": 6,
+						"HEADING_HOLD_ACTIVE": 7,
+						"IMU_VALID": 8,
+						"MAG_VALID": 9,
+						"BAR30_VALID": 10,
+						"IMU_TEMP_WARNING": 11,
+						"BATTERY_LOW": 12,
+						"LEAK_DETECTED": 13,
+						"MISSION_RUNNING": 14,
+						"COMM_TIMEOUT_WARNING": 15
+					}
+				},
+				{
+					"name": "bit_interrupt",
+					"type": "uint8",
+					"desc": "Should SEND_FLAG be sent if the flag sets?",
+					"enum": {
+						"DISABLED": 0,
+						"ENABLED": 255
+					}
+				}
+			]
+		},
+		{
+			"id": 52,
+			"name": "CLEAR_FLAG",
+			"direction": "HOST_TO_MCU",
+			"desc": "Clear the selected flag",
+			"payload": [
+				{
+					"name": "bit_position",
+					"type": "uint8",
+					"desc": "0 to 31"
+				}
+			]
+		}
+	]
+}

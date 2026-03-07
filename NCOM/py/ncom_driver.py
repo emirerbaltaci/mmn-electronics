@@ -24,6 +24,8 @@ import struct
 import threading
 import ncom_protocol as ncom
 
+import time
+
 class CRC16:
     _table = []
     
@@ -51,6 +53,10 @@ class CRC16:
 _tx_seq = 0
 _tx_seq_lock = threading.Lock()
 
+_unacked_buffer = {}
+_unacked_lock = threading.Lock()
+RETRY_TIMEOUT = 1.0 # seconds
+
 def create_frame(msg_id, *args):
     global _tx_seq
     payload = ncom.Messages.pack(msg_id, *args)
@@ -70,7 +76,32 @@ def create_frame(msg_id, *args):
     frame.extend(data)
     frame.extend(struct.pack(ncom.ENDIAN_CHAR + "H", crc))
     
+    with _unacked_lock:
+        _unacked_buffer[seq] = {
+            'timestamp': time.time(),
+            'frame': bytes(frame),
+            'msg_id': msg_id
+        }
+    
     return bytes(frame)
+
+def process_ack(seq, response):
+    with _unacked_lock:
+        if seq in _unacked_buffer:
+            if response == 15: # ACK
+                del _unacked_buffer[seq]
+            elif response == 0: # NACK
+                _unacked_buffer[seq]['timestamp'] = 0 # Force immediate retry
+
+def get_retry_frames():
+    now = time.time()
+    retry_list = []
+    with _unacked_lock:
+        for seq, data in _unacked_buffer.items():
+            if now - data['timestamp'] >= RETRY_TIMEOUT:
+                data['timestamp'] = now
+                retry_list.append((seq, data['msg_id'], data['frame']))
+    return retry_list
 
 class NCOMParser:
     STATE_WAIT_SYNC_1 = 0

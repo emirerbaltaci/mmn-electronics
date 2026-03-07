@@ -34,6 +34,7 @@
  * ############################################# */
 #include "auvconfig.h"
 #include "ncom_rx.h"
+#include "auvflags.h"
 
 /* #############################################
  * 			    Function Prototypes

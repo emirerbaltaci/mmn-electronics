@@ -20,6 +20,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32g4xx_it.h"
+#include "auvflags.h"
+#include "ncom_tx.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -67,6 +69,8 @@ extern TIM_HandleTypeDef htim6;
 
 /* USER CODE BEGIN EV */
 
+extern AUV_VehicleState_t vehicleStatus;
+
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -93,6 +97,12 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
+
+	vehicleStatus = MCU_HARDFAULT;
+
+	NCOM_Payload_HARDFAULT_ERROR_t msg;
+	msg.error_code = 0;
+	NCOM_TX_SendPacket(NCOM_MSG_HARDFAULT_ERROR, &msg, 1);
 
   /* USER CODE END HardFault_IRQn 0 */
   while (1)

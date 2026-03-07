@@ -143,6 +143,13 @@ def main():
                     except OSError:
                         raise serial.SerialException("Connection lost")
                         
+                    # Check for retries
+                    for seq, r_msg_id, frame in ncd.get_retry_frames():
+                        msg_name = ncom.Messages.ID_TO_NAME.get(r_msg_id, "UNKNOWN")
+                        timestamp = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+                        print(f"\n[{timestamp}] [RETRY] Resending un-ACK'd message: {msg_name} (Seq: {seq})\n")
+                        ser.write(frame)
+                        
         except (serial.SerialException, OSError):
             print("\nDevice disconnected. Trying to reconnect....")
             port = None

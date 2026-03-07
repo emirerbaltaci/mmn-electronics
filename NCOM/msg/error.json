@@ -1,28 +1,41 @@
 {
-    "section": "error",
-    "id_range": [
-        200,
-        255
-    ],
-    "messages": [
-        {
-            "id": 200,
-            "name": "INIT_ERROR",
-            "direction": "MCU_TO_HOST",
-            "desc": "Sent when an error occurs during initialization",
-            "payload": [
-                {
-                    "name": "error_code",
-                    "type": "uint8",
-                    "desc": "Error code",
-                    "enum": {
-                        "IMU_INIT_ERR": 0,
-                        "MAG_INIT_ERR": 1,
-                        "BAR30_INIT_ERR": 2
-                    }
-                }
-            ]
-        },
+	"section": "error",
+	"id_range": [240, 255],
+		
+	"messages": [
+		{
+			"id": 240,
+			"name": "INIT_ERROR",
+			"direction": "MCU_TO_HOST",
+			"desc": "Sent when an error occurs during initialization",
+			"payload": [
+				{
+					"name": "error_code",
+					"type": "uint8",
+					"enum": {
+						"IMU_INIT_ERR": 0,
+						"MAG_INIT_ERR": 1,
+						"BAR30_INIT_ERR": 2
+					}
+				}
+			]
+		},
+		{
+			"id": 241,
+			"name": "HARDFAULT_ERROR",
+			"direction": "MCU_TO_HOST",
+			"desc": "Sent in case of a hard fault",
+			"payload": [
+				{
+					"name": "error_code",
+					"type": "uint8",
+					"enum": {
+						"STACK_OVERFLOW": 0,
+						"SEGMENTATION_FAULT": 1
+					}
+				}
+			]
+		},
 		{
 			"id": 255,
 			"name": "DYING_GASP",
@@ -40,7 +53,7 @@
 						"NCOM_TASK_DEAD": 2
 					}
 				}
-				]
+			]
 		}
-    ]
+	]
 }

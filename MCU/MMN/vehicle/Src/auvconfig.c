@@ -59,6 +59,14 @@ void AUV_Config_Init(void) {
   auvConfig.ekf.chi_square_th_dof2 = EKF_CHI_SQUARE_TH_DOF2;
   auvConfig.ekf.chi_square_th_dof3 = EKF_CHI_SQUARE_TH_DOF3;
   auvConfig.ekf.chi_square_th_dof6 = EKF_CHI_SQUARE_TH_DOF6;
+  auvConfig.ekf.q_pos_noise = EKF_Q_POS_NOISE;
+  auvConfig.ekf.r_accel_adaptive_k = EKF_R_ACCEL_ADAPTIVE_K;
+  auvConfig.ekf.mag_hard_iron[0] = EKF_MAG_HARD_IRON_X;
+  auvConfig.ekf.mag_hard_iron[1] = EKF_MAG_HARD_IRON_Y;
+  auvConfig.ekf.mag_hard_iron[2] = EKF_MAG_HARD_IRON_Z;
+  float soft_iron[9] = EKF_MAG_SOFT_IRON;
+  for (int i = 0; i < 9; i++)
+    auvConfig.ekf.mag_soft_iron[i] = soft_iron[i];
 
   // Generic X/Y Position Default Init (using SP defaults)
   auvConfig.pid.xy.p = AUV_DEFAULT_PID_SP_P;
@@ -221,6 +229,11 @@ void AUV_Config_Init(void) {
 
   auvConfig.bar30.osr = BAR30_SETUP_OSR;
   auvConfig.bar30.density = BAR30_SETUP_FLUID_DENSITY;
+
+  auvConfig.lights.light1_pGPIOx = AUV_LIGHT1_GPIO_PORT;
+  auvConfig.lights.light2_pGPIOx = AUV_LIGHT2_GPIO_PORT;
+  auvConfig.lights.light1_GPIO_PIN_x = AUV_LIGHT1_GPIO_PIN;
+  auvConfig.lights.light2_GPIO_PIN_x = AUV_LIGHT2_GPIO_PIN;
 
   /* Create the config mutex — must be called before scheduler starts */
   xConfigMutex = xSemaphoreCreateMutex();

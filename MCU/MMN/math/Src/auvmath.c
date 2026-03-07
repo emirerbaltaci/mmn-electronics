@@ -345,7 +345,7 @@ void eskf_predict(float *nominal_x, float *P, const float *accel,
     P[i * 15 + 8] += col8;
   }
 
-  for (int i = 3; i < 15; i++)
+  for (int i = 0; i < 15; i++)
     P[i * 15 + i] += Q[i * 15 + i] * dt;
 
   for (int i = 0; i < 15; i++) {
