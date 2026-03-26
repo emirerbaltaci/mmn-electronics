@@ -38,6 +38,17 @@
 #include <stdint.h>
 
 /* #############################################
+ * 			   Structure Definitions
+ * ############################################# */
+typedef struct{
+	uint32_t packetsSent;
+	uint32_t bytesSent;
+	uint32_t droppedLen;
+	uint32_t droppedMutex;
+	uint32_t droppedUSB;
+}NCOM_TX_Stats_t;
+
+/* #############################################
  * 				Function Prototypes
  * ############################################# */
 void NCOM_TX_Init(void);

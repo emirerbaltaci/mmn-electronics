@@ -2,5 +2,36 @@
     "section": "acoustics",
     "id_range": [70, 99],
 	
-    "messages": []
+    "messages": [
+        {
+            "id": 70,
+            "name": "HYDROPHONE_STATUS",
+            "direction": "MCU_TO_HOST",
+            "desc": "Acoustic telemetry and hydrophone processing status",
+            "payload": [
+                {
+                    "name": "dominant_freq_hz",
+                    "type": "uint32",
+                    "desc": "The strongest detected frequency from the hydrophone FFT in Hz."
+                },
+                {
+                    "name": "peak_magnitude",
+                    "type": "int32",
+                    "encoding": "float32",
+                    "desc": "Magnitude of the dominant frequency peak. Transmitted as int32, encoded as float32."
+                },
+                {
+                    "name": "status_flags",
+                    "type": "uint8",
+                    "desc": "Flags representing hydrophone status.",
+                    "flags_type": "bitmask",
+                    "flags": {
+                        "SIGNAL_DETECTED": 0,
+                        "CLIPPING": 1,
+                        "ADC_ERROR": 2
+                    }
+                }
+            ]
+        }
+    ]
 }

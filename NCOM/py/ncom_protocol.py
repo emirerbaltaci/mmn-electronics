@@ -22,7 +22,7 @@
 
 '''
 NCOM Python Module
-Auto-generated on: 07.03.2026 17:53:46
+Auto-generated on: 14.03.2026 15:48:33
 Version: 0.1
 '''
 
@@ -102,6 +102,7 @@ ACKNOWLEDGEMENT_RESPONSE = {
     'NACK': 0,
     'ACK': 15,
     'INVALID_PARAMETER': 240,
+    'NO_HANDLER': 252,
     'UNKNOWN_ERROR': 255,
 }
 SET_POINT_UNITS = {
@@ -331,6 +332,11 @@ ASSIGN_FLAG_BIT_BIT_INTERRUPT = {
     'DISABLED': 0,
     'ENABLED': 255,
 }
+HYDROPHONE_STATUS_FLAGS = {
+    'SIGNAL_DETECTED': (1 << 0),
+    'CLIPPING': (1 << 1),
+    'ADC_ERROR': (1 << 2),
+}
 INIT_ERROR_ERROR_CODE = {
     'IMU_INIT_ERR': 0,
     'MAG_INIT_ERR': 1,
@@ -379,6 +385,7 @@ class Messages:
         50: 'SEND_FLAG',
         51: 'ASSIGN_FLAG_BIT',
         52: 'CLEAR_FLAG',
+        70: 'HYDROPHONE_STATUS',
         240: 'INIT_ERROR',
         241: 'HARDFAULT_ERROR',
         255: 'DYING_GASP',
@@ -416,6 +423,7 @@ class Messages:
         'SEND_FLAG': 50,
         'ASSIGN_FLAG_BIT': 51,
         'CLEAR_FLAG': 52,
+        'HYDROPHONE_STATUS': 70,
         'INIT_ERROR': 240,
         'HARDFAULT_ERROR': 241,
         'DYING_GASP': 255,
@@ -453,6 +461,7 @@ class Messages:
         50: '<I', # SEND_FLAG
         51: '<BBB', # ASSIGN_FLAG_BIT
         52: '<B', # CLEAR_FLAG
+        70: '<IfB', # HYDROPHONE_STATUS
         240: '<B', # INIT_ERROR
         241: '<B', # HARDFAULT_ERROR
         255: '<B', # DYING_GASP

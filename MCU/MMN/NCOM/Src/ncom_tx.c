@@ -41,6 +41,7 @@
  * 				          Variables
  * ############################################# */
 static SemaphoreHandle_t xTxMutex = NULL;
+NCOM_TX_Stats_t ncomTxStats = {0};
 
 /* #############################################
  * 		      Software CRC16-CCITT (0x1021)
@@ -120,17 +121,17 @@ void NCOM_TX_Init(void) {
  */
 static uint16_t ncom_tx_build_frame(uint8_t *buf, uint8_t seq, uint8_t msgId,
                                     const void *payload, uint8_t len) {
+  if(payload == NULL) len = 0;
+
   buf[0] = NCOM_SYNC_BYTE_1;
   buf[1] = NCOM_SYNC_BYTE_2;
   buf[2] = seq;
   buf[3] = msgId;
   buf[4] = len;
 
-  if (len > 0 && payload != NULL)
-    memcpy(&buf[NCOM_HEADER_LEN], payload, len);
+  if(len > 0) memcpy(&buf[NCOM_HEADER_LEN], payload, len);
 
-  uint16_t crc16 = ncom_crc16_sw(&buf[NCOM_SYNCBYTE_COUNT],
-                                 len + NCOM_HEADER_LEN - NCOM_SYNCBYTE_COUNT);
+  uint16_t crc16 = ncom_crc16_sw(&buf[NCOM_SYNCBYTE_COUNT], len + NCOM_HEADER_LEN - NCOM_SYNCBYTE_COUNT);
 
   buf[len + NCOM_HEADER_LEN] = (uint8_t)(crc16 & 0xFF);
   buf[len + NCOM_HEADER_LEN + 1] = (uint8_t)((crc16 >> 8) & 0xFF);
@@ -149,14 +150,21 @@ static uint16_t ncom_tx_build_frame(uint8_t *buf, uint8_t seq, uint8_t msgId,
  */
 int16_t NCOM_TX_SendPacket(uint8_t msgId, const void *payload, uint8_t len) {
 
-  if (len > NCOM_MAX_PAYLOAD_LEN)
-    return -1;
+  if (len > NCOM_MAX_PAYLOAD_LEN){
+	  taskENTER_CRITICAL();
+	  ncomTxStats.droppedLen++;
+	  taskEXIT_CRITICAL();
+	  return -1;
+  }
 
-  if (xTxMutex == NULL)
-    return -1;
+  if (xTxMutex == NULL) return -1;
 
-  if (xSemaphoreTake(xTxMutex, pdMS_TO_TICKS(10)) != pdTRUE)
-    return -1;
+  if (xSemaphoreTake(xTxMutex, pdMS_TO_TICKS(10)) != pdTRUE){
+	  taskENTER_CRITICAL();
+	  ncomTxStats.droppedMutex++;
+	  taskEXIT_CRITICAL();
+	  return -1;
+  }
 
   static uint8_t tx_seq;
   static uint8_t txBuf[NCOM_MAX_PAYLOAD_LEN + NCOM_OVERHEAD_LEN];
@@ -165,10 +173,15 @@ int16_t NCOM_TX_SendPacket(uint8_t msgId, const void *payload, uint8_t len) {
   uint16_t frame_len = ncom_tx_build_frame(txBuf, seq, msgId, payload, len);
 
   int16_t result;
-  if (CDC_Transmit_FS(txBuf, frame_len) == USBD_OK)
-    result = (int16_t)seq;
-  else
-    result = -1;
+  if (CDC_Transmit_FS(txBuf, frame_len) == USBD_OK){
+	  result = (int16_t)seq;
+	  ncomTxStats.packetsSent++;
+	  ncomTxStats.bytesSent += frame_len;
+  }
+  else{
+	  result = -1;
+	  ncomTxStats.droppedUSB++;
+  }
 
   xSemaphoreGive(xTxMutex);
 
@@ -199,7 +212,6 @@ int16_t NCOM_TX_SendPacketUnsafe(uint8_t msgId, const void *payload,
   uint8_t seq = unsafe_seq++;
   uint16_t frame_len = ncom_tx_build_frame(unsafeBuf, seq, msgId, payload, len);
 
-  /* Force USB CDC TX idle — hostile takeover to ensure dying gasp is sent */
   extern USBD_HandleTypeDef hUsbDeviceFS;
   USBD_CDC_HandleTypeDef *hcdc =
       (USBD_CDC_HandleTypeDef *)hUsbDeviceFS.pClassData;

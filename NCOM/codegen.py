@@ -337,3 +337,5 @@ if __name__ == "__main__":
         generate_c_header(protocol_data, "c/ncom_protocol.h")
         generate_c_source(protocol_data, "c/ncom_protocol.c")
         generate_python_file(protocol_data, "py/ncom_protocol.py")
+        generate_c_header(protocol_data, "../MCU/MMN/NCOM/Inc/ncom_protocol.h")
+        generate_c_source(protocol_data, "../MCU/MMN/NCOM/Src/ncom_protocol.c")

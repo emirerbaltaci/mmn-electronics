@@ -40,9 +40,15 @@
 
 #include "ncom_handlers.h"
 #include "ncom_rx.h"
+#include "ncom_telem.h"
 #include "ncom_tx.h"
 
 #include "auvconfig.h"
+
+#include "arm_math.h"
+
+#include "hydrophone.h"
+
 
 /* USER CODE END Includes */
 
@@ -99,6 +105,7 @@ TaskHandle_t xControlTaskHandle = NULL;
 TaskHandle_t xNCOMTaskHandle = NULL;
 TaskHandle_t xSensorTaskHandle = NULL;
 TaskHandle_t xSysMonitorTaskHandle = NULL;
+TaskHandle_t xHydrophoneTaskHandle = NULL;
 
 static StackType_t xEKFStack[2048] __attribute__((section(".ccmram")));
 static StaticTask_t xEKFTCB;
@@ -117,10 +124,12 @@ volatile uint8_t hbStateEstimateTask = AUV_TASK_DEAD;
 volatile uint8_t hbControlTask = AUV_TASK_DEAD;
 volatile uint8_t hbNCOMTask = AUV_TASK_DEAD;
 volatile AUV_VehicleState_t vehicleStatus = AUV_DISARMED;
+volatile uint8_t missedHostHbAcks = 0;
 
 IMU_Handler_t icm __attribute__((section(".sram2_data")));
 MAG_Handler_t lis __attribute__((section(".sram2_data")));
 BAR30_Handler_t bar __attribute__((section(".sram2_data")));
+Hydro_Handler_t hydro;
 
 uint8_t imuBufDMATx[15] __attribute__((section(".sram2_data")));
 uint8_t imuBufDMARx[15] __attribute__((section(".sram2_data")));
@@ -140,6 +149,8 @@ extern AUV_Config_t auvConfig;
 
 volatile uint32_t configurableFlags = 0;
 uint16_t mvBatVoltage;
+
+extern NCOM_TX_Stats_t ncomTxStats;
 
 /* USER CODE END PV */
 
@@ -174,6 +185,7 @@ void Task_Control(void *pvParameters);
 void Task_NCOM(void *pvParameters);
 void Task_Sensor(void *pvParameters);
 void Task_SysMonitor(void *pvParameters);
+void Task_Hydrophone(void *pvParameters);
 
 /* USER CODE END PFP */
 
@@ -266,13 +278,12 @@ int main(void) {
   xCommandMutex = xSemaphoreCreateMutex();
 
   if (xStateMutex != NULL && xCommandMutex != NULL) {
-    xStateEstimateTaskHandle = xTaskCreateStatic(
-        Task_StateEstimate, "EKF_TASK", 2048, NULL, 11, xEKFStack, &xEKFTCB);
-    xTaskCreate(Task_Control, "CTRL_TASK", 1024, NULL, 10, &xControlTaskHandle);
-    xTaskCreate(Task_NCOM, "NCOM_TASK", 4096, NULL, 9, &xNCOMTaskHandle);
-    xTaskCreate(Task_Sensor, "SENSOR_TASK", 256, NULL, 8, &xSensorTaskHandle);
-    xTaskCreate(Task_SysMonitor, "MONITOR_TASK", 256, NULL, 7,
-                &xSysMonitorTaskHandle);
+    xStateEstimateTaskHandle = xTaskCreateStatic(Task_StateEstimate, "EKF_TASK", 2048, NULL, 6, xEKFStack, &xEKFTCB);
+    xTaskCreate(Task_Control, "CTRL_TASK", 1024, NULL, 5, &xControlTaskHandle);
+    xTaskCreate(Task_Sensor, "SENSOR_TASK", 384, NULL, 4, &xSensorTaskHandle);
+    xTaskCreate(Task_NCOM, "NCOM_TASK", 512, NULL, 3, &xNCOMTaskHandle);
+    xTaskCreate(Task_Hydrophone, "HYDRO_TASK", 512, NULL, 2, &xHydrophoneTaskHandle);
+    xTaskCreate(Task_SysMonitor, "MONITOR_TASK", 384, NULL, 1, &xSysMonitorTaskHandle);
 
     vTaskStartScheduler();
   }
@@ -1768,10 +1779,8 @@ void Task_Control(void *pvParameters) {
 }
 
 void Task_NCOM(void *pvParameters) {
-  TickType_t xPacketTimeout =
-      pdMS_TO_TICKS(auvConfig.task.ncom_packet_timeout_ms);
-  TickType_t xHandshakeTimeout =
-      pdMS_TO_TICKS(auvConfig.task.ncom_handshake_timeout_ms);
+  TickType_t xPacketTimeout = pdMS_TO_TICKS(auvConfig.task.ncom_packet_timeout_ms);
+  TickType_t xHandshakeTimeout = pdMS_TO_TICKS(auvConfig.task.ncom_handshake_timeout_ms);
   bool isConnected = false;
   uint8_t byteBuf;
 
@@ -1781,55 +1790,51 @@ void Task_NCOM(void *pvParameters) {
     hbNCOMTask = AUV_TASK_ALIVE;
 
     if (ulTaskNotifyTake(pdTRUE, xHandshakeTimeout) > 0) {
+
       while (NCOM_RX_RingBuffer_Read(&ncomRx, &byteBuf)) {
+
         if (NCOM_RX_ParseByte(&ncomRx, byteBuf)) {
+
           if (ncomRx.parser.msgId == NCOM_MSG_CONFIG_SET_STARTUP)
             isConnected = NCOM_Handlers_Config_Set_Startup(&ncomRx, &auvConfig);
+
           else if (ncomRx.parser.msgId == NCOM_MSG_ACKNOWLEDGEMENT) {
             NCOM_Payload_ACKNOWLEDGEMENT_t msg;
             ncom_unpack_acknowledgement(ncomRx.parser.payloadBuf, &msg);
+
             if (msg.requested_msg_id == NCOM_MSG_CONFIG_REQ_STARTUP &&
                 msg.requested_seq == seq &&
                 msg.response == NCOM_ACKNOWLEDGEMENT_RESPONSE_NACK) {
               isConnected = true;
             }
+
           }
         }
       }
-    } else
-      seq = NCOM_TX_SendPacket(NCOM_MSG_CONFIG_REQ_STARTUP, NULL, 0);
+    }
+    else seq = NCOM_TX_SendPacket(NCOM_MSG_CONFIG_REQ_STARTUP, NULL, 0);
   }
 
-  TickType_t xLastHeartbeatTime = xTaskGetTickCount();
+  NCOM_Telem_Init();
+  TickType_t xLastRxActivity = xTaskGetTickCount();
 
   for (;;) {
 
     hbNCOMTask = AUV_TASK_ALIVE;
 
-    if (ulTaskNotifyTake(pdTRUE, xPacketTimeout) > 0) {
+    if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(NCOM_TELEM_BASE_TICK_MS)) > 0) {
+      xLastRxActivity = xTaskGetTickCount();
       while (NCOM_RX_RingBuffer_Read(&ncomRx, &byteBuf)) {
     	  if(NCOM_RX_ParseByte(&ncomRx, byteBuf)) NCOM_Handlers_Selector(&ncomRx);
       }
     }
-    else if (ncomRx.parser.state != NCOM_RX_STATE_SYNC_1){
+    else if (ncomRx.parser.state != NCOM_RX_STATE_SYNC_1 &&
+             (xTaskGetTickCount() - xLastRxActivity) >= xPacketTimeout) {
         ncomRx.stats.timeoutErrors++;
         ncomRx.parser.state = NCOM_RX_STATE_SYNC_1;
     }
 
-    TickType_t xCurrentTime = xTaskGetTickCount();
-    if ((xCurrentTime - xLastHeartbeatTime) >= pdMS_TO_TICKS(1000)) {
-        xLastHeartbeatTime = xCurrentTime;
-
-        NCOM_Payload_HEARTBEAT_t hb;
-        hb.device_id = 1; // MCU = 1
-        hb.vehicle_state = vehicleStatus;
-        hb.flags = 0; // Populate actual flags if defined
-        hb.uptime_ms = xCurrentTime * portTICK_PERIOD_MS;
-
-        uint8_t txBuf[NCOM_LEN_HEARTBEAT];
-        ncom_pack_heartbeat(txBuf, &hb);
-        NCOM_TX_SendPacket(NCOM_MSG_HEARTBEAT, txBuf, NCOM_LEN_HEARTBEAT);
-    }
+    NCOM_Telem_ServiceAll();
   }
 
 }
@@ -1938,6 +1943,17 @@ void Task_SysMonitor(void *pvParameters) {
       }
     }
 
+    if(vehicleStatus == AUV_ARMED && missedHostHbAcks >= 3){
+    	if(xSemaphoreTake(xCommandMutex, pdMS_TO_TICKS(10)) == pdTRUE){
+    		memset(&setSpeed, 0, sizeof(Setspeed_t));
+    		for(int i = 0; i < 6; i++) axisSpeedMode[i] = true;
+    		xSemaphoreGive(xCommandMutex);
+    	}
+    	taskENTER_CRITICAL();
+    	vehicleStatus = AUV_DISARMED;
+    	taskEXIT_CRITICAL();
+    }
+
     oneSecondTimer += auvConfig.task.sysmonitor_sleep_ms;
     if (oneSecondTimer >= 1000) {
       oneSecondTimer = 0;
@@ -2007,6 +2023,19 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
   }
 }
 
+void HAL_SPI_RxHalfCpltCallback(SPI_HandleTypeDef *hspi) {
+  Hydro_SPI_RxHalfCpltCallback(&hydro, hspi);
+}
+
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
+  Hydro_SPI_RxCpltCallback(&hydro, hspi);
+  if (xHydrophoneTaskHandle != NULL) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    vTaskNotifyGiveFromISR(xHydrophoneTaskHandle, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+  }
+}
+
 void ConfigureTimerForRunTimeStats(void) { HAL_TIM_Base_Start_IT(&htim16); }
 
 unsigned long GetTimerForRunTimeStats(void) {
@@ -2021,6 +2050,28 @@ unsigned long GetTimerForRunTimeStats(void) {
   } while (highBits != ulHighWordOverflows);
 
   return (highBits << 16) | lowBits;
+}
+
+void Task_Hydrophone(void *pvParameters) {
+  (void)pvParameters;
+
+  /* Shares SPI1 with magnetometer — different CS pin  */
+  /* TODO: assign the correct GPIO port and pin for hydrophone CS */
+  Hydro_Init(&hydro, &hspi1, GPIOA, GPIO_PIN_15);
+  Hydro_StartReceive(&hydro);
+
+  for (;;) {
+    /* Wait for DMA notification from SPI Rx callback */
+    if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100)) > 0) {
+
+      if (Hydro_Process(&hydro) == HYDRO_OK) {
+        NCOM_Telem_BuildAndSend(NCOM_MSG_HYDROPHONE_STATUS);
+      }
+
+      /* Kick off next acquisition */
+      Hydro_StartReceive(&hydro);
+    }
+  }
 }
 
 /* USER CODE END 4 */

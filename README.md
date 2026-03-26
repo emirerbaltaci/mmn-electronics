@@ -61,4 +61,9 @@ To add new messages or modify existing ones:
 ## License
 
 This project is licensed under the MIT License.
-Portions of the MCU firmware use software components licensed by STMicroelectronics under the Ultimate Liberty license (SLA0044).
+
+### Third-Party Licenses
+
+- **STM32 HAL Drivers** — Licensed by STMicroelectronics under the Ultimate Liberty license (SLA0044).
+- **CMSIS-DSP Library** (`MCU/Third_Party/ARM/CMSIS/DSP/`) — Copyright © Arm Limited. Licensed under the Apache License, Version 2.0.
+- **FreeRTOS** (`MCU/Third_Party/FreeRTOS/`) — Copyright © Amazon.com, Inc. Licensed under the MIT License.

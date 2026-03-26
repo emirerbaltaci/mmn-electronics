@@ -47,6 +47,7 @@ extern SemaphoreHandle_t xCommandMutex;
 extern Setpoint_t setPoint;
 extern Setspeed_t setSpeed;
 extern bool axisSpeedMode[6];
+extern volatile uint8_t missedHostHbAcks;
 
 /*
  * Handler return value = ACKNOWLEDGEMENT response code:
@@ -167,6 +168,19 @@ static uint8_t NCOM_Handlers_Command(NCOM_RX_t *rx) {
   }
 
   return NCOM_ACKNOWLEDGEMENT_RESPONSE_ACK;
+}
+
+/* ============================================================================
+ * ACKNOWLEDGEMENT Handler (ID 9)
+ * ========================================================================= */
+static uint8_t NCOM_Handlers_Acknowledgement(NCOM_RX_t *rx) {
+
+	NCOM_Payload_ACKNOWLEDGEMENT_t msg;
+	ncom_unpack_acknowledgement(rx->parser.payloadBuf, &msg);
+
+	if(msg.requested_msg_id == NCOM_MSG_HEARTBEAT && msg.response == NCOM_ACKNOWLEDGEMENT_RESPONSE_ACK) missedHostHbAcks = 0;
+
+	return 0;
 }
 
 /* ============================================================================
@@ -332,6 +346,11 @@ static uint8_t NCOM_Handlers_Config_Set_Freertos(NCOM_RX_t *rx) {
     auvConfig.task.control_sleep_ms = (uint32_t)msg.config_value;
     break;
   default:
+    if (msg.config_id >= 100) {
+      extern void NCOM_Telem_SetRate(uint8_t msgId, uint16_t interval_ms);
+      NCOM_Telem_SetRate((uint8_t)(msg.config_id - 100), (uint16_t)msg.config_value);
+      break;
+    }
     return NCOM_ACKNOWLEDGEMENT_RESPONSE_INVALID_PARAMETER;
   }
 
@@ -603,6 +622,7 @@ static uint8_t NCOM_Handlers_Clear_Flag(NCOM_RX_t *rx) {
 static const NCOM_Handler NCOM_HandlersTable[256]
     __attribute__((section(".ccmram"))) = {
         [NCOM_MSG_COMMAND] = NCOM_Handlers_Command,
+		[NCOM_MSG_ACKNOWLEDGEMENT] = NCOM_Handlers_Acknowledgement,
         [NCOM_MSG_CONFIG_REQ] = NCOM_Handlers_Config_Req,
         [NCOM_MSG_CONFIG_SET_MCU] = NCOM_Handlers_Config_Set_Mcu,
         [NCOM_MSG_CONFIG_SET_FREERTOS] = NCOM_Handlers_Config_Set_Freertos,
@@ -611,7 +631,8 @@ static const NCOM_Handler NCOM_HandlersTable[256]
         [NCOM_MSG_CONFIG_SET_PID] = NCOM_Handlers_Config_Set_PID,
         [NCOM_MSG_CONFIG_SET_EKF] = NCOM_Handlers_Config_Set_EKF,
         [NCOM_MSG_ASSIGN_FLAG_BIT] = NCOM_Handlers_Assign_Flag_Bit,
-        [NCOM_MSG_CLEAR_FLAG] = NCOM_Handlers_Clear_Flag};
+        [NCOM_MSG_CLEAR_FLAG] = NCOM_Handlers_Clear_Flag
+};
 
 /* ============================================================================
  * Dispatch & ACK
@@ -621,20 +642,22 @@ void NCOM_Handlers_Selector(NCOM_RX_t *rx) {
   uint8_t id = rx->parser.msgId;
   uint8_t seq = rx->parser.seq;
 
-  if (id == NCOM_MSG_ACKNOWLEDGEMENT)
-    return;
+  if (id == NCOM_MSG_ACKNOWLEDGEMENT){
+	  NCOM_Handlers_Acknowledgement(rx);
+	  return;
+  }
 
   if (NCOM_HandlersTable[id] != NULL) {
     if (!AUV_Config_Lock(50)) {
-      NCOM_Handlers_SendAck(id, seq,
-                            NCOM_ACKNOWLEDGEMENT_RESPONSE_UNKNOWN_ERROR);
+      NCOM_Handlers_SendAck(id, seq, NCOM_ACKNOWLEDGEMENT_RESPONSE_UNKNOWN_ERROR);
       return;
     }
     uint8_t response = NCOM_HandlersTable[id](rx);
     AUV_Config_Unlock();
     NCOM_Handlers_SendAck(id, seq, response);
-  } else {
+  }
+  else {
     rx->stats.unknownIDErrors++;
-    NCOM_Handlers_SendAck(id, seq, NCOM_ACKNOWLEDGEMENT_RESPONSE_NACK);
+    NCOM_Handlers_SendAck(id, seq, NCOM_ACKNOWLEDGEMENT_RESPONSE_NO_HANDLER);
   }
 }

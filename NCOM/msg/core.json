@@ -314,6 +314,7 @@
                         "NACK": 0,
                         "ACK": 15,
                         "INVALID_PARAMETER": 240,
+						"NO_HANDLER": 252,
                         "UNKNOWN_ERROR": 255
                     }
                 }

@@ -24,7 +24,7 @@
 
 /*
  * NCOM C Source File
- * Auto-generated on: 07.03.2026 17:53:46
+ * Auto-generated on: 14.03.2026 15:48:33
  * Protocol Version: 0.1
  */
 
@@ -339,6 +339,16 @@ size_t ncom_pack_clear_flag(uint8_t* buf, const NCOM_Payload_CLEAR_FLAG_t* msg) 
 size_t ncom_unpack_clear_flag(const uint8_t* buf, NCOM_Payload_CLEAR_FLAG_t* msg) {
     memcpy(msg, buf, sizeof(NCOM_Payload_CLEAR_FLAG_t));
     return sizeof(NCOM_Payload_CLEAR_FLAG_t);
+}
+
+size_t ncom_pack_hydrophone_status(uint8_t* buf, const NCOM_Payload_HYDROPHONE_STATUS_t* msg) {
+    memcpy(buf, msg, sizeof(NCOM_Payload_HYDROPHONE_STATUS_t));
+    return sizeof(NCOM_Payload_HYDROPHONE_STATUS_t);
+}
+
+size_t ncom_unpack_hydrophone_status(const uint8_t* buf, NCOM_Payload_HYDROPHONE_STATUS_t* msg) {
+    memcpy(msg, buf, sizeof(NCOM_Payload_HYDROPHONE_STATUS_t));
+    return sizeof(NCOM_Payload_HYDROPHONE_STATUS_t);
 }
 
 size_t ncom_pack_init_error(uint8_t* buf, const NCOM_Payload_INIT_ERROR_t* msg) {

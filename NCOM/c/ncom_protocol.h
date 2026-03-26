@@ -24,7 +24,7 @@
 
 /*
  * NCOM C Header File
- * Auto-generated on: 07.03.2026 17:53:46
+ * Auto-generated on: 14.03.2026 15:48:33
  * Protocol Version: 0.1
  */
 
@@ -75,6 +75,7 @@ typedef enum {
     NCOM_MSG_SEND_FLAG = 50,
     NCOM_MSG_ASSIGN_FLAG_BIT = 51,
     NCOM_MSG_CLEAR_FLAG = 52,
+    NCOM_MSG_HYDROPHONE_STATUS = 70,
     NCOM_MSG_INIT_ERROR = 240,
     NCOM_MSG_HARDFAULT_ERROR = 241,
     NCOM_MSG_DYING_GASP = 255,
@@ -137,6 +138,7 @@ typedef enum {
 #define NCOM_ACKNOWLEDGEMENT_RESPONSE_NACK 0
 #define NCOM_ACKNOWLEDGEMENT_RESPONSE_ACK 15
 #define NCOM_ACKNOWLEDGEMENT_RESPONSE_INVALID_PARAMETER 240
+#define NCOM_ACKNOWLEDGEMENT_RESPONSE_NO_HANDLER 252
 #define NCOM_ACKNOWLEDGEMENT_RESPONSE_UNKNOWN_ERROR 255
 
 #define NCOM_SET_POINT_UNITS_M 0
@@ -340,6 +342,10 @@ typedef enum {
 
 #define NCOM_ASSIGN_FLAG_BIT_BIT_INTERRUPT_DISABLED 0
 #define NCOM_ASSIGN_FLAG_BIT_BIT_INTERRUPT_ENABLED 255
+
+#define NCOM_FLAG_HYDROPHONE_STATUS_SIGNAL_DETECTED (1 << 0)
+#define NCOM_FLAG_HYDROPHONE_STATUS_CLIPPING (1 << 1)
+#define NCOM_FLAG_HYDROPHONE_STATUS_ADC_ERROR (1 << 2)
 
 #define NCOM_INIT_ERROR_ERROR_CODE_IMU_INIT_ERR 0
 #define NCOM_INIT_ERROR_ERROR_CODE_MAG_INIT_ERR 1
@@ -591,6 +597,14 @@ typedef struct __attribute__((packed)) {
 } NCOM_Payload_CLEAR_FLAG_t;
 #define NCOM_LEN_CLEAR_FLAG 1
 
+// ID 70: Acoustic telemetry and hydrophone processing status
+typedef struct __attribute__((packed)) {
+    uint32_t dominant_freq_hz;
+    float peak_magnitude;
+    uint8_t status_flags;
+} NCOM_Payload_HYDROPHONE_STATUS_t;
+#define NCOM_LEN_HYDROPHONE_STATUS 9
+
 // ID 240: Sent when an error occurs during initialization
 typedef struct __attribute__((packed)) {
     uint8_t error_code;
@@ -673,6 +687,8 @@ size_t ncom_pack_assign_flag_bit(uint8_t *buf, const NCOM_Payload_ASSIGN_FLAG_BI
 size_t ncom_unpack_assign_flag_bit(const uint8_t *buf, NCOM_Payload_ASSIGN_FLAG_BIT_t *msg);
 size_t ncom_pack_clear_flag(uint8_t *buf, const NCOM_Payload_CLEAR_FLAG_t *msg);
 size_t ncom_unpack_clear_flag(const uint8_t *buf, NCOM_Payload_CLEAR_FLAG_t *msg);
+size_t ncom_pack_hydrophone_status(uint8_t *buf, const NCOM_Payload_HYDROPHONE_STATUS_t *msg);
+size_t ncom_unpack_hydrophone_status(const uint8_t *buf, NCOM_Payload_HYDROPHONE_STATUS_t *msg);
 size_t ncom_pack_init_error(uint8_t *buf, const NCOM_Payload_INIT_ERROR_t *msg);
 size_t ncom_unpack_init_error(const uint8_t *buf, NCOM_Payload_INIT_ERROR_t *msg);
 size_t ncom_pack_hardfault_error(uint8_t *buf, const NCOM_Payload_HARDFAULT_ERROR_t *msg);
